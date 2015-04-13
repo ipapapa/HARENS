@@ -1,0 +1,213 @@
+#include "CPP_Pipeline_Main.h"
+using namespace std;
+
+namespace CPP_Pipeline_Namespace {
+
+	const int BUFFER_NUM = 2;
+	const uint MAX_BUFFER_LEN = 4090 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
+	const uint MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
+
+	uint file_length;
+	RedundancyEliminator_CPP re;
+	ifstream ifs;
+	//syncronize
+	mutex buffer_mutex[2], chunking_result_mutex[2];		//lock for buffer and chunking_result
+	bool buffer_obsolete[2] = { true, true }, chunking_result_obsolete[2] = { true, true };	//state of buffer and chunking_result
+	bool no_more_input = false;
+	bool no_more_chunking_result = false;
+	//shared data
+	char overlap[WINDOW_SIZE - 1];
+	char** buffer = new char*[BUFFER_NUM];	//two buffers
+	uint buffer_len[] = { 0, 0 };
+	deque<uint>* chunking_result = new deque<uint>[2];
+	//Result
+	uint total_duplication_size = 0;
+	//Time
+	clock_t start_read, start_chunk, start_fin;
+	float tot_read = 0, tot_chunk = 0, tot_fin = 0;
+
+	int CPP_Pipeline_Main(int argc, char* argv[])
+	{
+		clock_t start = clock();
+		cout << "\n================== Pipeline Version of C++ Implementation ===================\n";
+		if (argc != 2) {
+			cout << "You used " << argc << " variables\n";
+			cout << "Usage: " << argv[0] << " <filename>\n";
+			system("pause");
+			return -1;
+		}
+		ifs = ifstream(argv[1], ios::in | ios::binary | ios::ate);
+		if (!ifs.is_open()) {
+			cout << "Can not open file " << argv[1] << endl;
+			system("pause");
+			return -1;
+		}
+
+		file_length = ifs.tellg();
+		ifs.seekg(0, ifs.beg);
+
+		cout << "File size: " << file_length / 1024 << " KB\n";
+
+		for (int i = 0; i < BUFFER_NUM; ++i)
+			buffer[i] = new char[MAX_BUFFER_LEN];
+
+		//Create threads 
+		thread tReadFile(CPP_ReadFile);
+		thread tChunking(CPP_Chunking);
+		thread tFingerprinting(CPP_Fingerprinting);
+
+		tReadFile.join();
+		tChunking.join();
+		tFingerprinting.join();
+
+		cout << "Found " << total_duplication_size << " bytes of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
+
+		//delete everything that mallocated before
+		ifs.close();
+		for (int i = 0; i < BUFFER_NUM; ++i)
+			delete[] buffer[i];
+		delete[] buffer;
+
+		clock_t end = clock();
+		cout << "Reading time: " << tot_read << " s\n";
+		cout << "Chunking time: " << tot_chunk << " s\n";
+		cout << "Fingerprinting time: " << tot_fin << " s\n";
+		cout << "Total time: " << ((float)end - start) / CLOCKS_PER_SEC << " s\n";
+		cout << "=============================================================================\n";
+
+		return 0;
+	}
+
+	void CPP_ReadFile() {
+		int bufferIdx = 0;
+		uint curFilePos = 0;
+		int curWindowNum;
+		//Read the first part
+		buffer_mutex[bufferIdx].lock();
+		start_read = clock();
+		buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
+		curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
+		ifs.read(buffer[bufferIdx], buffer_len[bufferIdx]);
+		buffer_obsolete[bufferIdx] = false;
+		memcpy(overlap, &buffer[bufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
+		buffer_mutex[bufferIdx].unlock();
+		bufferIdx ^= 1;
+		curFilePos += curWindowNum;
+		tot_read += ((float)clock() - start_read) / CLOCKS_PER_SEC;
+		//Read the rest
+		while (curWindowNum == MAX_WINDOW_NUM) {
+			buffer_mutex[bufferIdx].lock();
+			while (!buffer_obsolete[bufferIdx]) {
+				buffer_mutex[bufferIdx].unlock();
+				this_thread::sleep_for(chrono::microseconds(500));
+				buffer_mutex[bufferIdx].lock();
+			}
+			start_read = clock();
+			buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
+			curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
+			memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+			ifs.read(&buffer[bufferIdx][WINDOW_SIZE - 1], curWindowNum);
+			buffer_obsolete[bufferIdx] = false;
+			memcpy(overlap, &buffer[bufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
+			buffer_mutex[bufferIdx].unlock();
+			bufferIdx ^= 1;
+			curFilePos += curWindowNum;
+			tot_read += ((float)clock() - start_read) / CLOCKS_PER_SEC;
+		}
+		no_more_input = true;
+	}
+
+	void CPP_Chunking() {
+		int bufferIdx = 0;
+		int chunkingResultIdx = 0;
+		while (true) {
+			buffer_mutex[bufferIdx].lock();
+			if (buffer_obsolete[bufferIdx]) {
+				buffer_mutex[bufferIdx].unlock();
+				if (no_more_input)
+					break;
+				this_thread::sleep_for(chrono::microseconds(500));
+				continue;
+			}
+
+			start_chunk = clock();
+
+			deque<uint> currentChunkingResult = re.chunking(buffer[bufferIdx], buffer_len[bufferIdx]);
+			buffer_mutex[bufferIdx].unlock();
+
+			chunking_result_mutex[chunkingResultIdx].lock();
+			while (!chunking_result_obsolete[chunkingResultIdx]) {
+				chunking_result_mutex[chunkingResultIdx].unlock();
+				this_thread::sleep_for(chrono::microseconds(500));
+				chunking_result_mutex[chunkingResultIdx].lock();
+			}
+			chunking_result[chunkingResultIdx] = currentChunkingResult;
+			chunking_result_obsolete[chunkingResultIdx] = false;
+			chunking_result_mutex[chunkingResultIdx].unlock();
+			chunkingResultIdx ^= 1;
+
+			bufferIdx ^= 1;
+			tot_chunk += ((float)clock() - start_chunk) / CLOCKS_PER_SEC;
+		}
+		no_more_chunking_result = true;
+	}
+
+	void CPP_Fingerprinting() {
+		int bufferIdx = 0;
+		int chunkingResultIdx = 0;
+		//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
+		while (true) {
+			lock<mutex, mutex>(buffer_mutex[bufferIdx], chunking_result_mutex[chunkingResultIdx]);
+			lock_guard<mutex> lk1(buffer_mutex[bufferIdx], adopt_lock);
+			lock_guard<mutex> lk2(chunking_result_mutex[chunkingResultIdx], adopt_lock);
+
+			if (buffer_obsolete[bufferIdx] || chunking_result_obsolete[chunkingResultIdx]) {
+				if (no_more_chunking_result)
+					break;
+				this_thread::sleep_for(chrono::microseconds(500));
+				continue;
+			}
+			start_fin = clock();
+
+			total_duplication_size += re.fingerPrinting(chunking_result[chunkingResultIdx], buffer[bufferIdx]);
+			buffer_obsolete[bufferIdx] = true;
+			chunking_result_obsolete[chunkingResultIdx] = true;
+			bufferIdx ^= 1;
+			chunkingResultIdx ^= 1;
+			tot_fin += ((float)clock() - start_fin) / CLOCKS_PER_SEC;
+		}
+	}
+
+	/* old function
+	void TestOfRabinHash(char* fileContent, int fileContentLen) {
+	RabinHash rh;
+	//cout << rh.Hash("kelu") << endl;
+	int windowsize = 32;
+	ulong p = 32;
+	//char currWindow[windowsize];
+
+	set<ulong> hashValueSet;
+	map<int, ulong> chunkMap;
+	int totalBlocks = 0;
+	int chunkNum = 0;
+	char* chunk;
+	const int CHUNK_SIZE = 32;
+	for (int i = 0; i <= fileContentLen - windowsize; i++) {
+	chunk = new char[CHUNK_SIZE];
+	ulong hashValWindow = rh.Hash(chunk, CHUNK_SIZE);
+	hashValueSet.insert(hashValWindow);
+	if (hashValWindow % p == 0) { // marker found
+	int marker = i;
+	chunkMap[marker] = hashValWindow;
+	chunkNum++;
+	}
+	totalBlocks++;
+	delete[] chunk;
+	}
+
+	cout << "Number of Windows :" << totalBlocks << endl;
+	cout << "FingerPrint Map Size :" << hashValueSet.size() << endl;
+	cout << "Number of chunks found :" << chunkNum << endl;
+	}
+	*/
+}
