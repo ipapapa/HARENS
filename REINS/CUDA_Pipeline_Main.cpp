@@ -14,6 +14,7 @@ namespace CUDA_Pipeline_Namespace {
 	bool transfer_end = false;
 	bool chunking_kernel_end = false;
 	bool chunking_proc_end = false;
+	bool chunk_hashing_end = false;
 	//file
 	ifstream fin;
 	uint file_len;
@@ -46,15 +47,26 @@ namespace CUDA_Pipeline_Namespace {
 	array<mutex, STREAM_NUM> chunking_result_mutex;
 	array<condition_variable, STREAM_NUM> chunking_result_cond;
 	array<bool, STREAM_NUM> chunking_result_obsolete;
-	//fingerprinting 
+
+	
+	/*Obsolete*/
+	//chunk hashing
+	array<deque<uchar*>, STREAM_NUM> chunk_hash_values;
+	array<deque<tuple<char*, uint>>, STREAM_NUM> partitioned_chunks;
+	array<mutex, STREAM_NUM> chunk_hashing_mutex;
+	array<condition_variable, STREAM_NUM> chunk_hashing_cond;
+	array<bool, STREAM_NUM> chunk_hashing_obsolete;
+
+
+	//chunk matching 
 	uint total_duplication_size = 0;
 	thread segmentThreads[FINGERPRINTING_THREAD_NUM];
 	//Time
-	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_fp, end_fp;
-	double time = 0, time_r = 0, time_t = 0, time_ck = 0, time_cp = 0, time_fp = 0;
+	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm, start_fp, end_fp;
+	double time = 0, time_r = 0, time_t = 0, time_ck = 0, time_cp = 0, time_ch, time_cm, time_fp = 0;
 	
 	int CUDA_Pipeline_Main(int argc, char* argv[]) {
-		cout << "\n================== Pipeline Version of CUDA Implementation ==================\n";
+		cout << "\n============ CUDA Implementation With Pipeline and Circular Queue ============\n";
 		if (argc != 2) {
 			printf("Usage: %s <filename>\n", argv[0]);
 			return -1;
@@ -92,6 +104,10 @@ namespace CUDA_Pipeline_Namespace {
 			cudaStreamCreate(&stream[i]);
 			chunking_result_obsolete[i] = true;
 		}
+		//initialize chunk hashing
+		for (int i = 0; i < STREAM_NUM; ++i) {
+			chunk_hashing_obsolete[i] = true;
+		}
 
 		start = clock();
 
@@ -100,6 +116,8 @@ namespace CUDA_Pipeline_Namespace {
 		thread tTransfer(Transfer);
 		thread tChunkingKernel(ChunkingKernel);
 		thread tChunkingResultProc(ChunkingResultProc);
+		/*thread tChunkHashing(ChunkHashing);
+		thread tChunkMatching(ChunkMatching);*/  
 		thread tFingerprinting;
 		tFingerprinting = thread(MultiFingerprinting);
 
@@ -107,6 +125,8 @@ namespace CUDA_Pipeline_Namespace {
 		tTransfer.join();
 		tChunkingKernel.join();
 		tChunkingResultProc.join();
+		/*tChunkHashing.join();
+		tChunkMatching.join();*/
 		tFingerprinting.join();
 
 		end = clock();
@@ -116,13 +136,17 @@ namespace CUDA_Pipeline_Namespace {
 		printf("Transfer time: %f ms\n", time_t);
 		printf("Chunking kernel time: %f ms\n", time_ck);
 		printf("Chunking processing time: %f ms\n", time_cp);
-		printf("Fingerprinting time: %f ms\n", time_fp);
+		printf("Chunk hashing time: %f ms\n", time_ch);
+		printf("Chunk matching time %f ms\n", time_cm);
+		//printf("Fingerprinting time: %f ms\n", time_fp);
 		printf("Total time: %f ms\n", time);
 		printf("Found %d bytes of redundancy, which is %f percent of file\n", total_duplication_size, total_duplication_size * 100.0 / file_len);
 		
+		for (int i = 0; i < STREAM_NUM; ++i) {
+			cudaStreamDestroy(stream[i]);
+		}
 		//destruct chunking kernel ascychronize
 		for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
-			cudaStreamDestroy(stream[i]);
 			cudaFree(input_kernel[i]);
 			cudaFree(result_kernel[i]);
 			cudaFreeHost(result_host[i]);
@@ -291,6 +315,87 @@ namespace CUDA_Pipeline_Namespace {
 			resultHostIdx = (resultHostIdx + 1) % FIXED_BUFFER_NUM;
 			end_cp = clock();
 			time_cp += (end_cp - start_cp) * 1000 / CLOCKS_PER_SEC;
+		}
+	}
+
+	/*Obsolete*/
+	void ChunkHashing() {
+		int pagableBufferIdx = 0;
+		int chunkingResultIdx = 0;
+		while (true) {
+			//Get pagable buffer ready
+			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
+			while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
+				if (chunking_proc_end) {
+					chunk_hashing_end = true;
+					return;
+				}
+				pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
+			}
+			//Get the chunking result ready
+			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
+			while (chunking_result_obsolete[chunkingResultIdx] == true) {
+				if (chunking_proc_end) {
+					chunk_hashing_end = true;
+					return;
+				}
+				chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
+			}
+			//Get the chunk hash values and partitioned chunks ready
+			unique_lock<mutex> chunkHasingLock(chunk_hashing_mutex[chunkingResultIdx]);
+			while (chunk_hashing_obsolete[chunkingResultIdx] == false) {
+				chunk_hashing_cond[chunkingResultIdx].wait(chunkHasingLock);
+			}
+
+			start_ch = clock();
+			re.ChunkHashing(chunking_result[chunkingResultIdx], pagable_buffer[pagableBufferIdx], 
+				chunk_hash_values[chunkingResultIdx], partitioned_chunks[chunkingResultIdx]);
+
+			chunking_result[chunkingResultIdx].clear();
+			chunking_result_obsolete[chunkingResultIdx] = true;
+			chunk_hashing_obsolete[chunkingResultIdx] = false;
+			pagableLock.unlock();
+			pagable_buffer_obsolete[pagableBufferIdx] = true;
+			pagable_buffer_cond[pagableBufferIdx].notify_one();
+			chunkingResultLock.unlock();
+			chunking_result_cond[chunkingResultIdx].notify_one();
+			chunkHasingLock.unlock();
+			chunk_hashing_cond[chunkingResultIdx].notify_one();
+
+			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+			chunkingResultIdx = (chunkingResultIdx + 1) % STREAM_NUM;
+			end_ch = clock();
+			time_ch += (end_ch - start_ch) * 1000 / CLOCKS_PER_SEC;
+		}
+	}
+
+	/*Obsolete*/
+	void ChunkMatching() {
+		int pagableBufferIdx = 0;
+		int chunkingResultIdx = 0;
+		while (true) {
+			//No need to lock the pagable buffer
+			//Get the chunk hash values and partitioned chunks ready
+			unique_lock<mutex> chunkHashingLock(chunk_hashing_mutex[chunkingResultIdx]);
+			while (chunk_hashing_obsolete[chunkingResultIdx] == true) {
+				if (chunk_hashing_end) {
+					return;
+				}
+				chunk_hashing_cond[chunkingResultIdx].wait(chunkHashingLock);
+			}
+
+			start_cm = clock();
+			total_duplication_size += re.ChunkMatching(chunk_hash_values[chunkingResultIdx], partitioned_chunks[chunkingResultIdx]);
+
+			//Set pagable buffer to obsolete and notify the thread waiting fot it
+			chunk_hashing_obsolete[chunkingResultIdx] = true;
+			chunkHashingLock.unlock();
+			chunk_hashing_cond[chunkingResultIdx].notify_one();
+
+			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+			chunkingResultIdx = (chunkingResultIdx + 1) % STREAM_NUM;
+			end_cm = clock();
+			time_cm += (end_cm - start_cm) * 1000 / CLOCKS_PER_SEC;
 		}
 	}
 

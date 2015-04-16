@@ -42,6 +42,7 @@
     <ClCompile Include="VirtualHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CircularHash.h">

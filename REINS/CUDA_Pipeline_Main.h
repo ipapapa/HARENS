@@ -11,7 +11,7 @@
 #include <chrono>
 #include <deque>
 #include <condition_variable>
-#include <cuda_runtime_api.h>
+#include <cuda_runtime_api.h> 
 #include <cuda.h>
 #include "RabinHash.h"
 #include "RedundancyEliminator_CUDA.h"
@@ -22,6 +22,8 @@ namespace CUDA_Pipeline_Namespace {
 	void Transfer();
 	void ChunkingKernel();
 	void ChunkingResultProc();
+	void ChunkHashing();
+	void ChunkMatching();
 	void Fingerprinting();
 	void MultiFingerprinting();
 	void FingerprintingSegment(int bufferIdx, int chunkingResultIdx, int segmentNum);

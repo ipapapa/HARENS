@@ -249,32 +249,32 @@ void RedundancyEliminator_CUDA::ChunkHashingAscyn(uint* indices, int indicesNum,
 }
 
 uint RedundancyEliminator_CUDA::fingerPrinting(deque<uint> indexQ, char* package) {
-	/*deque<uchar*> hashValues;
+	deque<uchar*> hashValues;
 	deque<tuple<char*, uint>> chunks;
 	ChunkHashing(indexQ, package, hashValues, chunks);
-	return ChunkMatching(hashValues, chunks);*/
-	uint duplicationSize = 0;
-	uint prevIdx = 0;
-	char* chunk;
-	for (deque<uint>::const_iterator iter = indexQ.begin(); iter != indexQ.end(); ++iter) {
-		if (prevIdx == 0) {
-			prevIdx = *iter;
-			continue;
-		}
-		uint chunkLen = *iter - prevIdx;
-		chunk = &(package[prevIdx]);
+	return ChunkMatching(hashValues, chunks);
+	//uint duplicationSize = 0;
+	//uint prevIdx = 0;
+	//char* chunk;
+	//for (deque<uint>::const_iterator iter = indexQ.begin(); iter != indexQ.end(); ++iter) {
+	//	if (prevIdx == 0) {
+	//		prevIdx = *iter;
+	//		continue;
+	//	}
+	//	uint chunkLen = *iter - prevIdx;
+	//	chunk = &(package[prevIdx]);
 
-		//Mind! never use sizeof(chunk) to check the chunk size
-		uchar* chunkHash = computeChunkHash(chunk, chunkLen);
-		if (circHash->Find(chunkHash)) { //find duplications
-			duplicationSize += chunkLen;
-		}
-		else {
-			addNewChunk(chunkHash, chunk, chunkLen);
-		}
-		prevIdx = *iter;
-	}
-	return duplicationSize;
+	//	//Mind! never use sizeof(chunk) to check the chunk size
+	//	uchar* chunkHash = computeChunkHash(chunk, chunkLen);
+	//	if (circHash->Find(chunkHash)) { //find duplications
+	//		duplicationSize += chunkLen;
+	//	}
+	//	else {
+	//		addNewChunk(chunkHash, chunk, chunkLen);
+	//	}
+	//	prevIdx = *iter;
+	//}
+	//return duplicationSize;
 }
 
 void RedundancyEliminator_CUDA::RabinHashAsync(char* inputKernel, char* inputHost, uint inputLen, ulong* resultKernel, ulong* resultHost, cudaStream_t stream) {
