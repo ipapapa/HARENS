@@ -5,7 +5,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 	//constants
 	const uint MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
 	const uint MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
-	const int FINGERPRINTING_THREAD_NUM = 2;
+	const int FINGERPRINTING_THREAD_NUM = 4;
 	//threads
 	int thread_num;
 	thread* worker_threads;
@@ -19,7 +19,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 	//fixed buffer
 	char** fixed_buffer;
 	//RedundancyEliminator_CUDA
-	RedundancyEliminator_CUDA re(RedundancyEliminator_CUDA::MultiFingerprint);
+	RedundancyEliminator_CUDA re;
 	//rabin hash kernel asynchronize
 	char** input_kernel;
 	ulong** result_kernel;
@@ -31,10 +31,11 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 	//chunk hashing & matching
 	uint total_duplication_size = 0;
 	thread** segment_threads;
-	deque<tuple<uchar*, uint>>** hash_value_queue;	//This is only for simulation, in real case don't need the "uint chunk length"
-	mutex** hash_value_queue_mutex;
+	uchar*** chunk_hashing_value_list;
+	uint*** chunk_len_list;	//This is only for simulation, in real case don't need the "uint chunk length"
+	mutex** chunk_hash_mutex;
 	//Circular querying hash
-	CircularHash circ_hash(MAX_CHUNK_NUM);
+	CircularHash circ_hash;
 	thread ascyn_matching_threads;
 	bool kill_ascyn_matching = false;
 	mutex kill_ascyn_matching_mutex;
@@ -43,7 +44,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 	double time = 0, time_r = 0, time_t = 0, time_rhk = 0, time_c = 0, time_fp = 0;
 
 	int CUDA_Pipeline_PushMod_Main(int argc, char* argv[]) {
-		cout << "\n======= Push Mode CUDA Implementation With Pipeline and Circular Queue =======\n";
+		cout << "\n============= CUDA Implementation With Pipeline and Round Query =============\n";
 		if (argc != 2) {
 			printf("Usage: %s <filename>\n", argv[0]);
 			return -1;
@@ -62,6 +63,8 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		thread_num = (file_len - WINDOW_SIZE + 1 + MAX_WINDOW_NUM - 1) / MAX_WINDOW_NUM;
 		worker_threads = new thread[thread_num];
 
+		re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::MultiFingerprint);
+		circ_hash.SetupCircularHash(MAX_CHUNK_NUM);
 		//initialize pagable buffer
 		pagable_buffer = new char*[thread_num];
 		buffer_len = new uint[thread_num];
@@ -92,19 +95,26 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		}
 		//initialize chunk hashing & matching
 		segment_threads = new thread*[thread_num];
-		hash_value_queue = new deque<tuple<uchar*, uint>>*[thread_num];
-		hash_value_queue_mutex = new mutex*[thread_num];
+		chunk_hashing_value_list = new uchar**[thread_num];
+		chunk_len_list = new uint**[thread_num];
+		chunk_hash_mutex = new mutex*[thread_num];
 		for (int i = 0; i < thread_num; ++i) {
 			segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
-			hash_value_queue[i] = new deque<tuple<uchar*, uint>>[FINGERPRINTING_THREAD_NUM];
-			hash_value_queue_mutex[i] = new mutex[FINGERPRINTING_THREAD_NUM];
+			chunk_hashing_value_list[i] = new uchar*[FINGERPRINTING_THREAD_NUM];
+			chunk_len_list[i] = new uint*[FINGERPRINTING_THREAD_NUM];
+			chunk_hash_mutex[i] = new mutex[FINGERPRINTING_THREAD_NUM];
+			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
+				//MAX_WINDOW_NUM / 2 is a guess of the upper bound of the number of chunks
+				chunk_hashing_value_list[i][j] = new uchar[MAX_WINDOW_NUM / 2 * SHA256_DIGEST_LENGTH];
+				chunk_len_list[i][j] = new uint[MAX_WINDOW_NUM / 2];
+			}
 		}
 
 		start = clock();
 
 		//Boost the engine
 		Boost();
-		ascyn_matching_threads = thread(CircularQuery);
+		ascyn_matching_threads = thread(RoundQuery);
 		for (int i = 0; i < thread_num; ++i)
 			worker_threads[i].join();
 
@@ -126,18 +136,26 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 
 		//destruct chunk hashing & matching
 		for (int i = 0; i < thread_num; ++i) {
+			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
+				delete[] chunk_hashing_value_list[i][j];
+				delete[] chunk_len_list[i][j];
+			}
 			delete[] segment_threads[i];
-			delete[] hash_value_queue[i];
-			delete[] hash_value_queue_mutex[i];
+			delete[] chunk_hashing_value_list[i];
+			delete[] chunk_len_list[i];
+			delete[] chunk_hash_mutex[i];
 		}
 		delete[] segment_threads;
-		delete[] hash_value_queue;
-		delete[] hash_value_queue_mutex;
+		delete[] chunk_hashing_value_list;
+		delete[] chunk_len_list;
+		delete[] chunk_hash_mutex;
 		//destruct chunking
 		for (int i = 0; i < thread_num; ++i) {
 			cudaStreamDestroy(stream[i]);
+			delete[] chunking_result[i];
 		}
 		delete[] stream;
+		delete[] chunking_result;
 		//destruct rabin hash ascychronize
 		for (int i = 0; i < thread_num; ++i) {
 			cudaFree(input_kernel[i]);
@@ -234,10 +252,11 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		if ((segmentNum + 1) * size / FINGERPRINTING_THREAD_NUM > size)
 			segLen = size - segmentNum * size / FINGERPRINTING_THREAD_NUM;
 		re.ChunkHashingAscyn(chunkingResultSeg, segLen, pagable_buffer[threadIdx],
-			hash_value_queue[threadIdx][segmentNum], hash_value_queue_mutex[threadIdx][segmentNum]);
+			chunk_hashing_value_list[threadIdx][segmentNum], 
+			chunk_len_list[threadIdx][segmentNum], chunk_hash_mutex[threadIdx][segmentNum]);
 	}
 
-	void CircularQuery() {
+	void RoundQuery() {
 		bool noHashValueFound;
 		tuple<uchar*, uint> empty = tuple<uchar*, uint>(new uchar(' '), -1);
 		uchar* hashValue;
@@ -247,13 +266,13 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 			for (int threadIdx = 0; threadIdx < thread_num; ++threadIdx) {
 				for (int segmentNum = 0; segmentNum < FINGERPRINTING_THREAD_NUM; ++segmentNum) {
 					tuple<uchar*, uint> hashValueAndLen = empty;
-					hash_value_queue_mutex[threadIdx][segmentNum].lock();
-					if (!hash_value_queue[threadIdx][segmentNum].empty()) {
+					chunk_hash_mutex[threadIdx][segmentNum].lock();
+					/*if (!hash_value_queue[threadIdx][segmentNum].empty()) {
 						hashValueAndLen = hash_value_queue[threadIdx][segmentNum].front();
 						hash_value_queue[threadIdx][segmentNum].pop_front();
 						noHashValueFound = false;
-					}
-					hash_value_queue_mutex[threadIdx][segmentNum].unlock();
+					}*/
+					chunk_hash_mutex[threadIdx][segmentNum].unlock();
 
 					hashValue = get<0>(hashValueAndLen);
 					chunkLen = get<1>(hashValueAndLen);

@@ -48,6 +48,8 @@ namespace CPP_Pipeline_Namespace {
 
 		cout << "File size: " << file_length / 1024 << " KB\n";
 
+		re.SetupRedundancyEliminator_CPP();
+
 		for (int i = 0; i < BUFFER_NUM; ++i)
 			buffer[i] = new char[MAX_BUFFER_LEN];
 

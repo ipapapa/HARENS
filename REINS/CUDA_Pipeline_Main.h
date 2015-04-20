@@ -26,7 +26,7 @@ namespace CUDA_Pipeline_Namespace {
 	void ChunkMatching();
 	void Fingerprinting();
 	void MultiFingerprinting();
-	void FingerprintingSegment(int bufferIdx, int chunkingResultIdx, int segmentNum);
+	void FingerprintingSegment(int chunkingResultIdx, int segmentNum);
 
 	int CUDA_Pipeline_Main(int argc, char* argv[]);
 }

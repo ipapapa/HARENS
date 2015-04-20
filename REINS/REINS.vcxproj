@@ -29,6 +29,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RabinHash.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP.cpp" />
+    <ClCompile Include="RoundQueryPool.cpp" />
     <ClCompile Include="VirtualHash.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -43,6 +44,7 @@
     <ClInclude Include="RabinHash.h" />
     <ClInclude Include="RedundancyEliminator_CPP.h" />
     <ClInclude Include="RedundancyEliminator_CUDA.h" />
+    <ClInclude Include="RoundQueryPool.h" />
     <ClInclude Include="VirtualHash.h" />
   </ItemGroup>
   <ItemGroup>

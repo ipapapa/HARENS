@@ -30,22 +30,27 @@ private:
 
 	//Add a new chunk into cache, if hash value queue is full also delete the oldest chunk
 	void addNewChunk(uchar* hashValue, char* chunk, uint chunkSize);
-	inline uchar* computeChunkHash(char* chunk, uint chunkSize);
+	/*Take chunk and chunk size as input, hashValue as output*/
+	inline void computeChunkHash(char* chunk, uint chunkSize, uchar* hashValue);
 public:
 	ulong *kernelTA, *kernelTB, *kernelTC, *kernelTD;
 	enum Type {MultiFingerprint, NonMultifingerprint};
 
 	//deque<uint> chunking(char* kernelInput, uint inputLen, ulong *resultHost);
-	void ChunkHashing(deque<uint> indexQ, char* package, deque<uchar*> &hashValues, deque<tuple<char*, uint>> &chunks);
+	void ChunkHashing(uint* indices, int indicesNum, char* package,
+		char** chunkList, uchar** chunkHashValueList, uint* chunkLenList);
 	uint ChunkMatching(deque<uchar*> &hashValues, deque<tuple<char*, uint>> &chunks);
 	/*deque<tuple<uchar*, uint>> is for simulation, deque<uchar*> for real case*/
-	void ChunkHashingAscyn(uint* indices, int indicesNum, char* package, deque<tuple<uchar*, uint>> &hashValueQ, mutex &hashValueQMutexs);
+	void ChunkHashingAscyn(uint* indices, int indicesNum, char* package, 
+		uchar* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex);
 	uint fingerPrinting(deque<uint> indexQ, char* package);
-	void RabinHashAsync(char* inputKernel, char* inputHost, uint inputLen, ulong* resultKernel, ulong* resultHost, cudaStream_t stream);
+	void RabinHashAsync(char* inputKernel, char* inputHost, uint inputLen, 
+		ulong* resultKernel, ulong* resultHost, cudaStream_t stream);
 
 	uint eliminateRedundancy(char* package, uint packageSize);
 	RedundancyEliminator_CUDA() {}
 	RedundancyEliminator_CUDA(Type type);
+	void SetupRedundancyEliminator_CUDA(Type type);
 	~RedundancyEliminator_CUDA();
 };
 

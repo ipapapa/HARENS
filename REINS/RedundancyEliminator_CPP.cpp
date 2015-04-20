@@ -1,7 +1,12 @@
 #include "RedundancyEliminator_CPP.h"
 
-RedundancyEliminator_CPP::RedundancyEliminator_CPP() : circHash(MAX_CHUNK_NUM) {
+RedundancyEliminator_CPP::RedundancyEliminator_CPP() {
+	//moved the content to setup function to avoid the duplicated dynamic initializer
+}
+
+void RedundancyEliminator_CPP::SetupRedundancyEliminator_CPP() {
 	hashFunc = RabinHash();
+	circHash.SetupCircularHash(MAX_CHUNK_NUM);
 	//The real software need to generate a initial file named 0xFF here
 	//Check Circular.cpp to see the reason
 }

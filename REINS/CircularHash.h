@@ -9,7 +9,9 @@ private:
 	charPtMap map;
 
 public:
+	CircularHash() {}
 	CircularHash(uint _size);
+	void SetupCircularHash(uint _size);
 	~CircularHash();
 	uchar* Add(uchar* hashValue);
 	bool Find(uchar* hashValue);

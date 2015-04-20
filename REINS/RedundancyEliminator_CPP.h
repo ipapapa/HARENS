@@ -23,5 +23,6 @@ public:
 	uint fingerPrinting(deque<uint> indexQ, char* package);
 	uint eliminateRedundancy(char* package, uint packageSize);
 	RedundancyEliminator_CPP();
+	void SetupRedundancyEliminator_CPP();
 	~RedundancyEliminator_CPP();
 };

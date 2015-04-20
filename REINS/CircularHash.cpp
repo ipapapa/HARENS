@@ -4,6 +4,12 @@ CircularHash::CircularHash(uint _size) : VirtualHash(_size), circularQueue(_size
 {
 }
 
+void CircularHash::SetupCircularHash(uint _size) {
+	SetupVirtualHash(_size);
+	circularQueue.SetupCircularQueue(_size);
+	map = charPtMap(_size);
+}
+
 
 CircularHash::~CircularHash()
 {

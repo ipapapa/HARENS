@@ -43,6 +43,14 @@ protected:
 			rear = 0;
 			queue[rear] = NULL;
 		}
+		
+		void SetupCircularQueue(int _size) {
+			size = _size;
+			queue = new uchar*[size];
+			front = 0;
+			rear = 0;
+			queue[rear] = NULL;
+		}
 
 		uchar* Add(uchar* hashValue) {
 			uchar* to_be_del = NULL;
@@ -69,6 +77,7 @@ protected:
 public:
 	VirtualHash() {}
 	VirtualHash(uint _size);
+	void SetupVirtualHash(uint _size);
 	~VirtualHash();
 
 	virtual uchar* Add(uchar* hashValue) = 0;

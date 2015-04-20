@@ -44,6 +44,7 @@ namespace CPP_Namespace {
 
 	void CPP_TestOfRabinFingerprint(char* fileContent, uint fileContentLen) {
 		RedundancyEliminator_CPP re;
+		re.SetupRedundancyEliminator_CPP();
 		uint duplicationSize = re.eliminateRedundancy(fileContent, fileContentLen);
 		cout << "Found " << duplicationSize << " bytes of redundency, which is " << (float)duplicationSize / fileContentLen * 100 << " percent of file\n";
 	}
