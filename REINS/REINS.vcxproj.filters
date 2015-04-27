@@ -43,9 +43,6 @@
       <Filter>Basic Functions</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="RoundQueryPool.cpp">
-      <Filter>Basic Functions</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CircularHash.h">
@@ -84,7 +81,7 @@
     <ClInclude Include="VirtualHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
-    <ClInclude Include="RoundQueryPool.h">
+    <ClInclude Include="CircularQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
   </ItemGroup>

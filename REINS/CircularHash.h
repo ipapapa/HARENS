@@ -1,11 +1,12 @@
 #pragma once
 #include <openssl/sha.h>
 #include "VirtualHash.h"
+#include "CircularQueue.h"
 #include "Definition.h"
 
 class CircularHash : public VirtualHash {
 private:
-	CircularQueue circularQueue;
+	CircularQueue<uchar*> circularQueue;
 	charPtMap map;
 
 public:

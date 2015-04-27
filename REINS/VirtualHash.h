@@ -1,6 +1,4 @@
 #pragma once
-#include <unordered_map>
-#include <openssl/sha.h>
 #include "Definition.h"
 
 class VirtualHash
@@ -26,48 +24,6 @@ protected:
 			}
 
 			return hash & (0x7FFFFFFF);
-		}
-	};
-
-	struct CircularQueue {
-		uchar** queue;
-		int front, rear;	//rear point to the last used entry
-		uint size;
-
-		CircularQueue() {}
-
-		CircularQueue(int _size) {
-			size = _size;
-			queue = new uchar*[size];
-			front = 0;
-			rear = 0;
-			queue[rear] = NULL;
-		}
-		
-		void SetupCircularQueue(int _size) {
-			size = _size;
-			queue = new uchar*[size];
-			front = 0;
-			rear = 0;
-			queue[rear] = NULL;
-		}
-
-		uchar* Add(uchar* hashValue) {
-			uchar* to_be_del = NULL;
-			if ((rear + 1) % size == front) {
-				to_be_del = queue[front];
-				front = (front + 1) % size;
-			}
-			rear = (rear + 1) % size;
-			return to_be_del;
-		}
-
-		~CircularQueue() {
-			while (front != rear) {
-				delete[] queue[front];
-				front = (front + 1) % size;
-			}
-			delete[] queue;
 		}
 	};
 
