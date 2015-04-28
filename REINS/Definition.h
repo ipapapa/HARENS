@@ -1,4 +1,24 @@
 #pragma once
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <iostream>
+#include <fstream>
+#include <set>
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
+#include <array>
+#include <list>
+#include <deque>
+#include <string>
+#include <time.h>
+#include <algorithm>
+#include <mutex>
+#include <thread>
+#include <chrono>
+#include <deque>
+#include <condition_variable>
 #include <unordered_map>
 #include <openssl/sha.h>
 

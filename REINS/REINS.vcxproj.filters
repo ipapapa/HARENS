@@ -81,6 +81,9 @@
     <ClInclude Include="VirtualHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
+    <ClInclude Include="SelfMantainedCircularQueue.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
     <ClInclude Include="CircularQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>

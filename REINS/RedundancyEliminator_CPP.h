@@ -1,11 +1,4 @@
 #pragma once
-#include <unordered_set>
-#include <list>
-#include <deque>
-#include <string>
-#include <stdio.h>
-#include <fstream>
-#include <openssl/sha.h>
 #include "RabinHash.h"
 #include "CircularHash.h"
 #include "Definition.h"

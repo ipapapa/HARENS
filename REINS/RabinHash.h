@@ -1,8 +1,4 @@
 #pragma once
-#include <iostream>
-#include <time.h>
-#include <stdlib.h>
-#include <string>
 #include "Definition.h"
 using namespace std;
 

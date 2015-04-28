@@ -6,7 +6,7 @@ CircularHashPool::CircularHashPool(uint _size) : VirtualHash(_size)
 	for (auto& segPool : mapPool)
 		segPool = charPtMap(size / POOL_SEGMENT_NUM);
 	for (auto& segQueue : circularQueuePool)
-		segQueue = CircularQueue<uchar*>(size / POOL_SEGMENT_NUM);
+		segQueue = SelfMantainedCircularQueue<uchar*>(size / POOL_SEGMENT_NUM);
 }
 
 

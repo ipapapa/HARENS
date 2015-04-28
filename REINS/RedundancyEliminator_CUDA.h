@@ -1,15 +1,7 @@
 #pragma once
-#include <unordered_set>
-#include <list>
-#include <deque>
-#include <string>
-#include <cstring>
-#include <stdio.h>
-#include <fstream>
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-#include <openssl/sha.h>
-#include <algorithm>
+#include "CircularQueue.h"
 #include "RabinHash.h"
 #include "CircularHash.h"
 #include "CircularHashPool.h"
@@ -43,6 +35,8 @@ public:
 	/*deque<tuple<uchar*, uint>> is for simulation, deque<uchar*> for real case*/
 	void ChunkHashingAscyn(uint* indices, int indicesNum, char* package, 
 		uchar* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex);
+	void ChunkHashingAscynWithCircularQueue(uint* indices, int indicesNum, char* package,
+		CircularQueue<uchar*> chunkHashValueQ, CircularQueue<uint> chunkLenQ, mutex &chunkMutex);
 	uint fingerPrinting(deque<uint> indexQ, char* package);
 	void RabinHashAsync(char* inputKernel, char* inputHost, uint inputLen, 
 		ulong* resultKernel, ulong* resultHost, cudaStream_t stream);

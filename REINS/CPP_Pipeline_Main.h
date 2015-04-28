@@ -1,16 +1,4 @@
 #pragma once
-#include <iostream>
-#include <fstream>
-#include <set>
-#include <map>
-#include <algorithm>
-#include <string>
-#include <time.h>
-#include <mutex>
-#include <thread>
-#include <chrono>
-#include <condition_variable>
-#include <stdio.h>
 #include "RabinHash.h"
 #include "RedundancyEliminator_CPP.h"
 

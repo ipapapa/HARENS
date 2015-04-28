@@ -50,8 +50,8 @@ namespace CUDA_Pipeline_Namespace {
 	array<bool, STREAM_NUM> chunking_result_obsolete;
 	//chunk hashing
 	array<thread*, STREAM_NUM> segment_threads;
-	array<uchar**, STREAM_NUM> chunk_hashing_value_list;
-	array<uint**, STREAM_NUM> chunk_len_list;	//This is only for simulation, in real case don't need the "chunk length"
+	array<array<CircularQueue<uchar*>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hashing_value_queue;
+	array<array<CircularQueue<uint>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_len_queue;	//This is only for simulation, in real case don't need the "chunk length"
 	array<mutex*, STREAM_NUM> chunk_hash_mutex;
 	//chunk matching 
 	uint total_duplication_size = 0;
@@ -105,13 +105,11 @@ namespace CUDA_Pipeline_Namespace {
 		//initialize chunk hashing
 		for (int i = 0; i < STREAM_NUM; ++i) {
 			segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
-			chunk_hashing_value_list[i] = new uchar*[FINGERPRINTING_THREAD_NUM];
-			chunk_len_list[i] = new uint*[FINGERPRINTING_THREAD_NUM];
 			chunk_hash_mutex[i] = new mutex[FINGERPRINTING_THREAD_NUM];
 			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
 				//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
-				chunk_hashing_value_list[i][j] = new uchar[MAX_WINDOW_NUM / 4 * SHA256_DIGEST_LENGTH];
-				chunk_len_list[i][j] = new uint[MAX_WINDOW_NUM / 4];
+				chunk_hashing_value_queue[i][j] = CircularQueue<uchar*>(MAX_WINDOW_NUM / 4);
+				chunk_len_queue[i][j] = CircularQueue<uint>(MAX_WINDOW_NUM / 4);
 			}
 		}
 
@@ -145,13 +143,7 @@ namespace CUDA_Pipeline_Namespace {
 
 		//destruct chunk hashing & matching
 		for (int i = 0; i < STREAM_NUM; ++i) {
-			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
-				delete[] chunk_hashing_value_list[i][j];
-				delete[] chunk_len_list[i][j];
-			}
 			delete[] segment_threads[i];
-			delete[] chunk_hashing_value_list[i];
-			delete[] chunk_len_list[i];
 			delete[] chunk_hash_mutex[i];
 		}
 		//destruct chunking result proc
@@ -383,9 +375,9 @@ namespace CUDA_Pipeline_Namespace {
 		int segLen = listSize / FINGERPRINTING_THREAD_NUM;
 		if ((segmentNum + 1) * listSize / FINGERPRINTING_THREAD_NUM > listSize)
 			segLen = listSize - segmentNum * listSize / FINGERPRINTING_THREAD_NUM;
-		re.ChunkHashingAscyn(chunkingResultSeg, segLen, pagable_buffer[chunkingResultIdx],
-			chunk_hashing_value_list[chunkingResultIdx][segmentNum], 
-			chunk_len_list[chunkingResultIdx][segmentNum], chunk_hash_mutex[chunkingResultIdx][segmentNum]);
+		/*re.ChunkHashingAscynWithCircularQueue(chunkingResultSeg, segLen, pagable_buffer[chunkingResultIdx],
+			chunk_hashing_value_queue[chunkingResultIdx][segmentNum], 
+			chunk_len_queue[chunkingResultIdx][segmentNum], chunk_hash_mutex[chunkingResultIdx][segmentNum]);*/
 	}
 
 	//void RoundQuery() {

@@ -236,6 +236,31 @@ uint RedundancyEliminator_CUDA::ChunkMatching(deque<uchar*> &hashValues, deque<t
 	return duplicationSize;
 }
 
+void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(uint* indices, int indicesNum, char* package,
+	CircularQueue<uchar*> chunkHashValueQ, CircularQueue<uint> chunkLenQ, mutex &chunkMutex) {
+	//uint duplicationSize = 0;
+	uint prevIdx = 0;
+	char* chunk;
+	uint chunkLen;
+	uchar* chunkHashValue;
+	for (int i = 0; i < indicesNum; ++i) {
+		if (prevIdx == 0) {
+			prevIdx = indices[i];
+			continue;
+		}
+		chunk = &(package[prevIdx]);
+		chunkLen = indices[i] - prevIdx;
+		chunkLenQ.Push(chunkLen);
+		chunkHashValue = chunkHashValueQ.LatentPush();
+
+		//Mind! never use sizeof(chunk) to check the chunk size
+		chunkMutex.lock();
+		computeChunkHash(chunk, chunkLen, chunkHashValue);
+		chunkMutex.unlock();
+		prevIdx = indices[i];
+	}
+}
+
 void RedundancyEliminator_CUDA::ChunkHashingAscyn(uint* indices, int indicesNum, char* package, 
 	uchar* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex) {
 	//uint duplicationSize = 0;

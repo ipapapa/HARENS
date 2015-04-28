@@ -1,18 +1,7 @@
 #pragma once
-#include <iostream>
-#include <fstream>
-#include <set>
-#include <map>
-#include <string>
-#include <time.h>
-#include <algorithm>
-#include <mutex>
-#include <thread>
-#include <chrono>
-#include <deque>
-#include <condition_variable>
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
+#include "CircularQueue.h"
 #include "RabinHash.h"
 #include "RedundancyEliminator_CUDA.h"
 
