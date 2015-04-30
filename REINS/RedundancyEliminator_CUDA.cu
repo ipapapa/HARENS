@@ -237,7 +237,7 @@ uint RedundancyEliminator_CUDA::ChunkMatching(deque<uchar*> &hashValues, deque<t
 }
 
 void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(uint* indices, int indicesNum, char* package,
-	CircularQueue<uchar*> chunkHashValueQ, CircularQueue<uint> chunkLenQ, mutex &chunkMutex) {
+	CircularUcharArrayQueue &chunkHashValueQ, CircularUintQueue &chunkLenQ, mutex &chunkMutex) {
 	//uint duplicationSize = 0;
 	uint prevIdx = 0;
 	char* chunk;
@@ -309,6 +309,7 @@ uint RedundancyEliminator_CUDA::fingerPrinting(deque<uint> indexQ, char* package
 		}
 		prevIdx = *iter;
 	}
+	//system("pause");
 	return duplicationSize;
 }
 

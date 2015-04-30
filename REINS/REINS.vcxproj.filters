@@ -84,7 +84,10 @@
     <ClInclude Include="SelfMantainedCircularQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
-    <ClInclude Include="CircularQueue.h">
+    <ClInclude Include="CircularUcharArrayQueue.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="CircularUintQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
   </ItemGroup>

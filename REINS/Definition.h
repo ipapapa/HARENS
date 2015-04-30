@@ -30,5 +30,6 @@ const uint BYTES_IN_UINT = sizeof(unsigned int);
 const uint BYTES_IN_ULONG = sizeof(unsigned long long);
 const uint MAX_CHUNK_NUM = 5000000;
 const int WINDOW_SIZE = 12;
+const int TEST_MAX_KERNEL_INPUT_LEN = 4096 * 512;	//For testing
 //while P = 2^k, fingerprint % P means fingerprint & P_MINUS (P - 1). We set P = 32 here
 const int P_MINUS = 0x1F;		

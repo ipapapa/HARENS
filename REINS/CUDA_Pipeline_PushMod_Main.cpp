@@ -44,7 +44,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 	double time = 0, time_r = 0, time_t = 0, time_rhk = 0, time_c = 0, time_fp = 0;
 
 	int CUDA_Pipeline_PushMod_Main(int argc, char* argv[]) {
-		cout << "\n============= CUDA Implementation With Pipeline and Round Query =============\n";
+		cout << "\n======== Push Mode CUDA Implementation With Pipeline and Round Query ========\n";
 		if (argc != 2) {
 			printf("Usage: %s <filename>\n", argv[0]);
 			return -1;

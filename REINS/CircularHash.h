@@ -5,7 +5,7 @@
 
 class CircularHash : public VirtualHash {
 private:
-	SelfMantainedCircularQueue<uchar*> circularQueue;
+	SelfMantainedCircularQueue circularQueue;
 	charPtMap map;
 
 public:

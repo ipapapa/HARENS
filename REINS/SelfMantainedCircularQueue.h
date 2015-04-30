@@ -1,11 +1,10 @@
 #pragma once
 #include "Definition.h"
 
-template <class T>
 class SelfMantainedCircularQueue
 {
 public:
-	T* queue;
+	uchar** queue;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
 	uint size;
 
@@ -13,20 +12,20 @@ public:
 
 	SelfMantainedCircularQueue(int _size) {
 		size = _size;
-		queue = new T[size];
+		queue = new uchar*[size];
 		front = 0;
 		rear = size - 1;
 	}
 
 	void SetupCircularQueue(int _size) {
 		size = _size;
-		queue = new T[size];
+		queue = new uchar*[size];
 		front = 0;
 		rear = size - 1;
 	}
 
-	T Add(T hashValue) {
-		T to_be_del = (T)0;
+	uchar* Add(uchar* hashValue) {
+		uchar* to_be_del = (uchar*)0;
 		if ((rear + 2) % size == front) {
 			to_be_del = queue[front];
 			front = (front + 1) % size;
@@ -41,7 +40,7 @@ public:
 			delete[] queue[front];
 			front = (front + 1) % size;
 		}*/
-		delete[] queue;
+		//delete[] queue;
 	}
 };
 

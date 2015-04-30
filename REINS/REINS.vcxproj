@@ -34,7 +34,8 @@
   <ItemGroup>
     <ClInclude Include="CircularHash.h" />
     <ClInclude Include="CircularHashPool.h" />
-    <ClInclude Include="CircularQueue.h" />
+    <ClInclude Include="CircularUcharArrayQueue.h" />
+    <ClInclude Include="CircularUintQueue.h" />
     <ClInclude Include="SelfMantainedCircularQueue.h" />
     <ClInclude Include="CPP_Main.h" />
     <ClInclude Include="CPP_Pipeline_Main.h" />

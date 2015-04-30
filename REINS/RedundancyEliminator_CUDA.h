@@ -1,7 +1,8 @@
 #pragma once
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-#include "CircularQueue.h"
+#include "CircularUcharArrayQueue.h"
+#include "CircularUintQueue.h"
 #include "RabinHash.h"
 #include "CircularHash.h"
 #include "CircularHashPool.h"
@@ -36,7 +37,7 @@ public:
 	void ChunkHashingAscyn(uint* indices, int indicesNum, char* package, 
 		uchar* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex);
 	void ChunkHashingAscynWithCircularQueue(uint* indices, int indicesNum, char* package,
-		CircularQueue<uchar*> chunkHashValueQ, CircularQueue<uint> chunkLenQ, mutex &chunkMutex);
+		CircularUcharArrayQueue &chunkHashValueQ, CircularUintQueue &chunkLenQ, mutex &chunkMutex);
 	uint fingerPrinting(deque<uint> indexQ, char* package);
 	void RabinHashAsync(char* inputKernel, char* inputHost, uint inputLen, 
 		ulong* resultKernel, ulong* resultHost, cudaStream_t stream);

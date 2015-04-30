@@ -1,7 +1,9 @@
 #pragma once
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
-#include "CircularQueue.h"
+#include <iostream>
+#include "CircularUcharArrayQueue.h"
+#include "CircularUintQueue.h"
 #include "RabinHash.h"
 #include "RedundancyEliminator_CUDA.h"
 
@@ -12,8 +14,8 @@ namespace CUDA_Pipeline_Namespace {
 	void ChunkingKernel();
 	void ChunkingResultProc();
 	void ChunkHashing();
-	void ChunkSegmentHashing(int chunkingResultIdx, int segmentNum);
-	void RoundQu1ery();
+	void ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum);
+	void RoundQuery();
 
 	int CUDA_Pipeline_Main(int argc, char* argv[]);
 }
