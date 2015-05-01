@@ -74,7 +74,7 @@ Compute the hash value of chunk, should use sha3 to avoid collision,
 I'm using rabin hash here for convience
 */
 inline uchar* RedundancyEliminator_CPP::computeChunkHash(char* chunk, uint chunkSize) {
-	uchar* hashValue = new uchar[SHA256_DIGEST_LENGTH];
-	SHA256((uchar*)chunk, chunkSize, hashValue);
+	uchar* hashValue = new uchar[SHA_DIGEST_LENGTH];
+	SHA((uchar*)chunk, chunkSize, hashValue);
 	return hashValue;
 }

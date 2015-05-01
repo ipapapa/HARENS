@@ -105,7 +105,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 			chunk_hash_mutex[i] = new mutex[FINGERPRINTING_THREAD_NUM];
 			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
 				//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
-				chunk_hashing_value_list[i][j] = new uchar[MAX_WINDOW_NUM / 4 * SHA256_DIGEST_LENGTH];
+				chunk_hashing_value_list[i][j] = new uchar[MAX_WINDOW_NUM / 4 * SHA_DIGEST_LENGTH];
 				chunk_len_list[i][j] = new uint[MAX_WINDOW_NUM / 4];
 			}
 		}

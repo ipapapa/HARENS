@@ -5,7 +5,7 @@
 #include "CUDA_Pipeline_PushMod_Main.h"
 
 enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_Pipeline_PushMod, CUDA_COMPARE, ALL };
-Method method = CUDA_COMPARE;
+Method method = CUDA_Pipeline;
 
 int main(int argc, char* argv[]) {
 	switch (method) {

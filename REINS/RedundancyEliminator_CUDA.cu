@@ -254,9 +254,9 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(uint* indices
 		chunkHashValue = chunkHashValueQ.LatentPush();
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		chunkMutex.lock();
+		//chunkMutex.lock();
 		computeChunkHash(chunk, chunkLen, chunkHashValue);
-		chunkMutex.unlock();
+		//chunkMutex.unlock();
 		prevIdx = indices[i];
 	}
 }
@@ -276,7 +276,7 @@ void RedundancyEliminator_CUDA::ChunkHashingAscyn(uint* indices, int indicesNum,
 
 		//Mind! never use sizeof(chunk) to check the chunk size
 		chunkMutex.lock();
-		computeChunkHash(chunk, chunkLenList[i - 1], &chunkHashValueList[(i - 1) * SHA256_DIGEST_LENGTH]);
+		computeChunkHash(chunk, chunkLenList[i - 1], &chunkHashValueList[(i - 1) * SHA_DIGEST_LENGTH]);
 		chunkMutex.unlock();
 		prevIdx = indices[i];
 	}
@@ -299,7 +299,7 @@ uint RedundancyEliminator_CUDA::fingerPrinting(deque<uint> indexQ, char* package
 		chunk = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		uchar* chunkHash = new uchar[SHA256_DIGEST_LENGTH];
+		uchar* chunkHash = new uchar[SHA_DIGEST_LENGTH];
 		computeChunkHash(chunk, chunkLen, chunkHash);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
@@ -415,5 +415,5 @@ uint RedundancyEliminator_CUDA::eliminateRedundancy(char* package, uint packageS
 Compute the hash value of chunk, should use sha256 to avoid collision
 */
 inline void RedundancyEliminator_CUDA::computeChunkHash(char* chunk, uint chunkSize, uchar* hashValue) {
-	SHA256((uchar*)chunk, chunkSize, hashValue);
+	SHA((uchar*)chunk, chunkSize, hashValue);
 }

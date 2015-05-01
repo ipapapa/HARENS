@@ -8,9 +8,9 @@ namespace CUDA_Pipeline_Namespace {
 	const int PAGABLE_BUFFER_NUM = 10;
 	const int FIXED_BUFFER_NUM = 4;
 	const int STREAM_NUM = 3;
-	const int FINGERPRINTING_THREAD_NUM = 6;
+	const int FINGERPRINTING_THREAD_NUM = 8;
 	//determin if one thread is end
-	bool read_file_end = false;
+	bool read_file_end = false; 
 	bool transfer_end = false;
 	bool chunking_kernel_end = false;
 	bool chunking_proc_end = false;
@@ -404,22 +404,22 @@ namespace CUDA_Pipeline_Namespace {
 			noHashValueFoundInLoop = true;
 			for (int segmentNum = 0; segmentNum < FINGERPRINTING_THREAD_NUM; ++segmentNum) {
 				chunkLen = -1;
-				chunk_hash_mutex[chunkResultIdx][segmentNum].lock();
+				//chunk_hash_mutex[chunkResultIdx][segmentNum].lock();
 				if (!chunk_hashing_value_queue[chunkResultIdx][segmentNum].IsEmpty()) {
 					chunkLen = chunk_len_queue[chunkResultIdx][segmentNum].Pop();
 					chunkHash = chunk_hashing_value_queue[chunkResultIdx][segmentNum].Pop();
 					noHashValueFoundInLoop = false;
 				}
-				chunk_hash_mutex[chunkResultIdx][segmentNum].unlock();
+				//chunk_hash_mutex[chunkResultIdx][segmentNum].unlock();
 
 				if (chunkLen != -1) {
 					if (hash_pool.Find(chunkHash)) {
 						total_duplication_size += chunkLen;
 					}
 					uchar* to_be_del = hash_pool.Add(chunkHash);
-					if (to_be_del != NULL) {
+					/*if (to_be_del != NULL) {
 						delete[] to_be_del;
-					}
+					}*/
 					//In real software we are supposed to deal with the chunk in disk
 				}
 			}

@@ -19,7 +19,7 @@ public:
 		size = TEST_MAX_KERNEL_INPUT_LEN;
 		queue = new uchar*[size];
 		for (int i = 0; i < size; ++i)
-			queue[i] = new uchar[SHA256_DIGEST_LENGTH];
+			queue[i] = new uchar[SHA_DIGEST_LENGTH];
 		front = 0;
 		rear = size - 1;
 		//The full situation is front == (rear + 2) % size
@@ -29,7 +29,7 @@ public:
 		size = _size;
 		queue = new uchar*[size];
 		for (int i = 0; i < size; ++i)
-			queue[i] = new uchar[SHA256_DIGEST_LENGTH];
+			queue[i] = new uchar[SHA_DIGEST_LENGTH];
 		front = 0;
 		rear = size - 1;
 		//The full situation is front == (rear + 2) % size
