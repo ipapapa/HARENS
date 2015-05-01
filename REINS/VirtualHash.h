@@ -36,8 +36,8 @@ public:
 	void SetupVirtualHash(uint _size);
 	~VirtualHash();
 
-	virtual uchar* Add(uchar* hashValue) = 0;
+	virtual ulong Add(ulong hashValue, bool isDuplicate) = 0;
 
-	virtual bool Find(uchar* hashValue) = 0;
+	virtual bool Find(ulong hashValue) = 0;
 };
 

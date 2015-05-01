@@ -1,8 +1,7 @@
 #pragma once
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-#include "CircularUcharArrayQueue.h"
-#include "CircularUintQueue.h"
+#include "CircularPairQueue.h"
 #include "RabinHash.h"
 #include "CircularHash.h"
 #include "CircularHashPool.h"
@@ -22,22 +21,22 @@ private:
 	VirtualHash* circHash;
 
 	//Add a new chunk into cache, if hash value queue is full also delete the oldest chunk
-	void addNewChunk(uchar* hashValue, char* chunk, uint chunkSize);
+	void addNewChunk(ulong hashValue, char* chunk, uint chunkSize, bool isDuplicate);
 	/*Take chunk and chunk size as input, hashValue as output*/
-	inline void computeChunkHash(char* chunk, uint chunkSize, uchar* hashValue);
+	inline ulong computeChunkHash(char* chunk, uint chunkSize);
 public:
 	ulong *kernelTA, *kernelTB, *kernelTC, *kernelTD;
 	enum Type {MultiFingerprint, NonMultifingerprint};
 
 	//deque<uint> chunking(char* kernelInput, uint inputLen, ulong *resultHost);
 	void ChunkHashing(uint* indices, int indicesNum, char* package,
-		char** chunkList, uchar** chunkHashValueList, uint* chunkLenList);
-	uint ChunkMatching(deque<uchar*> &hashValues, deque<tuple<char*, uint>> &chunks);
+		char** chunkList, ulong* chunkHashValueList, uint* chunkLenList);
+	uint ChunkMatching(deque<ulong> &hashValues, deque<tuple<char*, uint>> &chunks);
 	/*deque<tuple<uchar*, uint>> is for simulation, deque<uchar*> for real case*/
 	void ChunkHashingAscyn(uint* indices, int indicesNum, char* package, 
-		uchar* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex);
+		ulong* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex);
 	void ChunkHashingAscynWithCircularQueue(uint* indices, int indicesNum, char* package,
-		CircularUcharArrayQueue &chunkHashValueQ, CircularUintQueue &chunkLenQ, mutex &chunkMutex);
+		CircularPairQueue<ulong, uint> &chunkHashQ, mutex &chunkMutex);
 	uint fingerPrinting(deque<uint> indexQ, char* package);
 	void RabinHashAsync(char* inputKernel, char* inputHost, uint inputLen, 
 		ulong* resultKernel, ulong* resultHost, cudaStream_t stream);

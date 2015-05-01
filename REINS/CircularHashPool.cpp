@@ -4,7 +4,7 @@
 CircularHashPool::CircularHashPool(uint _size) : VirtualHash(_size)
 {
 	for (auto& segPool : mapPool)
-		segPool = charPtMap(size / POOL_SEGMENT_NUM);
+		segPool = std::unordered_map<ulong, uint>(size / POOL_SEGMENT_NUM);
 	for (auto& segQueue : circularQueuePool)
 		segQueue = SelfMantainedCircularQueue(size / POOL_SEGMENT_NUM);
 }
@@ -17,9 +17,9 @@ CircularHashPool::~CircularHashPool()
 }
 
 
-uchar* CircularHashPool::Add(uchar* hashValue) {
-	uchar* to_be_del = NULL;
-	int segNum = ((hashValue[0] << 8) + hashValue[1]) % POOL_SEGMENT_NUM;
+ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
+	ulong to_be_del = 0;
+	int segNum = hashValue % POOL_SEGMENT_NUM;
 
 	//Deal with the oldest hash value if the circular map is full
 	circularQueuePoolLock[segNum].lock();
@@ -27,7 +27,7 @@ uchar* CircularHashPool::Add(uchar* hashValue) {
 	circularQueuePoolLock[segNum].unlock();
 
 	mapPoolLock[segNum].lock();
-	if (to_be_del != NULL) {
+	if (to_be_del != 0) {
 		if (mapPool[segNum][to_be_del] == 1) {
 			mapPool[segNum].erase(to_be_del);
 		}
@@ -35,19 +35,19 @@ uchar* CircularHashPool::Add(uchar* hashValue) {
 			mapPool[segNum][to_be_del] -= 1;
 		}
 	}
-	if (mapPool[segNum].find(hashValue) == mapPool[segNum].end()) {
-		mapPool[segNum].insert({ hashValue, 1 });
+	if (isDuplicate) {
+		mapPool[segNum][hashValue] += 1;
 	}
 	else {
-		mapPool[segNum][hashValue] += 1;
+		mapPool[segNum].insert({ hashValue, 1 });
 	}
 	mapPoolLock[segNum].unlock();
 	return to_be_del;
 }
 
-bool CircularHashPool::Find(uchar* hashValue) {
+bool CircularHashPool::Find(ulong hashValue) {
 	bool found;
-	int segNum = ((hashValue[0] << 8) + hashValue[1]) % POOL_SEGMENT_NUM;
+	int segNum = hashValue % POOL_SEGMENT_NUM;
 	mapPoolLock[segNum].lock();
 	found = mapPool[segNum].find(hashValue) != mapPool[segNum].end();
 	mapPoolLock[segNum].unlock();

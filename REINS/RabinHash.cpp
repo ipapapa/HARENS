@@ -62,7 +62,7 @@ void RabinHash::print() {
 
 /* strLen must be a multiple of 4 */
 ulong RabinHash::Hash(const char* str, uint strLen) {
-	ulong rabinHash = str[4];
+	/*ulong rabinHash = str[4];
 	for (int i = 5; i < 12; ++i)
 		rabinHash = (rabinHash << 8) | str[i];
 	
@@ -73,8 +73,8 @@ ulong RabinHash::Hash(const char* str, uint strLen) {
 	k = str[3];
 
 	rabinHash ^= TALONG[h] ^ TBLONG[i] ^ TCLONG[j] ^ TDLONG[k];
-	return rabinHash;
-	/*uint iter = 0;
+	return rabinHash;*/
+	uint iter = 0;
 	uint w1 = str[iter++];
 	uint w2 = str[iter++];
 	uint A, h, i, j, k;
@@ -93,7 +93,7 @@ ulong RabinHash::Hash(const char* str, uint strLen) {
     ulong rabinHash = 0;
     rabinHash = (rabinHash << 32) | w1;
     rabinHash = (rabinHash << 32) | w2;
-    return rabinHash;*/
+    return rabinHash;
 }
 
 /*

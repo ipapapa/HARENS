@@ -2,8 +2,7 @@
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
 #include <iostream>
-#include "CircularUcharArrayQueue.h"
-#include "CircularUintQueue.h"
+#include "CircularPairQueue.h"
 #include "RabinHash.h"
 #include "RedundancyEliminator_CUDA.h"
 

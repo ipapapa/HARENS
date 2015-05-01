@@ -6,14 +6,14 @@
 class CircularHash : public VirtualHash {
 private:
 	SelfMantainedCircularQueue circularQueue;
-	charPtMap map;
+	std::unordered_map<ulong, uint> map;
 
 public:
 	CircularHash() {}
 	CircularHash(uint _size);
 	void SetupCircularHash(uint _size);
 	~CircularHash();
-	uchar* Add(uchar* hashValue);
-	bool Find(uchar* hashValue);
+	ulong Add(ulong hashValue, bool isDuplicate);
+	bool Find(ulong hashValue);
 };
 

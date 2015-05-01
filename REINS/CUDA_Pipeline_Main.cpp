@@ -51,8 +51,7 @@ namespace CUDA_Pipeline_Namespace {
 	array<bool, STREAM_NUM> chunking_result_obsolete;
 	//chunk hashing
 	array<thread*, STREAM_NUM> segment_threads;
-	array<array<CircularUcharArrayQueue, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hashing_value_queue;
-	array<array<CircularUintQueue, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_len_queue;	//This is only for simulation, in real case don't need the "chunk length"
+	array<array<CircularPairQueue<ulong, uint>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hash_queue;
 	array<mutex*, STREAM_NUM> chunk_hash_mutex;
 	//chunk matching 
 	CircularHash hash_pool(MAX_CHUNK_NUM);
@@ -389,8 +388,7 @@ namespace CUDA_Pipeline_Namespace {
 		if ((segmentNum + 1) * listSize / FINGERPRINTING_THREAD_NUM > listSize)
 			segLen = listSize - segmentNum * listSize / FINGERPRINTING_THREAD_NUM;
 		re.ChunkHashingAscynWithCircularQueue(chunkingResultSeg, segLen, pagable_buffer[pagableBufferIdx],
-			chunk_hashing_value_queue[chunkingResultIdx][segmentNum], 
-			chunk_len_queue[chunkingResultIdx][segmentNum], chunk_hash_mutex[chunkingResultIdx][segmentNum]);
+			chunk_hash_queue[chunkingResultIdx][segmentNum], chunk_hash_mutex[chunkingResultIdx][segmentNum]);
 	}
 
 	void RoundQuery() {
@@ -398,28 +396,27 @@ namespace CUDA_Pipeline_Namespace {
 		bool noHashValueFoundInLoop;
 		int noHashValueFoundTimes = 0;
 		int chunkResultIdx = 0;
-		uchar* chunkHash;
-		uint chunkLen;
+		ulong chunkHash = 0;
+		uint chunkLen = -1;
+		bool isDuplicate;
 		while (true) {
 			noHashValueFoundInLoop = true;
 			for (int segmentNum = 0; segmentNum < FINGERPRINTING_THREAD_NUM; ++segmentNum) {
 				chunkLen = -1;
-				//chunk_hash_mutex[chunkResultIdx][segmentNum].lock();
-				if (!chunk_hashing_value_queue[chunkResultIdx][segmentNum].IsEmpty()) {
-					chunkLen = chunk_len_queue[chunkResultIdx][segmentNum].Pop();
-					chunkHash = chunk_hashing_value_queue[chunkResultIdx][segmentNum].Pop();
+				if (!chunk_hash_queue[chunkResultIdx][segmentNum].IsEmpty()) {
+					chunk_hash_queue[chunkResultIdx][segmentNum].Pop(chunkHash, chunkLen);
 					noHashValueFoundInLoop = false;
 				}
-				//chunk_hash_mutex[chunkResultIdx][segmentNum].unlock();
 
 				if (chunkLen != -1) {
 					if (hash_pool.Find(chunkHash)) {
+						isDuplicate = true;
 						total_duplication_size += chunkLen;
 					}
-					uchar* to_be_del = hash_pool.Add(chunkHash);
-					/*if (to_be_del != NULL) {
-						delete[] to_be_del;
-					}*/
+					else {
+						isDuplicate = false;
+					}
+					ulong to_be_del = hash_pool.Add(chunkHash, isDuplicate);
 					//In real software we are supposed to deal with the chunk in disk
 				}
 			}

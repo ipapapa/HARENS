@@ -125,85 +125,15 @@ RedundancyEliminator_CUDA::~RedundancyEliminator_CUDA() {
 /*
 Add a new chunck into the file system, if the hash value queue is full, also delete the oldest chunk.
 */
-void RedundancyEliminator_CUDA::addNewChunk(uchar* hashValue, char* chunk, uint chunkSize) {
-	uchar* to_be_del = circHash->Add(hashValue);
-	if (to_be_del != NULL)
-		delete[] to_be_del;
+void RedundancyEliminator_CUDA::addNewChunk(ulong hashValue, char* chunk, uint chunkSize, bool isDuplicate) {
+	ulong to_be_del = circHash->Add(hashValue, isDuplicate);
 	/*fstream file(hashValue.c_str(), std::fstream::in | std::fstream::out);
 	file << chunk;
 	file.close();*/
 }
 
-/*take a kernel global memory address and the size as input*/
-//deque<uint> RedundancyEliminator_CUDA::chunking(char* input, uint inputLen, ulong *resultHost) {
-//	deque<uint> indexQ = deque<uint>();
-//	ulong *kernelResult;
-//
-//	const int streamNum = 3;
-//	cudaStream_t streams[streamNum];
-//	for (int i = 0; i < streamNum; ++i)
-//		cudaStreamCreate(&(streams[i]));
-//
-//	uint numOfWindows = (inputLen - WINDOW_SIZE + 1);
-//	uint numOfWindowsInLoop;
-//	uint offset;
-//	char* kernelInput;
-//
-//	//debug
-//	/*int* debugHost = new int[BLOCK_NUM * THREAD_PER_BLOCK * sizeof(int) * 2];
-//	int* debugDevice;
-//	cudaMalloc((void**)&debugDevice, BLOCK_NUM * THREAD_PER_BLOCK * sizeof(int) * 2);*/
-//
-//	cudaMalloc((void**)&kernelInput, inputLen);
-//	cudaMalloc((void**)&kernelResult, numOfWindows * BYTES_IN_ULONG);
-//	for (int i = 0; i < streamNum; ++i) {
-//		offset = numOfWindows / streamNum * i;
-//		numOfWindowsInLoop = min(numOfWindows / streamNum, numOfWindows - offset);
-//		uint resultSize = numOfWindowsInLoop * BYTES_IN_ULONG;
-//
-//		cudaMemcpyAsync((&(kernelInput[offset])), &(input[offset]), 
-//			numOfWindowsInLoop + WINDOW_SIZE - 1, cudaMemcpyHostToDevice, streams[i]); 
-//		
-//		Hash <<<BLOCK_NUM, THREAD_PER_BLOCK, 0, streams[i]>>> (kernelTA, kernelTB, kernelTC, kernelTD,
-//			&(kernelInput[offset]), numOfWindowsInLoop, &kernelResult[offset]/*, debugDevice*/);
-//		cudaDeviceSynchronize();
-//		// check for errors
-//		/*cudaError_t error = cudaGetLastError();
-//		if (error != cudaSuccess) {
-//			fprintf(stderr, "ERROR1: %s \n", cudaGetErrorString(error));
-//		}*/
-//		cudaMemcpyAsync(&(resultHost[offset]), &kernelResult[offset], resultSize, cudaMemcpyDeviceToHost, streams[i]); 
-//
-//		//debug
-//		/*cudaMemcpy(debugHost, debugDevice, BLOCK_NUM * THREAD_PER_BLOCK * sizeof(int) * 2, cudaMemcpyDeviceToHost);
-//		if (i == 1) {
-//			for (int j = 0; j < BLOCK_NUM * THREAD_PER_BLOCK; ++j)
-//				cout << debugHost[2 * j] << '\t' << debugHost[2 * j + 1] << endl;
-//		}*/
-//
-//		/*cout << offset << '\t' << resultHost[offset] << endl;
-//		cout << offset + numOfWindowsInLoop - 1 << '\t' << resultHost[offset + numOfWindowsInLoop - 1] << endl;*/
-//		for (uint j = offset; j < offset + numOfWindowsInLoop; ++j) {
-//			if ((resultHost[j] & P_MINUS) == 0) { // marker found
-//				indexQ.push_back(j);
-//			}
-//		}
-//	}
-//
-//	//debug
-//	/*delete[] debugHost;
-//	cudaFree(debugDevice);*/
-//
-//	cudaFree(kernelInput);
-//	cudaFree(kernelResult);
-//	for (int i = 0; i < streamNum; ++i)
-//		cudaStreamDestroy(streams[i]);
-//
-//	return indexQ;
-//}
-
 void RedundancyEliminator_CUDA::ChunkHashing(uint* indices, int indicesNum, char* package, 
-	char** chunkList, uchar** chunkHashValueList, uint* chunkLenList) {
+	char** chunkList, ulong* chunkHashValueList, uint* chunkLenList) {
 	uint prevIdx = 0;
 	for (int i = 0; i < indicesNum; ++i) {
 		if (prevIdx == 0) {
@@ -214,22 +144,25 @@ void RedundancyEliminator_CUDA::ChunkHashing(uint* indices, int indicesNum, char
 		chunkList[i - 1] = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		computeChunkHash(chunkList[i - 1], chunkLenList[i - 1], chunkHashValueList[i - 1]);
+		chunkHashValueList[i - 1] = computeChunkHash(chunkList[i - 1], chunkLenList[i - 1]);
 		prevIdx = indices[i];
 	}
 }
 
-uint RedundancyEliminator_CUDA::ChunkMatching(deque<uchar*> &hashValues, deque<tuple<char*, uint>> &chunks) {
+uint RedundancyEliminator_CUDA::ChunkMatching(deque<ulong> &hashValues, deque<tuple<char*, uint>> &chunks) {
 	uint duplicationSize = 0;
-	deque<uchar*>::const_iterator hashValueIter = hashValues.begin();
+	bool isDuplicate;
+	deque<ulong>::const_iterator hashValueIter = hashValues.begin();
 	deque<tuple<char*, uint>>::const_iterator chunksIter = chunks.begin();
 	while (hashValueIter != hashValues.end()) {
 		if (circHash->Find(*hashValueIter)) {
 			duplicationSize += get<1>(*chunksIter);
+			isDuplicate = true;
 		}
 		else {
-			addNewChunk(*hashValueIter, get<0>(*chunksIter), get<1>(*chunksIter));
+			isDuplicate = false;
 		}
+		addNewChunk(*hashValueIter, get<0>(*chunksIter), get<1>(*chunksIter), isDuplicate);
 		++hashValueIter;
 		++chunksIter;
 	}
@@ -237,12 +170,12 @@ uint RedundancyEliminator_CUDA::ChunkMatching(deque<uchar*> &hashValues, deque<t
 }
 
 void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(uint* indices, int indicesNum, char* package,
-	CircularUcharArrayQueue &chunkHashValueQ, CircularUintQueue &chunkLenQ, mutex &chunkMutex) {
+	CircularPairQueue<ulong, uint> &chunkHashQ, mutex &chunkMutex) {
 	//uint duplicationSize = 0;
 	uint prevIdx = 0;
 	char* chunk;
 	uint chunkLen;
-	uchar* chunkHashValue;
+	ulong chunkHashValue;
 	for (int i = 0; i < indicesNum; ++i) {
 		if (prevIdx == 0) {
 			prevIdx = indices[i];
@@ -250,19 +183,16 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(uint* indices
 		}
 		chunk = &(package[prevIdx]);
 		chunkLen = indices[i] - prevIdx;
-		chunkLenQ.Push(chunkLen);
-		chunkHashValue = chunkHashValueQ.LatentPush();
+		chunkHashValue = computeChunkHash(chunk, chunkLen);
+		chunkHashQ.Push(chunkHashValue, chunkLen);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		//chunkMutex.lock();
-		computeChunkHash(chunk, chunkLen, chunkHashValue);
-		//chunkMutex.unlock();
 		prevIdx = indices[i];
 	}
 }
 
 void RedundancyEliminator_CUDA::ChunkHashingAscyn(uint* indices, int indicesNum, char* package, 
-	uchar* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex) {
+	ulong* chunkHashValueList, uint* chunkLenList, mutex &chunkMutex) {
 	//uint duplicationSize = 0;
 	uint prevIdx = 0;
 	char* chunk;
@@ -276,7 +206,7 @@ void RedundancyEliminator_CUDA::ChunkHashingAscyn(uint* indices, int indicesNum,
 
 		//Mind! never use sizeof(chunk) to check the chunk size
 		chunkMutex.lock();
-		computeChunkHash(chunk, chunkLenList[i - 1], &chunkHashValueList[(i - 1) * SHA_DIGEST_LENGTH]);
+		chunkHashValueList[i - 1] = computeChunkHash(chunk, chunkLenList[i - 1]);
 		chunkMutex.unlock();
 		prevIdx = indices[i];
 	}
@@ -290,23 +220,27 @@ uint RedundancyEliminator_CUDA::fingerPrinting(deque<uint> indexQ, char* package
 	uint duplicationSize = 0;
 	uint prevIdx = 0;
 	char* chunk;
+	ulong chunkHash;
+	uint chunkLen;
+	bool isDuplicate;
 	for (deque<uint>::const_iterator iter = indexQ.begin(); iter != indexQ.end(); ++iter) {
 		if (prevIdx == 0) {
 			prevIdx = *iter;
 			continue;
 		}
-		uint chunkLen = *iter - prevIdx;
+		chunkLen = *iter - prevIdx;
 		chunk = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		uchar* chunkHash = new uchar[SHA_DIGEST_LENGTH];
-		computeChunkHash(chunk, chunkLen, chunkHash);
+		chunkHash = computeChunkHash(chunk, chunkLen);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
+			isDuplicate = true;
 		}
 		else {
-			addNewChunk(chunkHash, chunk, chunkLen);
+			isDuplicate = false;
 		}
+		addNewChunk(chunkHash, chunk, chunkLen, isDuplicate);
 		prevIdx = *iter;
 	}
 	//system("pause");
@@ -414,6 +348,7 @@ uint RedundancyEliminator_CUDA::eliminateRedundancy(char* package, uint packageS
 /*
 Compute the hash value of chunk, should use sha256 to avoid collision
 */
-inline void RedundancyEliminator_CUDA::computeChunkHash(char* chunk, uint chunkSize, uchar* hashValue) {
-	SHA((uchar*)chunk, chunkSize, hashValue);
+inline ulong RedundancyEliminator_CUDA::computeChunkHash(char* chunk, uint chunkSize) {
+	return hashFunc.Hash(chunk, chunkSize);
+	//SHA((uchar*)chunk, chunkSize, hashValue);
 }

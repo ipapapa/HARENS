@@ -31,7 +31,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 	//chunk hashing & matching
 	uint total_duplication_size = 0;
 	thread** segment_threads;
-	uchar*** chunk_hashing_value_list;
+	ulong*** chunk_hashing_value_list;
 	uint*** chunk_len_list;	//This is only for simulation, in real case don't need the "uint chunk length"
 	mutex** chunk_hash_mutex;
 	//Circular querying hash
@@ -95,17 +95,17 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		}
 		//initialize chunk hashing & matching
 		segment_threads = new thread*[thread_num];
-		chunk_hashing_value_list = new uchar**[thread_num];
+		chunk_hashing_value_list = new ulong**[thread_num];
 		chunk_len_list = new uint**[thread_num];
 		chunk_hash_mutex = new mutex*[thread_num];
 		for (int i = 0; i < thread_num; ++i) {
 			segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
-			chunk_hashing_value_list[i] = new uchar*[FINGERPRINTING_THREAD_NUM];
+			chunk_hashing_value_list[i] = new ulong*[FINGERPRINTING_THREAD_NUM];
 			chunk_len_list[i] = new uint*[FINGERPRINTING_THREAD_NUM];
 			chunk_hash_mutex[i] = new mutex[FINGERPRINTING_THREAD_NUM];
 			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
 				//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
-				chunk_hashing_value_list[i][j] = new uchar[MAX_WINDOW_NUM / 4 * SHA_DIGEST_LENGTH];
+				chunk_hashing_value_list[i][j] = new ulong[MAX_WINDOW_NUM / 4];
 				chunk_len_list[i][j] = new uint[MAX_WINDOW_NUM / 4];
 			}
 		}
@@ -258,14 +258,15 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 
 	void RoundQuery() {
 		bool noHashValueFound;
-		tuple<uchar*, uint> empty = tuple<uchar*, uint>(new uchar(' '), -1);
-		uchar* hashValue;
+		tuple<ulong, uint> empty = tuple<ulong, uint>(0, -1);
+		ulong hashValue;
 		uint chunkLen;
+		bool isDuplicate;
 		while (true) {
 			noHashValueFound = true;
 			for (int threadIdx = 0; threadIdx < thread_num; ++threadIdx) {
 				for (int segmentNum = 0; segmentNum < FINGERPRINTING_THREAD_NUM; ++segmentNum) {
-					tuple<uchar*, uint> hashValueAndLen = empty;
+					tuple<ulong, uint> hashValueAndLen = empty;
 					chunk_hash_mutex[threadIdx][segmentNum].lock();
 					/*if (!hash_value_queue[threadIdx][segmentNum].empty()) {
 						hashValueAndLen = hash_value_queue[threadIdx][segmentNum].front();
@@ -279,13 +280,13 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 					if (chunkLen != -1) {
 						if (circ_hash.Find(hashValue)) {
 							total_duplication_size += chunkLen;
+							isDuplicate = true;
 						}
 						else {
-							uchar* to_be_del = circ_hash.Add(hashValue);
-							if (to_be_del != NULL)
-								delete[] to_be_del;
-							//In real software we are supposed to deal with the chunk in disk
+							isDuplicate = false;
 						}
+						ulong to_be_del = circ_hash.Add(hashValue, isDuplicate);
+						//In real software we are supposed to deal with the chunk in disk
 					}
 				}
 			}
