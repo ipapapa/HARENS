@@ -75,11 +75,18 @@ ulong RabinHash::Hash(const char* str, uint strLen) {
 	rabinHash ^= TALONG[h] ^ TBLONG[i] ^ TCLONG[j] ^ TDLONG[k];
 	return rabinHash;*/
 	uint iter = 0;
-	uint w1 = str[iter++];
-	uint w2 = str[iter++];
+	uint w1 = (str[iter] << 24) | (str[iter + 1] << 16) | (str[iter + 2] << 8) | (str[iter + 3]);
+	iter += 4;
+	uint w2 = (str[iter] << 24) | (str[iter + 1] << 16) | (str[iter + 2] << 8) | (str[iter + 3]);
+	iter += 4;
 	uint A, h, i, j, k;
 	while (iter < strLen) {
-        A = str[iter++];
+		A = 0;
+		for (int offset = 0; offset < 4; ++offset) {
+			A <<= 8;
+			if (iter + offset < strLen)
+				A |= str[iter + offset];
+		}
 
         h = (w1 >> 24) & 0xFF;
         i = (w1 >> 16) & 0xFF;
@@ -89,6 +96,7 @@ ulong RabinHash::Hash(const char* str, uint strLen) {
 			^ TC[j * TABLE_COL_NUM] ^ TD[k * TABLE_COL_NUM];
 		w2 = A ^ TA[h * TABLE_COL_NUM + 1] ^ TB[i * TABLE_COL_NUM + 1]
 			^ TC[j * TABLE_COL_NUM + 1] ^ TD[k * TABLE_COL_NUM + 1];
+		iter += 4;
     }
     ulong rabinHash = 0;
     rabinHash = (rabinHash << 32) | w1;

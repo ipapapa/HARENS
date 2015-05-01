@@ -52,7 +52,6 @@ namespace CUDA_Pipeline_Namespace {
 	//chunk hashing
 	array<thread*, STREAM_NUM> segment_threads;
 	array<array<CircularPairQueue<ulong, uint>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hash_queue;
-	array<mutex*, STREAM_NUM> chunk_hash_mutex;
 	//chunk matching 
 	CircularHash hash_pool(MAX_CHUNK_NUM);
 	uint total_duplication_size = 0;
@@ -106,7 +105,6 @@ namespace CUDA_Pipeline_Namespace {
 		//initialize chunk hashing
 		for (int i = 0; i < STREAM_NUM; ++i) {
 			segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
-			chunk_hash_mutex[i] = new mutex[FINGERPRINTING_THREAD_NUM];
 			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
 				//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
 				/*chunk_hashing_value_queue[i][j] = CircularUcharArrayQueue(MAX_WINDOW_NUM / 4);
@@ -124,7 +122,6 @@ namespace CUDA_Pipeline_Namespace {
 		thread tChunkHashing;
 		tChunkHashing = thread(ChunkHashing);
 		thread tRoundQuery(RoundQuery);
-
 
 		tReadFile.join();
 		tTransfer.join();
@@ -147,7 +144,6 @@ namespace CUDA_Pipeline_Namespace {
 		//destruct chunk hashing & matching
 		for (int i = 0; i < STREAM_NUM; ++i) {
 			delete[] segment_threads[i];
-			delete[] chunk_hash_mutex[i];
 		}
 		//destruct chunking result proc
 		for (int i = 0; i < STREAM_NUM; ++i) {
@@ -388,7 +384,7 @@ namespace CUDA_Pipeline_Namespace {
 		if ((segmentNum + 1) * listSize / FINGERPRINTING_THREAD_NUM > listSize)
 			segLen = listSize - segmentNum * listSize / FINGERPRINTING_THREAD_NUM;
 		re.ChunkHashingAscynWithCircularQueue(chunkingResultSeg, segLen, pagable_buffer[pagableBufferIdx],
-			chunk_hash_queue[chunkingResultIdx][segmentNum], chunk_hash_mutex[chunkingResultIdx][segmentNum]);
+			chunk_hash_queue[chunkingResultIdx][segmentNum]);
 	}
 
 	void RoundQuery() {

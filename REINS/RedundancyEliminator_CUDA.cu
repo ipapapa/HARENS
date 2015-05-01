@@ -170,7 +170,7 @@ uint RedundancyEliminator_CUDA::ChunkMatching(deque<ulong> &hashValues, deque<tu
 }
 
 void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(uint* indices, int indicesNum, char* package,
-	CircularPairQueue<ulong, uint> &chunkHashQ, mutex &chunkMutex) {
+	CircularPairQueue<ulong, uint> &chunkHashQ) {
 	//uint duplicationSize = 0;
 	uint prevIdx = 0;
 	char* chunk;
