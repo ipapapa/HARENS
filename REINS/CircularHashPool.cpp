@@ -18,21 +18,21 @@ CircularHashPool::~CircularHashPool()
 
 
 ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
-	ulong to_be_del = 0;
+	ulong toBeDel = 0;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 
 	//Deal with the oldest hash value if the circular map is full
 	circularQueuePoolLock[segNum].lock();
-	to_be_del = circularQueuePool[segNum].Add(hashValue);
+	toBeDel = circularQueuePool[segNum].Add(hashValue);
 	circularQueuePoolLock[segNum].unlock();
 
 	mapPoolLock[segNum].lock();
-	if (to_be_del != 0) {
-		if (mapPool[segNum][to_be_del] == 1) {
-			mapPool[segNum].erase(to_be_del);
+	if (toBeDel != 0) {
+		if (mapPool[segNum][toBeDel] == 1) {
+			mapPool[segNum].erase(toBeDel);
 		}
 		else {
-			mapPool[segNum][to_be_del] -= 1;
+			mapPool[segNum][toBeDel] -= 1;
 		}
 	}
 	if (isDuplicate) {
@@ -42,14 +42,45 @@ ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
 		mapPool[segNum].insert({ hashValue, 1 });
 	}
 	mapPoolLock[segNum].unlock();
-	return to_be_del;
+	return toBeDel;
 }
 
 bool CircularHashPool::Find(ulong hashValue) {
-	bool found;
+	bool isFound;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 	mapPoolLock[segNum].lock();
-	found = mapPool[segNum].find(hashValue) != mapPool[segNum].end();
+	isFound = mapPool[segNum].find(hashValue) != mapPool[segNum].end();
 	mapPoolLock[segNum].unlock();
-	return found;
+	return isFound;
+}
+
+bool CircularHashPool::FindAndAdd(ulong& hashValue, ulong& toBeDel) {
+	bool isFound;
+	int segNum = hashValue % POOL_SEGMENT_NUM;
+
+	toBeDel = circularQueuePool[segNum].Add(hashValue);
+	//Deal with the oldest hash value if the circular map is full
+	circularQueuePoolLock[segNum].lock();
+	toBeDel = circularQueuePool[segNum].Add(hashValue);
+	circularQueuePoolLock[segNum].unlock();
+
+	mapPoolLock[segNum].lock();
+	isFound = mapPool[segNum].find(hashValue) != mapPool[segNum].end();
+	if (toBeDel != 0) {
+		if (mapPool[segNum][toBeDel] == 1) {
+			mapPool[segNum].erase(toBeDel);
+		}
+		else {
+			mapPool[segNum][toBeDel] -= 1;
+		}
+	}
+	if (isFound) {
+		mapPool[segNum][hashValue] += 1;
+	}
+	else {
+		mapPool[segNum].insert({ hashValue, 1 });
+	}
+	mapPoolLock[segNum].unlock();
+
+	return isFound;
 }

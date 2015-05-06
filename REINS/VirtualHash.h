@@ -39,5 +39,7 @@ public:
 	virtual ulong Add(ulong hashValue, bool isDuplicate) = 0;
 
 	virtual bool Find(ulong hashValue) = 0;
+
+	virtual bool FindAndAdd(ulong& hashValue, ulong& toBeDel) = 0;
 };
 

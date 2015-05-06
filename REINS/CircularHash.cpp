@@ -17,15 +17,15 @@ CircularHash::~CircularHash()
 }
 
 ulong CircularHash::Add(ulong hashValue, bool isDuplicate) {
-	ulong to_be_del = 0;
+	ulong toBeDel = 0;
 	//Deal with the oldest hash value if the circular map is full
-	to_be_del = circularQueue.Add(hashValue);
-	if (to_be_del != NULL) {
-		if (map[to_be_del] == 1) {
-			map.erase(to_be_del);
+	toBeDel = circularQueue.Add(hashValue);
+	if (toBeDel != NULL) {
+		if (map[toBeDel] == 1) {
+			map.erase(toBeDel);
 		}
 		else {
-			map[to_be_del] -= 1;
+			map[toBeDel] -= 1;
 		}
 	}
 	if (isDuplicate) {
@@ -34,10 +34,30 @@ ulong CircularHash::Add(ulong hashValue, bool isDuplicate) {
 	else {
 		map.insert({ hashValue, 1 });
 	}
-	return to_be_del;
+	return toBeDel;
 }
 
 
 bool CircularHash::Find(ulong hashValue) {
 	return map.find(hashValue) != map.end();
+}
+
+bool CircularHash::FindAndAdd(ulong& hashValue, ulong& toBeDel) {
+	bool isFound = map.find(hashValue) != map.end();
+	toBeDel = circularQueue.Add(hashValue);
+	if (toBeDel != NULL) {
+		if (map[toBeDel] == 1) {
+			map.erase(toBeDel);
+		}
+		else {
+			map[toBeDel] -= 1;
+		}
+	}
+	if (isFound) {
+		map[hashValue] += 1;
+	}
+	else {
+		map.insert({ hashValue, 1 });
+	}
+	return isFound;
 }

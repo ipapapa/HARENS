@@ -3,8 +3,8 @@
 using namespace std;
 
 /*
-We have 2 threads accessing an object of this class simultaneously
-one for push, the other for pop
+We have 2 threads accessing an object of this class simultaneously, one for push, the other for pop.
+I put a few optimizations in this class. It would not suit any pairs any more. 
 */
 template <class S, class T>
 class CircularPairQueue
@@ -49,37 +49,45 @@ public:
 		if ((rear + 2) % size == front) {
 			contentCond.wait(contentLock);
 		}
+		rear = (rear + 1) % size;
 		contentLock.unlock();
 
-		rear = (rear + 1) % size;
 		firstQ[rear] = firstHashValue;
 		secondQ[rear] = secondHashValue;
 		//notify pop that one entry is added into queue
 		contentCond.notify_one();
 	}
-
+	
+	/*This function would return (-1, -1) if the queue is empty*/
 	void Pop(S& firstHashValue, T& secondHashValue) {
-		//Make sure that the queue is not empty
+		//Check if the queue is empty
 		unique_lock<mutex> contentLock(contentMutex);
 		if ((rear + 1) % size == front) {
-			contentCond.wait(contentLock);
+			firstHashValue = -1;
+			secondHashValue = -1;
+			contentLock.unlock();
+			contentCond.notify_one();
+			return;
+			//contentCond.wait(contentLock);
 		}
-		contentLock.unlock();
 
 		firstHashValue = firstQ[front];
 		secondHashValue = secondQ[front];
 		front = (front + 1) % size;
+		contentLock.unlock();
 		contentCond.notify_one();
+		return;
 	}
 
-	bool IsEmpty() {
+	/*This function is not needed when we get Pop which can also get the "is empty" info*/
+	/*bool IsEmpty() {
 		bool isEmpty;
 		unique_lock<mutex> contentLock(contentMutex);
 		isEmpty = ((rear + 1) % size == front);
 		contentLock.unlock();
 		contentCond.notify_one();
 		return isEmpty;
-	}
+	}*/
 
 	~CircularPairQueue() {
 		delete[] firstQ;

@@ -394,25 +394,17 @@ namespace CUDA_Pipeline_Namespace {
 		int chunkResultIdx = 0;
 		ulong chunkHash = 0;
 		uint chunkLen = -1;
-		bool isDuplicate;
+		ulong toBeDel;
 		while (true) {
 			noHashValueFoundInLoop = true;
 			for (int segmentNum = 0; segmentNum < FINGERPRINTING_THREAD_NUM; ++segmentNum) {
-				chunkLen = -1;
-				if (!chunk_hash_queue[chunkResultIdx][segmentNum].IsEmpty()) {
-					chunk_hash_queue[chunkResultIdx][segmentNum].Pop(chunkHash, chunkLen);
-					noHashValueFoundInLoop = false;
-				}
+				chunk_hash_queue[chunkResultIdx][segmentNum].Pop(chunkHash, chunkLen);
 
 				if (chunkLen != -1) {
-					if (hash_pool.Find(chunkHash)) {
-						isDuplicate = true;
+					noHashValueFoundInLoop = false;
+					if (hash_pool.FindAndAdd(chunkHash, toBeDel)) {
 						total_duplication_size += chunkLen;
 					}
-					else {
-						isDuplicate = false;
-					}
-					ulong to_be_del = hash_pool.Add(chunkHash, isDuplicate);
 					//In real software we are supposed to deal with the chunk in disk
 				}
 			}
