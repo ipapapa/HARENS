@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="CircularHash.cpp" />
     <ClCompile Include="CircularHashPool.cpp" />
+    <ClCompile Include="CircularTreeHash.cpp" />
     <ClCompile Include="CPP_Main.cpp" />
     <ClCompile Include="CPP_Pipeline_Main.cpp" />
     <ClCompile Include="CUDA_Main.cpp" />
@@ -29,6 +30,8 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RabinHash.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP.cpp" />
+    <ClCompile Include="sparse_hash\port.cc" />
+    <ClCompile Include="TreeHash.cpp" />
     <ClCompile Include="VirtualHash.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -36,20 +39,38 @@
     <ClInclude Include="CircularHashPool.h" />
     <ClInclude Include="CircularPairQueue.h" />
     <ClInclude Include="CircularQueue.h" />
+    <ClInclude Include="CircularTreeHash.h" />
+    <ClInclude Include="CUDA_Pipeline_PushMod_Main.h" />
     <ClInclude Include="SelfMantainedCircularQueue.h" />
     <ClInclude Include="CPP_Main.h" />
     <ClInclude Include="CPP_Pipeline_Main.h" />
     <ClInclude Include="CUDA_Main.h" />
     <ClInclude Include="CUDA_Pipeline_Main.h" />
-    <ClInclude Include="CUDA_Pipeline_PushMod_Main.h" />
     <ClInclude Include="Definition.h" />
     <ClInclude Include="RabinHash.h" />
     <ClInclude Include="RedundancyEliminator_CPP.h" />
     <ClInclude Include="RedundancyEliminator_CUDA.h" />
+    <ClInclude Include="sparse_hash\config.h" />
+    <ClInclude Include="sparse_hash\densehashtable.h" />
+    <ClInclude Include="sparse_hash\hashtable-common.h" />
+    <ClInclude Include="sparse_hash\libc_allocator_with_realloc.h" />
+    <ClInclude Include="sparse_hash\port.h" />
+    <ClInclude Include="sparse_hash\sparseconfig.h" />
+    <ClInclude Include="sparse_hash\sparsehashtable.h" />
+    <ClInclude Include="sparse_hash\template_util.h" />
+    <ClInclude Include="sparse_hash\type_traits.h" />
+    <ClInclude Include="TreeHash.h" />
     <ClInclude Include="VirtualHash.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="RedundancyEliminator_CUDA.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="sparse_hash\dense_hash_map" />
+    <None Include="sparse_hash\dense_hash_set" />
+    <None Include="sparse_hash\sparsetable" />
+    <None Include="sparse_hash\sparse_hash_map" />
+    <None Include="sparse_hash\sparse_hash_set" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A48B46A2-F5D4-4CF3-9349-129211C20372}</ProjectGuid>
@@ -133,7 +154,9 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\$(ProjectName)\openssl_build_x64_dbg\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName);$(SolutionDir)$(ProjectName)\windows;$(SolutionDir)$(ProjectName)\openssl_build_x64_dbg\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -177,7 +200,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\$(ProjectName)\openssl_build_x64\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\openssl_build_x64\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

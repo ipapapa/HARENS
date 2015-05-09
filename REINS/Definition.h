@@ -19,7 +19,14 @@
 #include <chrono>
 #include <deque>
 #include <condition_variable>
-#include <unordered_map>
+#include "sparse_hash/sparseconfig.h"
+#include "sparse_hash/config.h"
+#include "sparse_hash/sparse_hash_set"
+#include "sparse_hash/sparse_hash_map"
+#include "sparse_hash/dense_hash_set"
+#include "sparse_hash/dense_hash_map"
+#include "sparse_hash/template_util.h"
+#include "sparse_hash/type_traits.h"
 #include <openssl/sha.h>
 
 typedef unsigned int uint;

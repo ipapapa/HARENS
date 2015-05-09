@@ -1,12 +1,11 @@
 #include "CircularHashPool.h"
-
+using namespace std;
 
 CircularHashPool::CircularHashPool(uint _size) : VirtualHash(_size)
 {
 	for (auto& segPool : mapPool)
 		segPool = std::unordered_map<ulong, uint>(size / POOL_SEGMENT_NUM);
-	for (auto& segQueue : circularQueuePool)
-		segQueue = SelfMantainedCircularQueue(size / POOL_SEGMENT_NUM);
+	circularQueue = SelfMantainedCircularQueue(size);
 }
 
 
@@ -22,11 +21,11 @@ ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 
 	//Deal with the oldest hash value if the circular map is full
-	circularQueuePoolLock[segNum].lock();
-	toBeDel = circularQueuePool[segNum].Add(hashValue);
-	circularQueuePoolLock[segNum].unlock();
+	circularQueueMutex.lock();
+	toBeDel = circularQueue.Add(hashValue);
+	circularQueueMutex.unlock();
 
-	mapPoolLock[segNum].lock();
+	mapPoolMutex[segNum].lock();
 	if (toBeDel != 0) {
 		if (mapPool[segNum][toBeDel] == 1) {
 			mapPool[segNum].erase(toBeDel);
@@ -41,16 +40,16 @@ ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
 	else {
 		mapPool[segNum].insert({ hashValue, 1 });
 	}
-	mapPoolLock[segNum].unlock();
+	mapPoolMutex[segNum].unlock();
 	return toBeDel;
 }
 
 bool CircularHashPool::Find(ulong hashValue) {
 	bool isFound;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
-	mapPoolLock[segNum].lock();
+	mapPoolMutex[segNum].lock();
 	isFound = mapPool[segNum].find(hashValue) != mapPool[segNum].end();
-	mapPoolLock[segNum].unlock();
+	mapPoolMutex[segNum].unlock();
 	return isFound;
 }
 
@@ -58,13 +57,12 @@ bool CircularHashPool::FindAndAdd(ulong& hashValue, ulong& toBeDel) {
 	bool isFound;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 
-	toBeDel = circularQueuePool[segNum].Add(hashValue);
 	//Deal with the oldest hash value if the circular map is full
-	circularQueuePoolLock[segNum].lock();
-	toBeDel = circularQueuePool[segNum].Add(hashValue);
-	circularQueuePoolLock[segNum].unlock();
+	circularQueueMutex.lock();
+	toBeDel = circularQueue.Add(hashValue);
+	circularQueueMutex.unlock();
 
-	mapPoolLock[segNum].lock();
+	mapPoolMutex[segNum].lock();
 	isFound = mapPool[segNum].find(hashValue) != mapPool[segNum].end();
 	if (toBeDel != 0) {
 		if (mapPool[segNum][toBeDel] == 1) {
@@ -80,7 +78,7 @@ bool CircularHashPool::FindAndAdd(ulong& hashValue, ulong& toBeDel) {
 	else {
 		mapPool[segNum].insert({ hashValue, 1 });
 	}
-	mapPoolLock[segNum].unlock();
+	mapPoolMutex[segNum].unlock();
 
 	return isFound;
 }

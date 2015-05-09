@@ -2,6 +2,7 @@
 using namespace std;
 
 namespace CUDA_Pipeline_Namespace {
+	
 	//constants
 	const uint MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
 	const uint MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
@@ -15,7 +16,6 @@ namespace CUDA_Pipeline_Namespace {
 	bool chunking_kernel_end = false;
 	bool chunking_proc_end = false;
 	bool chunk_hashing_end = false;
-	mutex chunk_hashing_end_mutex;
 	//file
 	ifstream fin;
 	uint file_len;
@@ -53,7 +53,8 @@ namespace CUDA_Pipeline_Namespace {
 	array<thread*, STREAM_NUM> segment_threads;
 	array<array<CircularPairQueue<ulong, uint>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hash_queue;
 	//chunk matching 
-	CircularHash hash_pool(MAX_CHUNK_NUM);
+	mutex chunk_hashing_end_mutex;
+	CircularTreeHash hash_pool(MAX_CHUNK_NUM);
 	uint total_duplication_size = 0;
 	//Time
 	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;
@@ -335,9 +336,8 @@ namespace CUDA_Pipeline_Namespace {
 			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
 			while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
 				if (chunking_proc_end) {
-					chunk_hashing_end_mutex.lock();
+					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 					chunk_hashing_end = true;
-					chunk_hashing_end_mutex.unlock();
 					return;
 				}
 				pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
@@ -346,9 +346,8 @@ namespace CUDA_Pipeline_Namespace {
 			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
 			while (chunking_result_obsolete[chunkingResultIdx] == true) {
 				if (chunking_proc_end) {
-					chunk_hashing_end_mutex.lock();
+					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 					chunk_hashing_end = true;
-					chunk_hashing_end_mutex.unlock();
 					return;
 				}
 				chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
@@ -416,14 +415,12 @@ namespace CUDA_Pipeline_Namespace {
 				noHashValueFoundTimes = 0;
 
 			if (noHashValueFoundTimes == STREAM_NUM) {
-				chunk_hashing_end_mutex.lock();
+				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 				if (chunk_hashing_end) {
-					chunk_hashing_end_mutex.unlock();
 					end_cm = clock();
 					time_cm = (end_cm - start_cm) * 1000 / CLOCKS_PER_SEC;
 					return;
 				}
-				chunk_hashing_end_mutex.unlock();
 				this_thread::sleep_for(chrono::microseconds(500));
 				noHashValueFoundTimes = 0;
 			}

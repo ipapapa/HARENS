@@ -15,7 +15,8 @@ public:
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
 	uint size;
 	mutex contentMutex;
-	condition_variable contentCond;
+	mutex fullMutex;
+	condition_variable fullCond;
 
 	CircularPairQueue() {
 		size = TEST_MAX_KERNEL_INPUT_LEN;
@@ -45,49 +46,45 @@ public:
 
 	void Push(S firstHashValue, T secondHashValue) {
 		//Make sure that the queue is not full
-		unique_lock<mutex> contentLock(contentMutex);
-		if ((rear + 2) % size == front) {
-			contentCond.wait(contentLock);
+		unique_lock<mutex> fullLock(fullMutex);
+		if (IsFull()) {
+			fullCond.wait(fullLock);
 		}
 		rear = (rear + 1) % size;
-		contentLock.unlock();
 
 		firstQ[rear] = firstHashValue;
 		secondQ[rear] = secondHashValue;
-		//notify pop that one entry is added into queue
-		contentCond.notify_one();
 	}
 	
 	/*This function would return (-1, -1) if the queue is empty*/
 	void Pop(S& firstHashValue, T& secondHashValue) {
-		//Check if the queue is empty
-		unique_lock<mutex> contentLock(contentMutex);
-		if ((rear + 1) % size == front) {
+		if (IsEmpty()) {
 			firstHashValue = -1;
 			secondHashValue = -1;
-			contentLock.unlock();
-			contentCond.notify_one();
 			return;
-			//contentCond.wait(contentLock);
 		}
 
 		firstHashValue = firstQ[front];
 		secondHashValue = secondQ[front];
 		front = (front + 1) % size;
-		contentLock.unlock();
-		contentCond.notify_one();
+		fullCond.notify_one();
 		return;
 	}
 
-	/*This function is not needed when we get Pop which can also get the "is empty" info*/
-	/*bool IsEmpty() {
+	inline bool IsEmpty() {
 		bool isEmpty;
 		unique_lock<mutex> contentLock(contentMutex);
 		isEmpty = ((rear + 1) % size == front);
-		contentLock.unlock();
-		contentCond.notify_one();
 		return isEmpty;
-	}*/
+	}
+
+	/*We set the condition of full as ((rear + 2) % size == front)*/
+	inline bool IsFull() {
+		bool isFull;
+		unique_lock<mutex> contentLock(contentMutex);
+		isFull = ((rear + 2) % size == front);
+		return isFull;
+	}
 
 	~CircularPairQueue() {
 		delete[] firstQ;

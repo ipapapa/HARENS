@@ -5,6 +5,7 @@
 #include "CircularPairQueue.h"
 #include "RabinHash.h"
 #include "RedundancyEliminator_CUDA.h"
+#include "CircularTreeHash.h"
 
 namespace CUDA_Pipeline_Namespace {
 
