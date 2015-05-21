@@ -71,10 +71,10 @@ namespace CPP_Pipeline_Namespace {
 		delete[] buffer;
 
 		clock_t end = clock();
-		cout << "Reading time: " << tot_read << " s\n";
-		cout << "Chunking time: " << tot_chunk << " s\n";
-		cout << "Fingerprinting time: " << tot_fin << " s\n";
-		cout << "Total time: " << ((float)end - start) / CLOCKS_PER_SEC << " s\n";
+		cout << "Reading time: " << tot_read << " ms\n";
+		cout << "Chunking time: " << tot_chunk << " ms\n";
+		cout << "Fingerprinting time: " << tot_fin << " ms\n";
+		cout << "Total time: " << ((float)end - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
 		cout << "=============================================================================\n";
 
 		return 0;
@@ -95,7 +95,7 @@ namespace CPP_Pipeline_Namespace {
 		buffer_mutex[bufferIdx].unlock();
 		bufferIdx ^= 1;
 		curFilePos += curWindowNum;
-		tot_read += ((float)clock() - start_read) / CLOCKS_PER_SEC;
+		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 		//Read the rest
 		while (curWindowNum == MAX_WINDOW_NUM) {
 			buffer_mutex[bufferIdx].lock();
@@ -114,7 +114,7 @@ namespace CPP_Pipeline_Namespace {
 			buffer_mutex[bufferIdx].unlock();
 			bufferIdx ^= 1;
 			curFilePos += curWindowNum;
-			tot_read += ((float)clock() - start_read) / CLOCKS_PER_SEC;
+			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 		}
 		no_more_input = true;
 	}
@@ -133,8 +133,8 @@ namespace CPP_Pipeline_Namespace {
 			}
 
 			start_chunk = clock();
-
 			deque<uint> currentChunkingResult = re.chunking(buffer[bufferIdx], buffer_len[bufferIdx]);
+			tot_chunk += ((float)clock() - start_chunk) * 1000 / CLOCKS_PER_SEC;
 			buffer_mutex[bufferIdx].unlock();
 
 			chunking_result_mutex[chunkingResultIdx].lock();
@@ -149,7 +149,6 @@ namespace CPP_Pipeline_Namespace {
 			chunkingResultIdx ^= 1;
 
 			bufferIdx ^= 1;
-			tot_chunk += ((float)clock() - start_chunk) / CLOCKS_PER_SEC;
 		}
 		no_more_chunking_result = true;
 	}
@@ -176,7 +175,7 @@ namespace CPP_Pipeline_Namespace {
 			chunking_result_obsolete[chunkingResultIdx] = true;
 			bufferIdx ^= 1;
 			chunkingResultIdx ^= 1;
-			tot_fin += ((float)clock() - start_fin) / CLOCKS_PER_SEC;
+			tot_fin += ((float)clock() - start_fin) * 1000 / CLOCKS_PER_SEC;
 		}
 	}
 

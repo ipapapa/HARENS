@@ -68,7 +68,10 @@ uint RedundancyEliminator_CPP::fingerPrinting(deque<uint> indexQ, char* package)
 }
 
 uint RedundancyEliminator_CPP::eliminateRedundancy(char* package, uint packageSize) {
+	clock_t start = clock();
 	deque<uint> indexQ = chunking(package, packageSize);
+	double time = (clock() - start) * 1000 / CLOCKS_PER_SEC;
+	printf("Chunk partition time: %f ms\n", time);
 	return fingerPrinting(indexQ, package);
 }
 

@@ -52,7 +52,7 @@
     <ClCompile Include="TreeHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
-    <ClCompile Include="CircularTreeHash.cpp">
+    <ClCompile Include="OpenAddressCircularHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
   </ItemGroup>
@@ -132,7 +132,7 @@
     <ClInclude Include="TreeHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
-    <ClInclude Include="CircularTreeHash.h">
+    <ClInclude Include="OpenAddressCircularHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
   </ItemGroup>

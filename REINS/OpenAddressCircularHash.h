@@ -4,16 +4,16 @@
 #include "Definition.h"
 #include "TreeHash.h"
 
-class CircularTreeHash : public VirtualHash {
+class OpenAddressCircularHash : public VirtualHash {
 private:
 	SelfMantainedCircularQueue circularQueue;
 	TreeHash map;
 
 public:
-	CircularTreeHash() {}
-	CircularTreeHash(uint _size);
+	OpenAddressCircularHash() {}
+	OpenAddressCircularHash(uint _size);
 	void SetupCircularHash(uint _size);
-	~CircularTreeHash();
+	~OpenAddressCircularHash();
 	ulong Add(ulong hashValue, bool isDuplicate);
 	bool Find(ulong hashValue);
 	bool FindAndAdd(ulong& hashValue, ulong& toBeDel);

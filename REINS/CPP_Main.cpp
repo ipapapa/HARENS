@@ -30,13 +30,13 @@ namespace CPP_Namespace {
 		buffer = new char[length];
 		ifs.read(buffer, length);
 		ifs.close();
-		cout << "Reading time: " << ((float)clock() - start_read) / CLOCKS_PER_SEC << " s\n";
+		cout << "Reading time: " << ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC << " ms\n";
 
 		cout << "File size: " << length / 1024 << " KB\n";
 
 		CPP_TestOfRabinFingerprint(buffer, length);
 		delete[] buffer;
-		cout << "Total time: " << ((float)clock() - start) / CLOCKS_PER_SEC << " s\n";
+		cout << "Total time: " << ((float)clock() - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
 		cout << "=============================================================================\n";
 		//system("pause");
 		return 0;

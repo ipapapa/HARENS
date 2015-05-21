@@ -290,12 +290,12 @@ uint RedundancyEliminator_CUDA::eliminateRedundancy(char* package, uint packageS
 
 	int bufferIdx = 0;
 	uint curInputLen = MAX_KERNEL_INPUT_LEN, curWindowNum, curFilePos = 0;
-	start = clock();
 	for (int iterator = 0; curInputLen == MAX_KERNEL_INPUT_LEN; ++iterator) {
 		curInputLen = min(MAX_KERNEL_INPUT_LEN, packageSize - curFilePos);
 		curWindowNum = curInputLen - WINDOW_SIZE + 1;
 		memcpy(packageInput[bufferIdx], &(package[curFilePos]), curInputLen);
 
+		start = clock();
 		cudaStreamSynchronize(streams[bufferIdx]);
 		
 		//Because of unblock cuda process, deal with the 2 iteration eariler cuda output here
@@ -305,6 +305,8 @@ uint RedundancyEliminator_CUDA::eliminateRedundancy(char* package, uint packageS
 					indexQ.push_back(j);
 				}
 			}
+			end = clock();
+			time += (end - start) * 1000 / CLOCKS_PER_SEC;
 			totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - (MAX_WINDOW_NUM << 1)]));
 			indexQ.clear();
 		}
@@ -315,14 +317,18 @@ uint RedundancyEliminator_CUDA::eliminateRedundancy(char* package, uint packageS
 		curFilePos += curWindowNum;
 	}
 
+	start = clock();
 	cudaDeviceSynchronize();
 	for (uint j = 0; j < MAX_WINDOW_NUM; ++j) {
 		if ((resultHost[bufferIdx][j] & P_MINUS) == 0) { // marker found
 			indexQ.push_back(j);
 		}
 	}
+	end = clock();
+	time += (end - start) * 1000 / CLOCKS_PER_SEC;
 	totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - MAX_WINDOW_NUM - curWindowNum]));
 	indexQ.clear();
+	start = clock();
 	for (uint j = 0; j < curWindowNum; ++j) {
 		if ((resultHost[bufferIdx ^ 1][j] & P_MINUS) == 0) { // marker found
 			indexQ.push_back(j);

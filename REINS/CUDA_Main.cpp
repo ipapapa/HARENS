@@ -24,14 +24,14 @@ namespace CUDA_Namespace {
 		char *buffer = new char[length];
 		ifs.read(buffer, length);
 		ifs.close();
-		cout << "Reading time: " << ((float)clock() - start_read) / CLOCKS_PER_SEC << " s\n";
+		cout << "Reading time: " << ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC << " ms\n";
 
 		// string fileContent((istreambuf_iterator<char>(ifs)), (istreambuf_iterator<char>()));	
 		cout << "File size: " << length / 1024 << " KB\n";
 		CUDA_TestOfRabinFingerprint(buffer, length);
 		delete[] buffer;
 		clock_t end = clock();
-		cout << "Total time: " << ((float)end - start) / CLOCKS_PER_SEC << " s\n";
+		cout << "Total time: " << ((float)end - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
 		cout << "=============================================================================\n";
 		return 0;
 	}

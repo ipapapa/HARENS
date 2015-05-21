@@ -54,7 +54,7 @@ namespace CUDA_Pipeline_Namespace {
 	array<array<CircularPairQueue<ulong, uint>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hash_queue;
 	//chunk matching 
 	mutex chunk_hashing_end_mutex;
-	CircularTreeHash hash_pool(MAX_CHUNK_NUM);
+	OpenAddressCircularHash hash_pool(MAX_CHUNK_NUM);
 	uint total_duplication_size = 0;
 	//Time
 	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;
