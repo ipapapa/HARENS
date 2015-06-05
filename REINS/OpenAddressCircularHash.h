@@ -14,8 +14,12 @@ public:
 	OpenAddressCircularHash(uint _size);
 	void SetupCircularHash(uint _size);
 	~OpenAddressCircularHash();
+
+	/*obsolete*/
 	ulong Add(ulong hashValue, bool isDuplicate);
+	/*obsolete*/
 	bool Find(ulong hashValue);
-	bool FindAndAdd(ulong& hashValue, ulong& toBeDel);
+
+	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
 };
 

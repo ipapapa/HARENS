@@ -40,5 +40,5 @@ public:
 
 	virtual bool Find(ulong hashValue) = 0;
 
-	virtual bool FindAndAdd(ulong& hashValue, ulong& toBeDel) = 0;
+	virtual bool FindAndAdd(const ulong& hashValue, ulong& toBeDel) = 0;
 };

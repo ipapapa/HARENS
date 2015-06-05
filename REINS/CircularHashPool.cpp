@@ -53,7 +53,7 @@ bool CircularHashPool::Find(ulong hashValue) {
 	return isFound;
 }
 
-bool CircularHashPool::FindAndAdd(ulong& hashValue, ulong& toBeDel) {
+bool CircularHashPool::FindAndAdd(const ulong& hashValue, ulong& toBeDel) {
 	bool isFound;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 

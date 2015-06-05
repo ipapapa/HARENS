@@ -42,7 +42,7 @@ bool CircularHash::Find(ulong hashValue) {
 	return map.find(hashValue) != map.end();
 }
 
-bool CircularHash::FindAndAdd(ulong& hashValue, ulong& toBeDel) {
+bool CircularHash::FindAndAdd(const ulong& hashValue, ulong& toBeDel) {
 	bool isFound = map.find(hashValue) != map.end();
 	toBeDel = circularQueue.Add(hashValue);
 	if (toBeDel != NULL) {

@@ -19,7 +19,7 @@ ulong OpenAddressCircularHash::Add(ulong hashValue, bool isDuplicate){ return 0;
 /*obsolete*/
 bool OpenAddressCircularHash::Find(ulong hashValue){ return false; }
 
-bool OpenAddressCircularHash::FindAndAdd(ulong& hashValue, ulong& toBeDel) {
+bool OpenAddressCircularHash::FindAndAdd(const ulong& hashValue, ulong& toBeDel) {
 	int location = map.Find(hashValue);
 	bool insertSucceed = true;
 	if (location == -1) {

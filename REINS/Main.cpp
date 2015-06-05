@@ -5,7 +5,7 @@
 #include "CUDA_Pipeline_PushMod_Main.h"
 
 enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_Pipeline_PushMod, CUDA_COMPARE, ALL };
-Method method = CUDA_Pipeline;
+Method method = ALL;
 
 int main(int argc, char* argv[]) {
 	switch (method) {
@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
 	case CUDA_Pipeline:
 		CUDA_Pipeline_Namespace::CUDA_Pipeline_Main(argc, argv);
 		break;
-	case CUDA_Pipeline_PushMod:
+	case CUDA_Pipeline_PushMod: 
 		CUDA_Pipeline_PushMod_Namespace::CUDA_Pipeline_PushMod_Main(argc, argv);
 		break;
 	case CUDA_COMPARE:

@@ -15,6 +15,6 @@ public:
 	~CircularHash();
 	ulong Add(ulong hashValue, bool isDuplicate);
 	bool Find(ulong hashValue);
-	bool FindAndAdd(ulong& hashValue, ulong& toBeDel);
+	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
 };
 

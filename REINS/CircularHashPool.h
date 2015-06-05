@@ -19,6 +19,6 @@ public:
 
 	bool Find(ulong hashValue);
 
-	bool FindAndAdd(ulong& hashValue, ulong& toBeDel);
+	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
 };
 
