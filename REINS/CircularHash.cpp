@@ -16,7 +16,7 @@ CircularHash::~CircularHash()
 	map.clear();
 }
 
-ulong CircularHash::Add(ulong hashValue, bool isDuplicate) {
+ulong CircularHash::Add(const ulong hashValue, const bool isDuplicated) {
 	ulong toBeDel = 0;
 	//Deal with the oldest hash value if the circular map is full
 	toBeDel = circularQueue.Add(hashValue);
@@ -28,7 +28,7 @@ ulong CircularHash::Add(ulong hashValue, bool isDuplicate) {
 			map[toBeDel] -= 1;
 		}
 	}
-	if (isDuplicate) {
+	if (isDuplicated) {
 		map[hashValue] += 1;
 	}
 	else {
@@ -38,7 +38,7 @@ ulong CircularHash::Add(ulong hashValue, bool isDuplicate) {
 }
 
 
-bool CircularHash::Find(ulong hashValue) {
+bool CircularHash::Find(const ulong hashValue) {
 	return map.find(hashValue) != map.end();
 }
 

@@ -16,7 +16,7 @@ CircularHashPool::~CircularHashPool()
 }
 
 
-ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
+ulong CircularHashPool::Add(const ulong hashValue, const bool isDuplicated) {
 	ulong toBeDel = 0;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 
@@ -34,7 +34,7 @@ ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
 			mapPool[segNum][toBeDel] -= 1;
 		}
 	}
-	if (isDuplicate) {
+	if (isDuplicated) {
 		mapPool[segNum][hashValue] += 1;
 	}
 	else {
@@ -44,7 +44,7 @@ ulong CircularHashPool::Add(ulong hashValue, bool isDuplicate) {
 	return toBeDel;
 }
 
-bool CircularHashPool::Find(ulong hashValue) {
+bool CircularHashPool::Find(const ulong hashValue) {
 	bool isFound;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 	mapPoolMutex[segNum].lock();

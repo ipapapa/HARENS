@@ -13,8 +13,8 @@ public:
 	CircularHash(uint _size);
 	void SetupCircularHash(uint _size);
 	~CircularHash();
-	ulong Add(ulong hashValue, bool isDuplicate);
-	bool Find(ulong hashValue);
+	ulong Add(const ulong hashValue, const bool isDuplicated);
+	bool Find(const ulong hashValue);
 	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
 };
 

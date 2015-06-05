@@ -16,9 +16,9 @@ public:
 	~OpenAddressCircularHash();
 
 	/*obsolete*/
-	ulong Add(ulong hashValue, bool isDuplicate);
+	ulong Add(const ulong hashValue, const bool isDuplicated);
 	/*obsolete*/
-	bool Find(ulong hashValue);
+	bool Find(const ulong hashValue);
 
 	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
 };

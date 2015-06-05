@@ -2,23 +2,23 @@
 
 #define CharArraySize(array) strlen(array)
 
-__device__ void SetResultElement(ulong* subResult, uint idx, ulong resultPoint) {
+__device__ void SetResultElement(ulong* subResult, const uint idx, const ulong resultPoint) {
 	subResult[idx] = resultPoint;
 }
 
-__device__ ulong* GetSubResult(ulong* result, uint blockNum) {
+__device__ ulong* GetSubResult(ulong* result, const uint blockNum) {
 	return &(result[blockNum * THREAD_PER_BLOCK]);
 }
 
-__device__ char* GetSubStr(char *str, uint blockNum) {
+__device__ const char* GetSubStr(const char *str, const uint blockNum) {
 	return &(str[blockNum * THREAD_PER_BLOCK]);
 }
 
-__device__ uint GetUIntFromStr(char* strs, uint idx) {
+__device__ uint GetUIntFromStr(const char* strs, const uint idx) {
 	return (strs[idx] << 24) | (strs[idx + 1] << 16) | (strs[idx + 2] << 8) | (strs[idx + 3]);
 }
 
-__device__ ulong GetULongFromStr(char* strs, uint idx) {
+__device__ ulong GetULongFromStr(const char* strs, const uint idx) {
 	/*ulong result;
 	memcpy((void*)&result, strs, BYTES_IN_ULONG);
 	return result;
@@ -31,17 +31,17 @@ __device__ ulong GetULongFromStr(char* strs, uint idx) {
 	
 }
 
-__device__ char GetChar(char* subStr, uint idx) {
+__device__ char GetChar(const char* subStr, const uint idx) {
 	return subStr[idx];
 }
 
 __global__ void Hash(const ulong *TA, const ulong *TB, const ulong *TC, const ulong * TD,
-	char *str, const uint windowsNum, ulong *result/*, int *debug*/) {
+	const char *str, const uint windowsNum, ulong *result/*, int *debug*/) {
 	if (blockDim.x * blockIdx.x + threadIdx.x >= windowsNum)
 		return;
 
 	uint blockNum = blockIdx.x;
-	char* subStr = GetSubStr(str, blockNum);
+	const char* subStr = GetSubStr(str, blockNum);
 	ulong* subResult = GetSubResult(result, blockNum);
 
 	__shared__ char s_str[THREAD_PER_BLOCK + 3];

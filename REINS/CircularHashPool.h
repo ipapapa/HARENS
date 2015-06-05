@@ -15,9 +15,9 @@ public:
 	CircularHashPool(uint size);
 	~CircularHashPool();
 
-	ulong Add(ulong hashValue, bool isDuplicate);
+	ulong Add(const ulong hashValue, const bool isDuplicated);
 
-	bool Find(ulong hashValue);
+	bool Find(const ulong hashValue);
 
 	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
 };

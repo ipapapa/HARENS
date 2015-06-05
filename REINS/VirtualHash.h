@@ -36,9 +36,9 @@ public:
 	void SetupVirtualHash(uint _size);
 	~VirtualHash();
 
-	virtual ulong Add(ulong hashValue, bool isDuplicate) = 0;
+	virtual ulong Add(const ulong hashValue, const bool isDuplicated) = 0;
 
-	virtual bool Find(ulong hashValue) = 0;
+	virtual bool Find(const ulong hashValue) = 0;
 
 	virtual bool FindAndAdd(const ulong& hashValue, ulong& toBeDel) = 0;
 };

@@ -49,10 +49,10 @@ public:
 };
 
 __global__ void Hash(const ulong *TA, const ulong *TB, const ulong *TC, const ulong * TD,
-	char *str, const uint windowsNum, ulong *result/*, int *debug*/);
-__device__ void SetSubResult(ulong* subResult, uint idx, ulong resultPoint); 
-__device__ ulong* GetSubResult(ulong* result, uint blockNum);
-__device__ char* GetSubStr(char *str, uint blockNum);
-__device__ uint GetUIntFromStr(char* strs, uint idx);
-__device__ ulong GetULongFromStr(char* strs, uint idx);
-__device__ char GetChar(char* subStr, uint idx);
+	const char *str, const uint windowsNum, ulong *result/*, int *debug*/);
+__device__ void SetResultElement(ulong* subResult, const uint idx, const ulong resultPoint);
+__device__ ulong* GetSubResult(ulong* result, const uint blockNum);
+__device__ const char* GetSubStr(const char *str, const uint blockNum);
+__device__ uint GetUIntFromStr(const char* strs, const uint idx);
+__device__ ulong GetULongFromStr(const char* strs, const uint idx);
+__device__ char GetChar(const char* subStr, const uint idx);
