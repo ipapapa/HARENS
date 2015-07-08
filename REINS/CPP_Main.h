@@ -1,6 +1,7 @@
 #pragma once
 #include "RabinHash.h"
 #include "RedundancyEliminator_CPP.h"
+#include "PcapReader.h"
 
 namespace CPP_Namespace {
 
@@ -8,7 +9,7 @@ namespace CPP_Namespace {
 	void TestOfRabinHash(char* fileContent, int fileContentLen);
 	*/
 
-	void CPP_TestOfRabinFingerprint(char* fileContent, uint fileContentLen);
+	void CPP_TestOfRabinFingerprint(char* fileContent, unsigned int fileContentLen);
 
 	int CPP_Main(int argc, char* argv[]);
 }

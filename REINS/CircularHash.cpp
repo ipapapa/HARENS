@@ -1,13 +1,13 @@
 #include "CircularHash.h"
 
-CircularHash::CircularHash(uint _size) : VirtualHash(_size), circularQueue(_size), map(size)
+CircularHash::CircularHash(unsigned int _size) : VirtualHash(_size), circularQueue(_size), map(size)
 {
 }
 
-void CircularHash::SetupCircularHash(uint _size) {
+void CircularHash::SetupCircularHash(unsigned int _size) {
 	SetupVirtualHash(_size);
 	circularQueue.SetupCircularQueue(_size);
-	map = std::unordered_map<ulong, uint>(_size);
+	map = std::unordered_map<unsigned long long, unsigned int>(_size);
 }
 
 
@@ -16,8 +16,8 @@ CircularHash::~CircularHash()
 	map.clear();
 }
 
-ulong CircularHash::Add(const ulong hashValue, const bool isDuplicated) {
-	ulong toBeDel = 0;
+unsigned long long CircularHash::Add(const unsigned long long hashValue, const bool isDuplicated) {
+	unsigned long long toBeDel = 0;
 	//Deal with the oldest hash value if the circular map is full
 	toBeDel = circularQueue.Add(hashValue);
 	if (toBeDel != NULL) {
@@ -38,11 +38,11 @@ ulong CircularHash::Add(const ulong hashValue, const bool isDuplicated) {
 }
 
 
-bool CircularHash::Find(const ulong hashValue) {
+bool CircularHash::Find(const unsigned long long hashValue) {
 	return map.find(hashValue) != map.end();
 }
 
-bool CircularHash::FindAndAdd(const ulong& hashValue, ulong& toBeDel) {
+bool CircularHash::FindAndAdd(const unsigned long long& hashValue, unsigned long long& toBeDel) {
 	bool isFound = map.find(hashValue) != map.end();
 	toBeDel = circularQueue.Add(hashValue);
 	if (toBeDel != NULL) {

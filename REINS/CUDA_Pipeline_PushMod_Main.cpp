@@ -3,36 +3,36 @@ using namespace std;
 
 namespace CUDA_Pipeline_PushMod_Namespace {
 	//constants
-	const uint MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
-	const uint MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
+	const unsigned int MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
+	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 	const int FINGERPRINTING_THREAD_NUM = 4;
 	//threads
 	int thread_num;
 	thread* worker_threads;
 	//file
 	ifstream fin;
-	uint file_len;
+	unsigned int file_len;
 	char overlap[WINDOW_SIZE - 1];
 	//pagable buffer
 	char** pagable_buffer;
-	uint* buffer_len;
+	unsigned int* buffer_len;
 	//fixed buffer
 	char** fixed_buffer;
 	//RedundancyEliminator_CUDA
 	RedundancyEliminator_CUDA re;
 	//rabin hash kernel asynchronize
 	char** input_kernel;
-	ulong** result_kernel;
-	ulong** result_host;
+	unsigned long long** result_kernel;
+	unsigned long long** result_host;
 	//chunking
 	cudaStream_t* stream;
-	uint** chunking_result;
-	uint* chunking_result_len;
+	unsigned int** chunking_result;
+	unsigned int* chunking_result_len;
 	//chunk hashing & matching
-	uint total_duplication_size = 0;
+	unsigned int total_duplication_size = 0;
 	thread** segment_threads;
-	ulong*** chunk_hashing_value_list;
-	uint*** chunk_len_list;	//This is only for simulation, in real case don't need the "uint chunk length"
+	unsigned long long*** chunk_hashing_value_list;
+	unsigned int*** chunk_len_list;	//This is only for simulation, in real case don't need the "unsigned int chunk length"
 	mutex** chunk_hash_mutex;
 	//Circular querying hash
 	CircularHash circ_hash;
@@ -67,7 +67,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		circ_hash.SetupCircularHash(MAX_CHUNK_NUM);
 		//initialize pagable buffer
 		pagable_buffer = new char*[thread_num];
-		buffer_len = new uint[thread_num];
+		buffer_len = new unsigned int[thread_num];
 		for (int i = 0; i < thread_num; ++i) {
 			pagable_buffer[i] = new char[MAX_BUFFER_LEN];
 		}
@@ -78,8 +78,8 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		}
 		//initialize chunking kernel ascychronize
 		input_kernel = new char*[thread_num];
-		result_kernel = new ulong*[thread_num];
-		result_host = new ulong*[thread_num];
+		result_kernel = new unsigned long long*[thread_num];
+		result_host = new unsigned long long*[thread_num];
 		for (int i = 0; i < thread_num; ++i) {
 			cudaMalloc((void**)&input_kernel[i], MAX_BUFFER_LEN);
 			cudaMalloc((void**)&result_kernel[i], MAX_WINDOW_NUM * BYTES_IN_ULONG);
@@ -87,26 +87,26 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		}
 		//initialize chunking
 		stream = new cudaStream_t[thread_num];
-		chunking_result = new uint*[thread_num];
-		chunking_result_len = new uint[thread_num];
+		chunking_result = new unsigned int*[thread_num];
+		chunking_result_len = new unsigned int[thread_num];
 		for (int i = 0; i < thread_num; ++i) {
 			cudaStreamCreate(&stream[i]);
-			chunking_result[i] = new uint[MAX_WINDOW_NUM];
+			chunking_result[i] = new unsigned int[MAX_WINDOW_NUM];
 		}
 		//initialize chunk hashing & matching
 		segment_threads = new thread*[thread_num];
-		chunk_hashing_value_list = new ulong**[thread_num];
-		chunk_len_list = new uint**[thread_num];
+		chunk_hashing_value_list = new unsigned long long**[thread_num];
+		chunk_len_list = new unsigned int**[thread_num];
 		chunk_hash_mutex = new mutex*[thread_num];
 		for (int i = 0; i < thread_num; ++i) {
 			segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
-			chunk_hashing_value_list[i] = new ulong*[FINGERPRINTING_THREAD_NUM];
-			chunk_len_list[i] = new uint*[FINGERPRINTING_THREAD_NUM];
+			chunk_hashing_value_list[i] = new unsigned long long*[FINGERPRINTING_THREAD_NUM];
+			chunk_len_list[i] = new unsigned int*[FINGERPRINTING_THREAD_NUM];
 			chunk_hash_mutex[i] = new mutex[FINGERPRINTING_THREAD_NUM];
 			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
 				//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
-				chunk_hashing_value_list[i][j] = new ulong[MAX_WINDOW_NUM / 4];
-				chunk_len_list[i][j] = new uint[MAX_WINDOW_NUM / 4];
+				chunk_hashing_value_list[i][j] = new unsigned long long[MAX_WINDOW_NUM / 4];
+				chunk_len_list[i][j] = new unsigned int[MAX_WINDOW_NUM / 4];
 			}
 		}
 
@@ -182,7 +182,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 
 	void inline Boost() {
 		int threadIdx = 0;
-		uint curFilePos = 0;
+		unsigned int curFilePos = 0;
 		int curWindowNum;
 
 		//Read the first part
@@ -225,7 +225,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 		time_rhk += (end_rhk - start_rhk) * 1000 / CLOCKS_PER_SEC;
 		start_c = clock();
 		int chunkingResultIdx = 0;
-		for (uint j = 0; j < buffer_len[threadIdx] - WINDOW_SIZE + 1; ++j) {
+		for (unsigned int j = 0; j < buffer_len[threadIdx] - WINDOW_SIZE + 1; ++j) {
 			if ((result_host[threadIdx][j] & P_MINUS) == 0) {
 				chunking_result[threadIdx][chunkingResultIdx++] = j;
 			}
@@ -247,7 +247,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 
 	void FingerprintingSegment(int threadIdx, int segmentNum) {
 		int size = chunking_result_len[threadIdx];
-		uint* chunkingResultSeg = &chunking_result[threadIdx][segmentNum * size / FINGERPRINTING_THREAD_NUM];
+		unsigned int* chunkingResultSeg = &chunking_result[threadIdx][segmentNum * size / FINGERPRINTING_THREAD_NUM];
 		int segLen = size / FINGERPRINTING_THREAD_NUM;
 		if ((segmentNum + 1) * size / FINGERPRINTING_THREAD_NUM > size)
 			segLen = size - segmentNum * size / FINGERPRINTING_THREAD_NUM;
@@ -258,15 +258,15 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 
 	void RoundQuery() {
 		bool noHashValueFound;
-		tuple<ulong, uint> empty = tuple<ulong, uint>(0, -1);
-		ulong hashValue;
-		uint chunkLen;
+		tuple<unsigned long long, unsigned int> empty = tuple<unsigned long long, unsigned int>(0, -1);
+		unsigned long long hashValue;
+		unsigned int chunkLen;
 		bool isDuplicate;
 		while (true) {
 			noHashValueFound = true;
 			for (int threadIdx = 0; threadIdx < thread_num; ++threadIdx) {
 				for (int segmentNum = 0; segmentNum < FINGERPRINTING_THREAD_NUM; ++segmentNum) {
-					tuple<ulong, uint> hashValueAndLen = empty;
+					tuple<unsigned long long, unsigned int> hashValueAndLen = empty;
 					chunk_hash_mutex[threadIdx][segmentNum].lock();
 					/*if (!hash_value_queue[threadIdx][segmentNum].empty()) {
 						hashValueAndLen = hash_value_queue[threadIdx][segmentNum].front();
@@ -285,7 +285,7 @@ namespace CUDA_Pipeline_PushMod_Namespace {
 						else {
 							isDuplicate = false;
 						}
-						ulong to_be_del = circ_hash.Add(hashValue, isDuplicate);
+						unsigned long long to_be_del = circ_hash.Add(hashValue, isDuplicate);
 						//In real software we are supposed to deal with the chunk in disk
 					}
 				}

@@ -10,9 +10,6 @@
     <Filter Include="CUDA Implementation">
       <UniqueIdentifier>{c99be135-728a-436b-b5fa-dbe24fd28690}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Sparse Hash">
-      <UniqueIdentifier>{aed60b3b-f4e1-4a18-a6ba-341ee029a599}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CircularHash.cpp">
@@ -42,9 +39,6 @@
     <ClCompile Include="VirtualHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
-    <ClCompile Include="sparse_hash\port.cc">
-      <Filter>Sparse Hash</Filter>
-    </ClCompile>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="CUDA_Pipeline_PushMod_Main.cpp">
       <Filter>CUDA Implementation</Filter>
@@ -53,6 +47,12 @@
       <Filter>Basic Functions</Filter>
     </ClCompile>
     <ClCompile Include="OpenAddressCircularHash.cpp">
+      <Filter>Basic Functions</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadTree.cpp">
+      <Filter>Basic Functions</Filter>
+    </ClCompile>
+    <ClCompile Include="PcapReader.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
   </ItemGroup>
@@ -99,33 +99,6 @@
     <ClInclude Include="CircularPairQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
-    <ClInclude Include="sparse_hash\config.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\densehashtable.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\hashtable-common.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\libc_allocator_with_realloc.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\port.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\sparseconfig.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\sparsehashtable.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\template_util.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
-    <ClInclude Include="sparse_hash\type_traits.h">
-      <Filter>Sparse Hash</Filter>
-    </ClInclude>
     <ClInclude Include="CUDA_Pipeline_PushMod_Main.h">
       <Filter>CUDA Implementation</Filter>
     </ClInclude>
@@ -135,27 +108,16 @@
     <ClInclude Include="OpenAddressCircularHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
+    <ClInclude Include="QuadTree.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="PcapReader.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="RedundancyEliminator_CUDA.cu">
       <Filter>CUDA Implementation</Filter>
     </CudaCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="sparse_hash\dense_hash_map">
-      <Filter>Sparse Hash</Filter>
-    </None>
-    <None Include="sparse_hash\dense_hash_set">
-      <Filter>Sparse Hash</Filter>
-    </None>
-    <None Include="sparse_hash\sparse_hash_map">
-      <Filter>Sparse Hash</Filter>
-    </None>
-    <None Include="sparse_hash\sparse_hash_set">
-      <Filter>Sparse Hash</Filter>
-    </None>
-    <None Include="sparse_hash\sparsetable">
-      <Filter>Sparse Hash</Filter>
-    </None>
   </ItemGroup>
 </Project>

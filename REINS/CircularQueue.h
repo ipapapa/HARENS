@@ -12,7 +12,7 @@ class CircularQueue
 public:
 	T* queue;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
-	uint size;
+	unsigned int size;
 	mutex contentMutex;
 	condition_variable contentCond;
 

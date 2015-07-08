@@ -17,7 +17,7 @@ namespace CUDA_Namespace {
 			return -1;
 		}
 
-		uint length = ifs.tellg();
+		unsigned int length = ifs.tellg();
 		ifs.seekg(0, ifs.beg);
 
 		clock_t start_read = clock();
@@ -36,9 +36,9 @@ namespace CUDA_Namespace {
 		return 0;
 	}
 
-	void CUDA_TestOfRabinFingerprint(char* fileContent, uint fileContentLen) {
+	void CUDA_TestOfRabinFingerprint(char* fileContent, unsigned int fileContentLen) {
 		RedundancyEliminator_CUDA re(RedundancyEliminator_CUDA::NonMultifingerprint);
-		uint duplicationSize = re.eliminateRedundancy(fileContent, fileContentLen);
+		unsigned int duplicationSize = re.eliminateRedundancy(fileContent, fileContentLen);
 
 		cout << "Found " << duplicationSize << " bytes of redundency, which is " << (float)duplicationSize / fileContentLen * 100 << " percent of file\n";
 	}

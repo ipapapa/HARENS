@@ -28,9 +28,10 @@
     <ClCompile Include="CUDA_Pipeline_Main.cpp" />
     <ClCompile Include="CUDA_Pipeline_PushMod_Main.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="PcapReader.cpp" />
+    <ClCompile Include="QuadTree.cpp" />
     <ClCompile Include="RabinHash.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP.cpp" />
-    <ClCompile Include="sparse_hash\port.cc" />
     <ClCompile Include="TreeHash.cpp" />
     <ClCompile Include="VirtualHash.cpp" />
   </ItemGroup>
@@ -39,8 +40,10 @@
     <ClInclude Include="CircularHashPool.h" />
     <ClInclude Include="CircularPairQueue.h" />
     <ClInclude Include="CircularQueue.h" />
+    <ClInclude Include="PcapReader.h" />
     <ClInclude Include="OpenAddressCircularHash.h" />
     <ClInclude Include="CUDA_Pipeline_PushMod_Main.h" />
+    <ClInclude Include="QuadTree.h" />
     <ClInclude Include="SelfMantainedCircularQueue.h" />
     <ClInclude Include="CPP_Main.h" />
     <ClInclude Include="CPP_Pipeline_Main.h" />
@@ -50,27 +53,11 @@
     <ClInclude Include="RabinHash.h" />
     <ClInclude Include="RedundancyEliminator_CPP.h" />
     <ClInclude Include="RedundancyEliminator_CUDA.h" />
-    <ClInclude Include="sparse_hash\config.h" />
-    <ClInclude Include="sparse_hash\densehashtable.h" />
-    <ClInclude Include="sparse_hash\hashtable-common.h" />
-    <ClInclude Include="sparse_hash\libc_allocator_with_realloc.h" />
-    <ClInclude Include="sparse_hash\port.h" />
-    <ClInclude Include="sparse_hash\sparseconfig.h" />
-    <ClInclude Include="sparse_hash\sparsehashtable.h" />
-    <ClInclude Include="sparse_hash\template_util.h" />
-    <ClInclude Include="sparse_hash\type_traits.h" />
     <ClInclude Include="TreeHash.h" />
     <ClInclude Include="VirtualHash.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="RedundancyEliminator_CUDA.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="sparse_hash\dense_hash_map" />
-    <None Include="sparse_hash\dense_hash_set" />
-    <None Include="sparse_hash\sparsetable" />
-    <None Include="sparse_hash\sparse_hash_map" />
-    <None Include="sparse_hash\sparse_hash_set" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A48B46A2-F5D4-4CF3-9349-129211C20372}</ProjectGuid>
@@ -200,15 +187,15 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)$(ProjectName)\openssl_build_x64\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)\$(ProjectName)\WpdPack\Include;$(SolutionDir)$(ProjectName)\openssl_build_x64\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>libeay64.lib;ssleay64.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)\$(ProjectName)\openssl_build_x64\lib;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ws2_32.lib;Packet.lib;wpcap.lib;libeay64.lib;ssleay64.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)\$(ProjectName)\WpdPack\Lib\x64;$(SolutionDir)\$(ProjectName)\openssl_build_x64\lib;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"

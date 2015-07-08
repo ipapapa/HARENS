@@ -4,8 +4,8 @@ using namespace std;
 namespace CUDA_Pipeline_Namespace {
 	
 	//constants
-	const uint MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
-	const uint MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
+	const unsigned int MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
+	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 	const int PAGABLE_BUFFER_NUM = 10;
 	const int FIXED_BUFFER_NUM = 4;
 	const int STREAM_NUM = 3;
@@ -18,17 +18,17 @@ namespace CUDA_Pipeline_Namespace {
 	bool chunk_hashing_end = false;
 	//file
 	ifstream fin;
-	uint file_len;
+	unsigned int file_len;
 	char overlap[WINDOW_SIZE - 1];
 	//pagable buffer
 	array<char*, PAGABLE_BUFFER_NUM> pagable_buffer;
-	array<uint, PAGABLE_BUFFER_NUM> pagable_buffer_len;
+	array<unsigned int, PAGABLE_BUFFER_NUM> pagable_buffer_len;
 	array<mutex, PAGABLE_BUFFER_NUM> pagable_buffer_mutex;
 	array<condition_variable, PAGABLE_BUFFER_NUM> pagable_buffer_cond;
 	array<bool, PAGABLE_BUFFER_NUM> pagable_buffer_obsolete;
 	//fixed buffer
 	array<char*, FIXED_BUFFER_NUM> fixed_buffer;
-	array<uint, FIXED_BUFFER_NUM> fixed_buffer_len;
+	array<unsigned int, FIXED_BUFFER_NUM> fixed_buffer_len;
 	array<mutex, FIXED_BUFFER_NUM> fixed_buffer_mutex;
 	array<condition_variable, FIXED_BUFFER_NUM> fixed_buffer_cond;
 	array<bool, FIXED_BUFFER_NUM> fixed_buffer_obsolete;
@@ -36,26 +36,26 @@ namespace CUDA_Pipeline_Namespace {
 	RedundancyEliminator_CUDA re;
 	//chunking kernel asynchronize
 	array<char*, FIXED_BUFFER_NUM> input_kernel;
-	array<ulong*, FIXED_BUFFER_NUM> result_kernel;
-	array<ulong*, FIXED_BUFFER_NUM> result_host;
-	array<uint, FIXED_BUFFER_NUM> result_host_len;
+	array<unsigned long long*, FIXED_BUFFER_NUM> result_kernel;
+	array<unsigned long long*, FIXED_BUFFER_NUM> result_host;
+	array<unsigned int, FIXED_BUFFER_NUM> result_host_len;
 	array<mutex, FIXED_BUFFER_NUM> result_host_mutex;
 	array<condition_variable, FIXED_BUFFER_NUM> result_host_cond;
 	array<bool, FIXED_BUFFER_NUM> result_host_obsolete;
 	//chunking result processing
 	array<cudaStream_t, STREAM_NUM> stream;
-	array<uint*, STREAM_NUM> chunking_result;
-	array<uint, STREAM_NUM> chunking_result_len;
+	array<unsigned int*, STREAM_NUM> chunking_result;
+	array<unsigned int, STREAM_NUM> chunking_result_len;
 	array<mutex, STREAM_NUM> chunking_result_mutex;
 	array<condition_variable, STREAM_NUM> chunking_result_cond;
 	array<bool, STREAM_NUM> chunking_result_obsolete;
 	//chunk hashing
 	array<thread*, STREAM_NUM> segment_threads;
-	array<array<CircularPairQueue<ulong, uint>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hash_queue;
+	array<array<CircularPairQueue<unsigned long long, unsigned int>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hash_queue;
 	//chunk matching 
 	mutex chunk_hashing_end_mutex;
 	OpenAddressCircularHash hash_pool(MAX_CHUNK_NUM);
-	uint total_duplication_size = 0;
+	unsigned int total_duplication_size = 0;
 	//Time
 	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;
 	double time = 0, time_r = 0, time_t = 0, time_ck = 0, time_cp = 0, time_ch, time_cm;
@@ -100,7 +100,7 @@ namespace CUDA_Pipeline_Namespace {
 		//initialize chunking result processing
 		for (int i = 0; i < STREAM_NUM; ++i) {
 			cudaStreamCreate(&stream[i]);
-			chunking_result[i] = new uint[MAX_WINDOW_NUM];
+			chunking_result[i] = new unsigned int[MAX_WINDOW_NUM];
 			chunking_result_obsolete[i] = true;
 		}
 		//initialize chunk hashing
@@ -170,7 +170,7 @@ namespace CUDA_Pipeline_Namespace {
 
 	void ReadFile() {
 		int pagableBufferIdx = 0;
-		uint curFilePos = 0;
+		unsigned int curFilePos = 0;
 		int curWindowNum;
 		//Read the first part
 		unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
@@ -305,8 +305,8 @@ namespace CUDA_Pipeline_Namespace {
 			start_cp = clock();
 			//all the inputs other than the last one contains #MAX_WINDOW_NUM of windows
 			int chunkingResultIdx = 0;
-			uint resultHostLen = result_host_len[resultHostIdx];
-			for (uint j = 0; j < resultHostLen; ++j) {
+			unsigned int resultHostLen = result_host_len[resultHostIdx];
+			for (unsigned int j = 0; j < resultHostLen; ++j) {
 				if ((result_host[resultHostIdx][j] & P_MINUS) == 0) {
 					chunking_result[streamIdx][chunkingResultIdx++] = j;
 				}
@@ -378,7 +378,7 @@ namespace CUDA_Pipeline_Namespace {
 
 	void ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum) {
 		int listSize = chunking_result_len[chunkingResultIdx];
-		uint* chunkingResultSeg = &chunking_result[chunkingResultIdx][segmentNum * listSize / FINGERPRINTING_THREAD_NUM];
+		unsigned int* chunkingResultSeg = &chunking_result[chunkingResultIdx][segmentNum * listSize / FINGERPRINTING_THREAD_NUM];
 		int segLen = listSize / FINGERPRINTING_THREAD_NUM;
 		if ((segmentNum + 1) * listSize / FINGERPRINTING_THREAD_NUM > listSize)
 			segLen = listSize - segmentNum * listSize / FINGERPRINTING_THREAD_NUM;
@@ -391,9 +391,9 @@ namespace CUDA_Pipeline_Namespace {
 		bool noHashValueFoundInLoop;
 		int noHashValueFoundTimes = 0;
 		int chunkResultIdx = 0;
-		ulong chunkHash = 0;
-		uint chunkLen = -1;
-		ulong toBeDel;
+		unsigned long long chunkHash = 0;
+		unsigned int chunkLen = -1;
+		unsigned long long toBeDel;
 		while (true) {
 			noHashValueFoundInLoop = true;
 			for (int segmentNum = 0; segmentNum < FINGERPRINTING_THREAD_NUM; ++segmentNum) {

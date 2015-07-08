@@ -4,7 +4,7 @@
 
 namespace CUDA_Namespace {
 
-	void CUDA_TestOfRabinFingerprint(char* fileContent, uint fileContentLen);
+	void CUDA_TestOfRabinFingerprint(char* fileContent, unsigned int fileContentLen);
 
 	int CUDA_Main(int argc, char* argv[]);
 }

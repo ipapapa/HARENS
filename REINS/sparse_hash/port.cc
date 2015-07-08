@@ -32,7 +32,9 @@
  */
 
 #include "sparseconfig.h"
-#ifndef WIN32
+#if (defined WIN32) || (defined WIN64)
+#pragma message ("In file \"pcap.h\". This condition modified by Kelu. It could cause problems.")
+#else
 # error You should only be including windows/port.cc in a windows environment!
 #endif
 

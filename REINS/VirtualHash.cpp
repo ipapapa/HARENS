@@ -1,12 +1,12 @@
 #include "VirtualHash.h"
 
 
-VirtualHash::VirtualHash(uint _size)
+VirtualHash::VirtualHash(unsigned int _size)
 {
 	size = _size;
 }
 
-void VirtualHash::SetupVirtualHash(uint _size) 
+void VirtualHash::SetupVirtualHash(unsigned int _size) 
 {
 	size = _size;
 }

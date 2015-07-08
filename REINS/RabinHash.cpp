@@ -4,7 +4,7 @@
 /*
  * Initialize the tables to zero
 */
-void RabinHash::initialize(uint* T) {
+void RabinHash::initialize(unsigned int* T) {
     for(int i = 0; i < TABLE_ROW_NUM; i++) {
         for(int j = 0; j < TABLE_COL_NUM; j++) {
             T[i * TABLE_COL_NUM + j] = 0;
@@ -15,12 +15,12 @@ void RabinHash::initialize(uint* T) {
 /*
  * Function that fills the polynomial tables
 */
-void RabinHash::initializePolynomial(uint* T, ulong* TLONG, int shiftbit) {
+void RabinHash::initializePolynomial(unsigned int* T, unsigned long long* TLONG, int shiftbit) {
 	for (int i = 0; i < TABLE_ROW_NUM; i++) {
-        ulong currValue = shiftLeftAndMod(i, shiftbit, pt );
+        unsigned long long currValue = shiftLeftAndMod(i, shiftbit, pt );
 		TLONG[i] = currValue;
         T[i * TABLE_COL_NUM + 0] = currValue >> 32;
-        T[i * TABLE_COL_NUM + 1] = (uint)currValue;
+        T[i * TABLE_COL_NUM + 1] = (unsigned int)currValue;
     }
 }
 
@@ -28,14 +28,14 @@ void RabinHash::initializePolynomial(uint* T, ulong* TLONG, int shiftbit) {
  * constructor initializes all tables to zero
 */
 RabinHash::RabinHash() {
-	TA = new uint[TABLE_ROW_NUM * TABLE_COL_NUM];
-	TB = new uint[TABLE_ROW_NUM * TABLE_COL_NUM];
-	TC = new uint[TABLE_ROW_NUM * TABLE_COL_NUM];
-	TD = new uint[TABLE_ROW_NUM * TABLE_COL_NUM];
-	TALONG = new ulong[TABLE_ROW_NUM];
-	TBLONG = new ulong[TABLE_ROW_NUM];
-	TCLONG = new ulong[TABLE_ROW_NUM];
-	TDLONG = new ulong[TABLE_ROW_NUM];
+	TA = new unsigned int[TABLE_ROW_NUM * TABLE_COL_NUM];
+	TB = new unsigned int[TABLE_ROW_NUM * TABLE_COL_NUM];
+	TC = new unsigned int[TABLE_ROW_NUM * TABLE_COL_NUM];
+	TD = new unsigned int[TABLE_ROW_NUM * TABLE_COL_NUM];
+	TALONG = new unsigned long long[TABLE_ROW_NUM];
+	TBLONG = new unsigned long long[TABLE_ROW_NUM];
+	TCLONG = new unsigned long long[TABLE_ROW_NUM];
+	TDLONG = new unsigned long long[TABLE_ROW_NUM];
     /*initialize(TA);
     initialize(TB);
     initialize(TC);
@@ -61,8 +61,8 @@ void RabinHash::print() {
 }
 
 /* strLen must be a multiple of 4 */
-ulong RabinHash::Hash(const char* str, uint strLen) {
-	/*ulong rabinHash = str[4];
+unsigned long long RabinHash::Hash(const char* str, unsigned int strLen) {
+	/*unsigned long long rabinHash = str[4];
 	for (int i = 5; i < 12; ++i)
 		rabinHash = (rabinHash << 8) | str[i];
 	
@@ -74,12 +74,12 @@ ulong RabinHash::Hash(const char* str, uint strLen) {
 
 	rabinHash ^= TALONG[h] ^ TBLONG[i] ^ TCLONG[j] ^ TDLONG[k];
 	return rabinHash;*/
-	uint iter = 0;
-	uint w1 = (str[iter] << 24) | (str[iter + 1] << 16) | (str[iter + 2] << 8) | (str[iter + 3]);
+	unsigned int iter = 0;
+	unsigned int w1 = (str[iter] << 24) | (str[iter + 1] << 16) | (str[iter + 2] << 8) | (str[iter + 3]);
 	iter += 4;
-	uint w2 = (str[iter] << 24) | (str[iter + 1] << 16) | (str[iter + 2] << 8) | (str[iter + 3]);
+	unsigned int w2 = (str[iter] << 24) | (str[iter + 1] << 16) | (str[iter + 2] << 8) | (str[iter + 3]);
 	iter += 4;
-	uint A, h, i, j, k;
+	unsigned int A, h, i, j, k;
 	while (iter < strLen) {
 		A = 0;
 		for (int offset = 0; offset < 4; ++offset) {
@@ -98,7 +98,7 @@ ulong RabinHash::Hash(const char* str, uint strLen) {
 			^ TC[j * TABLE_COL_NUM + 1] ^ TD[k * TABLE_COL_NUM + 1];
 		iter += 4;
     }
-    ulong rabinHash = 0;
+    unsigned long long rabinHash = 0;
     rabinHash = (rabinHash << 32) | w1;
     rabinHash = (rabinHash << 32) | w2;
     return rabinHash;
@@ -118,8 +118,8 @@ According to "Probabilistic algorithms in finite fields" by Michael Rabin,
 the probability of a random selected degree-n polynoial to be irreducible is 1/n,
 so the expected number of polynomials we need to pick before finding the correct one is n.
 */
-ulong RabinHash::genIrreduciblePoly() {
-	srand ((uint)time(NULL));
+unsigned long long RabinHash::genIrreduciblePoly() {
+	srand ((unsigned int)time(NULL));
     long long randomNum = 0;
 	do {
 	    //Generate a random polynomial with 63 degree
@@ -143,17 +143,17 @@ g := x^(q^n) - x mod polynomial
 if g = 0, then f is irreducible
 else, f is reducible
 */
-bool RabinHash::isIrreducible(ulong polynomial) {
+bool RabinHash::isIrreducible(unsigned long long polynomial) {
 	//x^2 - x (mod polynomial)
-	ulong rightNum = 2;                               //set rightNum = x
+	unsigned long long rightNum = 2;                               //set rightNum = x
 	rightNum = squareAndModManyTimes(rightNum, polynomial, 1);    //x square
 	rightNum ^= 2;                                                 //set rightNum = x^2 - x
-	ulong g = gcd(polynomial, rightNum);
+	unsigned long long g = gcd(polynomial, rightNum);
 	if(g != 1)
 		return false;
 	//Compute g = x^(2^63) - x mod polynomial
 	//set g_63 = x^(2^63) mod polynomial
-	ulong g_63 = squareAndModManyTimes(2, polynomial, 63);
+	unsigned long long g_63 = squareAndModManyTimes(2, polynomial, 63);
 
 	//set g = x^(2^63) - x mod polynomial
 	g = g_63 ^ 2;
@@ -170,8 +170,8 @@ it's done by the following steps:
 	2. so poly*poly mod module = sumof(a_i * shiftleftAndMod(poly, i, module))
 	3. repeat 1 and 2 a specific times, because poly_times = poly_(times - 1)^2; poly_(times - 1) = poly_(times - 2)^2; ...
 */
-ulong RabinHash::squareAndModManyTimes(ulong poly, ulong module, int times) {
-    ulong poly_plusonetime = poly;
+unsigned long long RabinHash::squareAndModManyTimes(unsigned long long poly, unsigned long long module, int times) {
+    unsigned long long poly_plusonetime = poly;
     for(; times > 0; --times) {
         poly = poly_plusonetime;
         poly_plusonetime = 0;
@@ -185,7 +185,7 @@ ulong RabinHash::squareAndModManyTimes(ulong poly, ulong module, int times) {
 }
 
 //This is based on the fact that both polynomials and mod are 63 degree polynomails, represented by 64-bit numbers (the first bit is 1).
-ulong RabinHash::shiftLeftAndMod(ulong number, int shiftBit, ulong mod) {
+unsigned long long RabinHash::shiftLeftAndMod(unsigned long long number, int shiftBit, unsigned long long mod) {
 	do {
 		while((number >> 63) != 1 && shiftBit > 0) {
 			number <<= 1;
@@ -199,10 +199,10 @@ ulong RabinHash::shiftLeftAndMod(ulong number, int shiftBit, ulong mod) {
 }
 
 /*
-Compute the greatest common divisor of two polynomials represented by two ulong number
+Compute the greatest common divisor of two polynomials represented by two unsigned long long number
 */
-ulong RabinHash::gcd(ulong num1, ulong num2) {
-	ulong nums[2];
+unsigned long long RabinHash::gcd(unsigned long long num1, unsigned long long num2) {
+	unsigned long long nums[2];
 	if(num1 > num2) {
 		nums[0] = num1;
 		nums[1] = num2;
@@ -225,7 +225,7 @@ ulong RabinHash::gcd(ulong num1, ulong num2) {
 /*
 Count the number of bits from the first 1 to the end
 */
-inline int RabinHash::bitsCount(ulong num) {
+inline int RabinHash::bitsCount(unsigned long long num) {
 	int count = 0;
 	while(num != 0) {
 		num >>= 1;
@@ -235,15 +235,15 @@ inline int RabinHash::bitsCount(ulong num) {
 }
 
 /*The following are for CUDA Implementation*/
-ulong* RabinHash::GetTALONG() const {
+unsigned long long* RabinHash::GetTALONG() const {
 	return TALONG;
 }
-ulong* RabinHash::GetTBLONG() const {
+unsigned long long* RabinHash::GetTBLONG() const {
 	return TBLONG;
 }
-ulong* RabinHash::GetTCLONG() const {
+unsigned long long* RabinHash::GetTCLONG() const {
 	return TCLONG;
 }
-ulong* RabinHash::GetTDLONG() const {
+unsigned long long* RabinHash::GetTDLONG() const {
 	return TDLONG;
 }

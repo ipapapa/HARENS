@@ -6,15 +6,15 @@
 class CircularHash : public VirtualHash {
 private:
 	SelfMantainedCircularQueue circularQueue;
-	std::unordered_map<ulong, uint> map;
+	std::unordered_map<unsigned long long, unsigned int> map;
 
 public:
 	CircularHash() {}
-	CircularHash(uint _size);
-	void SetupCircularHash(uint _size);
+	CircularHash(unsigned int _size);
+	void SetupCircularHash(unsigned int _size);
 	~CircularHash();
-	ulong Add(const ulong hashValue, const bool isDuplicated);
-	bool Find(const ulong hashValue);
-	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
+	unsigned long long Add(const unsigned long long hashValue, const bool isDuplicated);
+	bool Find(const unsigned long long hashValue);
+	bool FindAndAdd(const unsigned long long& hashValue, unsigned long long& toBeDel);
 };
 

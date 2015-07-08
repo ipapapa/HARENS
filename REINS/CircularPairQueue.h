@@ -13,7 +13,7 @@ public:
 	S* firstQ;
 	T* secondQ;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
-	uint size;
+	unsigned int size;
 	mutex contentMutex;
 	mutex fullMutex;
 	condition_variable fullCond;

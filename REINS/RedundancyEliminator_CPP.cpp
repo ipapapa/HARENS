@@ -18,21 +18,21 @@ RedundancyEliminator_CPP::~RedundancyEliminator_CPP() {
 /*
 Add a new chunck into the file system, if the hash value queue is full, also delete the oldest chunk.
 */
-void RedundancyEliminator_CPP::addNewChunk(ulong hashValue, char* chunk, uint chunkSize, bool isDuplicate) {
-	ulong to_be_del = circHash.Add(hashValue, isDuplicate);
+void RedundancyEliminator_CPP::addNewChunk(unsigned long long hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate) {
+	unsigned long long to_be_del = circHash.Add(hashValue, isDuplicate);
 	//fstream file(hashValue.c_str(), std::fstream::in|std::fstream::out);
 	////we are actually supposed to do something with chunkSize here
 	//file << chunk;
 	//file.close();
 }
 
-deque<uint> RedundancyEliminator_CPP::chunking(char* package, uint packageSize) {
-	deque<uint> indexQ = deque<uint>();
+deque<unsigned int> RedundancyEliminator_CPP::chunking(char* package, unsigned int packageSize) {
+	deque<unsigned int> indexQ = deque<unsigned int>();
 	char* chunk = new char[WINDOW_SIZE];
 
-	for (uint i = 0; i < packageSize - WINDOW_SIZE + 1; ++i) {
+	for (unsigned int i = 0; i < packageSize - WINDOW_SIZE + 1; ++i) {
 		memcpy(chunk, &(package[i]), WINDOW_SIZE);
-		ulong windowFingerPrint = hashFunc.Hash(chunk, WINDOW_SIZE);
+		unsigned long long windowFingerPrint = hashFunc.Hash(chunk, WINDOW_SIZE);
 		if ((windowFingerPrint & P_MINUS) == 0) { // marker found
 			indexQ.push_back(i);
 		}
@@ -40,19 +40,19 @@ deque<uint> RedundancyEliminator_CPP::chunking(char* package, uint packageSize) 
 	return indexQ;
 }
 
-uint RedundancyEliminator_CPP::fingerPrinting(deque<uint> indexQ, char* package) {
-	uint duplicationSize = 0;
-	uint prevIdx = 0;
+unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ, char* package) {
+	unsigned int duplicationSize = 0;
+	unsigned int prevIdx = 0;
 	char* chunk;
 	bool isDuplicate;
-	for (deque<uint>::const_iterator iter = indexQ.begin(); iter != indexQ.end(); ++iter) {
+	for (deque<unsigned int>::const_iterator iter = indexQ.begin(); iter != indexQ.end(); ++iter) {
 		if (prevIdx == 0) {
 			prevIdx = *iter;
 			continue;
 		}
-		uint chunkLen = *iter - prevIdx;
+		unsigned int chunkLen = *iter - prevIdx;
 		chunk = &(package[prevIdx]);
-		ulong chunkHash = computeChunkHash(chunk, chunkLen);
+		unsigned long long chunkHash = computeChunkHash(chunk, chunkLen);
 		if (circHash.Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
 			isDuplicate = true;
@@ -67,9 +67,9 @@ uint RedundancyEliminator_CPP::fingerPrinting(deque<uint> indexQ, char* package)
 	return duplicationSize;
 }
 
-uint RedundancyEliminator_CPP::eliminateRedundancy(char* package, uint packageSize) {
+unsigned int RedundancyEliminator_CPP::eliminateRedundancy(char* package, unsigned int packageSize) {
 	clock_t start = clock();
-	deque<uint> indexQ = chunking(package, packageSize);
+	deque<unsigned int> indexQ = chunking(package, packageSize);
 	double time = (clock() - start) * 1000 / CLOCKS_PER_SEC;
 	printf("Chunk partition time: %f ms\n", time);
 	return fingerPrinting(indexQ, package);
@@ -79,9 +79,9 @@ uint RedundancyEliminator_CPP::eliminateRedundancy(char* package, uint packageSi
 Compute the hash value of chunk, should use sha3 to avoid collision,
 I'm using rabin hash here for convience
 */
-inline ulong RedundancyEliminator_CPP::computeChunkHash(char* chunk, uint chunkSize) {
-	/*uchar* hashValue = new uchar[SHA_DIGEST_LENGTH];
-	SHA((uchar*)chunk, chunkSize, hashValue);
+inline unsigned long long RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize) {
+	/*unsigned char* hashValue = new unsigned char[SHA_DIGEST_LENGTH];
+	SHA((unsigned char*)chunk, chunkSize, hashValue);
 	return hashValue;*/
 	return hashFunc.Hash(chunk, chunkSize);
 }

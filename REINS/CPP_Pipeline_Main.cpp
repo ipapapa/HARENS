@@ -4,10 +4,10 @@ using namespace std;
 namespace CPP_Pipeline_Namespace {
 
 	const int BUFFER_NUM = 2;
-	const uint MAX_BUFFER_LEN = 4090 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
-	const uint MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
+	const unsigned int MAX_BUFFER_LEN = 4090 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
+	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 
-	uint file_length;
+	unsigned int file_length;
 	RedundancyEliminator_CPP re;
 	ifstream ifs;
 	//syncronize
@@ -18,10 +18,10 @@ namespace CPP_Pipeline_Namespace {
 	//shared data
 	char overlap[WINDOW_SIZE - 1];
 	char** buffer = new char*[BUFFER_NUM];	//two buffers
-	uint buffer_len[] = { 0, 0 };
-	deque<uint>* chunking_result = new deque<uint>[2];
+	unsigned int buffer_len[] = { 0, 0 };
+	deque<unsigned int>* chunking_result = new deque<unsigned int>[2];
 	//Result
-	uint total_duplication_size = 0;
+	unsigned int total_duplication_size = 0;
 	//Time
 	clock_t start_read, start_chunk, start_fin;
 	float tot_read = 0, tot_chunk = 0, tot_fin = 0;
@@ -82,7 +82,7 @@ namespace CPP_Pipeline_Namespace {
 
 	void CPP_ReadFile() {
 		int bufferIdx = 0;
-		uint curFilePos = 0;
+		unsigned int curFilePos = 0;
 		int curWindowNum;
 		//Read the first part
 		buffer_mutex[bufferIdx].lock();
@@ -133,7 +133,7 @@ namespace CPP_Pipeline_Namespace {
 			}
 
 			start_chunk = clock();
-			deque<uint> currentChunkingResult = re.chunking(buffer[bufferIdx], buffer_len[bufferIdx]);
+			deque<unsigned int> currentChunkingResult = re.chunking(buffer[bufferIdx], buffer_len[bufferIdx]);
 			tot_chunk += ((float)clock() - start_chunk) * 1000 / CLOCKS_PER_SEC;
 			buffer_mutex[bufferIdx].unlock();
 
@@ -184,18 +184,18 @@ namespace CPP_Pipeline_Namespace {
 	RabinHash rh;
 	//cout << rh.Hash("kelu") << endl;
 	int windowsize = 32;
-	ulong p = 32;
+	unsigned long long p = 32;
 	//char currWindow[windowsize];
 
-	set<ulong> hashValueSet;
-	map<int, ulong> chunkMap;
+	set<unsigned long long> hashValueSet;
+	map<int, unsigned long long> chunkMap;
 	int totalBlocks = 0;
 	int chunkNum = 0;
 	char* chunk;
 	const int CHUNK_SIZE = 32;
 	for (int i = 0; i <= fileContentLen - windowsize; i++) {
 	chunk = new char[CHUNK_SIZE];
-	ulong hashValWindow = rh.Hash(chunk, CHUNK_SIZE);
+	unsigned long long hashValWindow = rh.Hash(chunk, CHUNK_SIZE);
 	hashValueSet.insert(hashValWindow);
 	if (hashValWindow % p == 0) { // marker found
 	int marker = i;

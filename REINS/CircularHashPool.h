@@ -6,19 +6,19 @@ class CircularHashPool : public VirtualHash
 {
 private:
 	static const int POOL_SEGMENT_NUM = 2048;
-	std::array<std::unordered_map<ulong, uint>, POOL_SEGMENT_NUM> mapPool;
+	std::array<std::unordered_map<unsigned long long, unsigned int>, POOL_SEGMENT_NUM> mapPool;
 	std::array<std::mutex, POOL_SEGMENT_NUM> mapPoolMutex;
 	SelfMantainedCircularQueue circularQueue;
 	std::mutex circularQueueMutex;
 
 public:
-	CircularHashPool(uint size);
+	CircularHashPool(unsigned int size);
 	~CircularHashPool();
 
-	ulong Add(const ulong hashValue, const bool isDuplicated);
+	unsigned long long Add(const unsigned long long hashValue, const bool isDuplicated);
 
-	bool Find(const ulong hashValue);
+	bool Find(const unsigned long long hashValue);
 
-	bool FindAndAdd(const ulong& hashValue, ulong& toBeDel);
+	bool FindAndAdd(const unsigned long long& hashValue, unsigned long long& toBeDel);
 };
 

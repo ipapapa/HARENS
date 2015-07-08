@@ -4,28 +4,28 @@
 class SelfMantainedCircularQueue
 {
 public:
-	ulong* queue;
+	unsigned long long* queue;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
-	uint size;
+	unsigned int size;
 
 	SelfMantainedCircularQueue() {}
 
 	SelfMantainedCircularQueue(int _size) {
 		size = _size;
-		queue = new ulong[size];
+		queue = new unsigned long long[size];
 		front = 0;
 		rear = size - 1;
 	}
 
 	void SetupCircularQueue(int _size) {
 		size = _size;
-		queue = new ulong[size];
+		queue = new unsigned long long[size];
 		front = 0;
 		rear = size - 1;
 	}
 
-	ulong Add(ulong hashValue) {
-		ulong to_be_del = 0;
+	unsigned long long Add(unsigned long long hashValue) {
+		unsigned long long to_be_del = 0;
 		if ((rear + 2) % size == front) {
 			to_be_del = queue[front];
 			front = (front + 1) % size;

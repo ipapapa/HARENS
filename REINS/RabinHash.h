@@ -5,42 +5,42 @@ using namespace std;
 class RabinHash {
 private:
     /* Tables to store 2 << n where n -66 to 88 computations */
-    uint* TA;
-	uint* TB;
-	uint* TC;
-	uint* TD;
-	ulong* TALONG;
-	ulong* TBLONG;
-	ulong* TCLONG;
-	ulong* TDLONG;
+    unsigned int* TA;
+	unsigned int* TB;
+	unsigned int* TC;
+	unsigned int* TD;
+	unsigned long long* TALONG;
+	unsigned long long* TBLONG;
+	unsigned long long* TCLONG;
+	unsigned long long* TDLONG;
     /* Irreducible polynomial used in the finger printing algorithm */
-    ulong pt;
+    unsigned long long pt;
 
-	void initialize(uint* T);
-	void initializePolynomial(uint* T, ulong* TLONG, int shiftBit);
+	void initialize(unsigned int* T);
+	void initializePolynomial(unsigned int* T, unsigned long long* TLONG, int shiftBit);
 
     /*
      * Polynomail Generation Functions from Kelu
     */
-    ulong genIrreduciblePoly();
-    bool isIrreducible(ulong polynomial);
-    ulong squareAndModManyTimes(ulong poly, ulong module, int times);
-    ulong shiftLeftAndMod(ulong number, int shiftBit, ulong mod);
-    ulong gcd(ulong num1, ulong num2);
-    inline int bitsCount(ulong num);
+    unsigned long long genIrreduciblePoly();
+    bool isIrreducible(unsigned long long polynomial);
+    unsigned long long squareAndModManyTimes(unsigned long long poly, unsigned long long module, int times);
+    unsigned long long shiftLeftAndMod(unsigned long long number, int shiftBit, unsigned long long mod);
+    unsigned long long gcd(unsigned long long num1, unsigned long long num2);
+    inline int bitsCount(unsigned long long num);
 
 public:
-	static const uint TABLE_ROW_NUM = 256;
-	static const uint TABLE_COL_NUM = 2;
+	static const unsigned int TABLE_ROW_NUM = 256;
+	static const unsigned int TABLE_COL_NUM = 2;
     /* intialize the left shift arrays */
     RabinHash();
     void print();
 	/* strLen must be a multiple of 4 */
-	ulong Hash(const char* str, uint strLen);
+	unsigned long long Hash(const char* str, unsigned int strLen);
     ~RabinHash();
 	/*The following are for CUDA Implementation*/
-	ulong* GetTALONG() const;
-	ulong* GetTBLONG() const;
-	ulong* GetTCLONG() const;
-	ulong* GetTDLONG() const;
+	unsigned long long* GetTALONG() const;
+	unsigned long long* GetTBLONG() const;
+	unsigned long long* GetTCLONG() const;
+	unsigned long long* GetTDLONG() const;
 };

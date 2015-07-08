@@ -1,10 +1,10 @@
 #include "CircularHashPool.h"
 using namespace std;
 
-CircularHashPool::CircularHashPool(uint _size) : VirtualHash(_size)
+CircularHashPool::CircularHashPool(unsigned int _size) : VirtualHash(_size)
 {
 	for (auto& segPool : mapPool)
-		segPool = std::unordered_map<ulong, uint>(size / POOL_SEGMENT_NUM);
+		segPool = std::unordered_map<unsigned long long, unsigned int>(size / POOL_SEGMENT_NUM);
 	circularQueue = SelfMantainedCircularQueue(size);
 }
 
@@ -16,8 +16,8 @@ CircularHashPool::~CircularHashPool()
 }
 
 
-ulong CircularHashPool::Add(const ulong hashValue, const bool isDuplicated) {
-	ulong toBeDel = 0;
+unsigned long long CircularHashPool::Add(const unsigned long long hashValue, const bool isDuplicated) {
+	unsigned long long toBeDel = 0;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 
 	//Deal with the oldest hash value if the circular map is full
@@ -44,7 +44,7 @@ ulong CircularHashPool::Add(const ulong hashValue, const bool isDuplicated) {
 	return toBeDel;
 }
 
-bool CircularHashPool::Find(const ulong hashValue) {
+bool CircularHashPool::Find(const unsigned long long hashValue) {
 	bool isFound;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 	mapPoolMutex[segNum].lock();
@@ -53,7 +53,7 @@ bool CircularHashPool::Find(const ulong hashValue) {
 	return isFound;
 }
 
-bool CircularHashPool::FindAndAdd(const ulong& hashValue, ulong& toBeDel) {
+bool CircularHashPool::FindAndAdd(const unsigned long long& hashValue, unsigned long long& toBeDel) {
 	bool isFound;
 	int segNum = hashValue % POOL_SEGMENT_NUM;
 
