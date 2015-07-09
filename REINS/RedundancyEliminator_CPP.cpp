@@ -80,8 +80,8 @@ Compute the hash value of chunk, should use sha3 to avoid collision,
 I'm using rabin hash here for convience
 */
 inline unsigned long long RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize) {
-	/*unsigned char* hashValue = new unsigned char[SHA_DIGEST_LENGTH];
-	SHA((unsigned char*)chunk, chunkSize, hashValue);
+	/*UCHAR* hashValue = new UCHAR[SHA_DIGEST_LENGTH];
+	SHA((UCHAR*)chunk, chunkSize, hashValue);
 	return hashValue;*/
 	return hashFunc.Hash(chunk, chunkSize);
 }

@@ -28,8 +28,9 @@ namespace CPP_Namespace {
 		ifs.read(buffer, length);
 		ifs.close();*/
 		clock_t start_read = clock();
-		char* packet;
-		PcapReader::ReadPcapFile(argv[1], packet, length);
+		string payload = PcapReader::ReadPcapFile(argv[1]);
+		char* packet = &payload[0];
+		length = payload.length();
 		
 		cout << "Reading time: " << ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC << " ms\n";
 

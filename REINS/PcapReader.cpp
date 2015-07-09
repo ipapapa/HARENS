@@ -1,39 +1,45 @@
 #include "PcapReader.h"
 
-//void PcapReader::Deframe(unsigned char* useless, const struct pcap_pkthdr* pkthdr, const unsigned char* packet) {
-//#define SIZE_ETHERNET 14
-//	const struct sniff_ethernet *ethernet; /* The ethernet header */
-//	const struct sniff_ip *ip; /* The IP header */
-//	const struct sniff_tcp *tcp; /* The TCP header */
-//
-//	unsigned int size_ip;
-//	unsigned int size_tcp;
-//
-//	ethernet = (struct sniff_ethernet*)(packet);
-//	ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
-//	size_ip = IP_HL(ip) * 4;
-//	if (size_ip < 20) {
-//		printf("   * Invalid IP header length: %u bytes\n", size_ip);
-//		return;
-//	}
-//	tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
-//	size_tcp = TH_OFF(tcp) * 4;
-//	if (size_tcp < 20) {
-//		printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
-//		return;
-//	}
-//	payload = (unsigned char *)(packet + SIZE_ETHERNET + size_ip + size_tcp);
-//}
+char* PcapReader::Deframe(const unsigned char* packet) {
+	int ethernetOffset;
 
-void PcapReader::ReadPcapFile(char* fileName, char* &payload, unsigned int &payloadLen) {
-#define SIZE_ETHERNET 14
-	const struct sniff_ethernet *ethernet; /* The ethernet header */
-	const struct sniff_ip *ip; /* The IP header */
-	const struct sniff_tcp *tcp; /* The TCP header */
+	unsigned int sizeIp;
+	unsigned int sizeTcp;
 
-	unsigned int size_ip;
-	unsigned int size_tcp;
+	//ethernet packet
+	unsigned char* pkgPtr = (unsigned char*)packet;
+	int ether_type = ((int)(pkgPtr[12]) << 8) | (int)pkgPtr[13];
+	if (ether_type == ETHER_TYPE_IP)
+		ethernetOffset = 14;
+	else if ((((int)(pkgPtr[16]) << 8) | (int)pkgPtr[17]) == ETHER_TYPE_8021Q) {
+		ethernetOffset = 18;
+	}
+	else {
+		fprintf(stderr, "Unknown ethernet type, %04X, skipping...\n", ether_type);
+		return "";
+	}
+	pkgPtr += ethernetOffset;
 
+	//ip packet
+	sizeIp = (pkgPtr[0] & 0xF) * 4;	//The 5th to 8th bits of the first byte is IHL, the word(4 bytes) number in IP header.
+	if (sizeIp < 20) {
+		printf("  * Invalid IP header length: %u bytes\n", sizeIp);
+		return "";
+	}
+	pkgPtr += sizeIp;
+
+	//tcp packet
+	sizeTcp = (pkgPtr[12] & 0xF0) >> 2;	//The first 4 bits of 12th byte in TCP header is the word(4 bytes) number in TCP header.
+	if (sizeTcp < 20) {
+		printf("    * Invalid TCP header length: %u bytes\n", sizeTcp);
+		return "";
+	}
+	pkgPtr += sizeTcp;
+
+	return (char *)pkgPtr;
+}
+
+std::string PcapReader::ReadPcapFile(char* fileName) {
 	//temporary packet buffers 
 	struct pcap_pkthdr *header; // The header that pcap gives us 
 	const u_char *packet; // The actual packet 
@@ -50,31 +56,16 @@ void PcapReader::ReadPcapFile(char* fileName, char* &payload, unsigned int &payl
 		throw;
 	}
 
-	//----------------- 
 	//begin processing the packets in this particular file, one at a time 
 	while (res = pcap_next_ex(handle, &header, &packet) >= 0) {
 		if (res == 0)	//the timeout set with pcap_open_live() has elapsed
 			continue;
 
-		ethernet = (struct sniff_ethernet*)(packet);
-		ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
-		size_ip = IP_HL(ip) * 4;
-		if (size_ip < 20) {
-			printf("   * Invalid IP header length: %u bytes\n", size_ip);
-			continue;
-		}
-		tcp = (struct sniff_tcp*)(packet + SIZE_ETHERNET + size_ip);
-		size_tcp = TH_OFF(tcp) * 4;
-		if (size_tcp < 20) {
-			printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
-			continue;
-		} 
-		fileContent.append((char *)(packet + SIZE_ETHERNET + size_ip + size_tcp));
+		fileContent.append(Deframe(packet));
 
 	} //end internal loop for reading packets (all in one file) 
 
 	pcap_close(handle);  //close the pcap file 
 
-	payload = &fileContent[0];
-	payloadLen = fileContent.length();
+	return fileContent;
 }
