@@ -1,6 +1,7 @@
 #pragma once
 #include "RabinHash.h"
 #include "RedundancyEliminator_CPP.h"
+#include "PcapReader.h"
 
 namespace CPP_Pipeline_Namespace {
 

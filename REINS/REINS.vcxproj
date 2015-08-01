@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="CircularHash.cpp" />
     <ClCompile Include="CircularHashPool.cpp" />
+    <ClCompile Include="FixedSizedCharArray.cpp" />
     <ClCompile Include="OpenAddressCircularHash.cpp" />
     <ClCompile Include="CPP_Main.cpp" />
     <ClCompile Include="CPP_Pipeline_Main.cpp" />
@@ -40,6 +41,7 @@
     <ClInclude Include="CircularHashPool.h" />
     <ClInclude Include="CircularPairQueue.h" />
     <ClInclude Include="CircularQueue.h" />
+    <ClInclude Include="FixedSizedCharArray.h" />
     <ClInclude Include="PcapReader.h" />
     <ClInclude Include="OpenAddressCircularHash.h" />
     <ClInclude Include="CUDA_Pipeline_PushMod_Main.h" />

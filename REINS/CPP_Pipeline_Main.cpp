@@ -7,9 +7,10 @@ namespace CPP_Pipeline_Namespace {
 	const unsigned int MAX_BUFFER_LEN = 4090 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
 	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 
-	unsigned int file_length;
+	unsigned int file_length = 0;
 	RedundancyEliminator_CPP re;
 	ifstream ifs;
+	char* fileName;
 	//syncronize
 	mutex buffer_mutex[2], chunking_result_mutex[2];		//lock for buffer and chunking_result
 	bool buffer_obsolete[2] = { true, true }, chunking_result_obsolete[2] = { true, true };	//state of buffer and chunking_result
@@ -18,6 +19,9 @@ namespace CPP_Pipeline_Namespace {
 	//shared data
 	char overlap[WINDOW_SIZE - 1];
 	char** buffer = new char*[BUFFER_NUM];	//two buffers
+	string* strBuffer = new string[BUFFER_NUM];
+	FixedSizedCharArray charArrayBuffer(MAX_BUFFER_LEN);
+
 	unsigned int buffer_len[] = { 0, 0 };
 	deque<unsigned int>* chunking_result = new deque<unsigned int>[2];
 	//Result
@@ -36,17 +40,8 @@ namespace CPP_Pipeline_Namespace {
 			system("pause");
 			return -1;
 		}
-		ifs = ifstream(argv[1], ios::in | ios::binary | ios::ate);
-		if (!ifs.is_open()) {
-			cout << "Can not open file " << argv[1] << endl;
-			system("pause");
-			return -1;
-		}
 
-		file_length = ifs.tellg();
-		ifs.seekg(0, ifs.beg);
-
-		cout << "File size: " << file_length / 1024 << " KB\n";
+		fileName = argv[1];
 
 		re.SetupRedundancyEliminator_CPP();
 
@@ -69,6 +64,7 @@ namespace CPP_Pipeline_Namespace {
 		for (int i = 0; i < BUFFER_NUM; ++i)
 			delete[] buffer[i];
 		delete[] buffer;
+		delete[] strBuffer;
 
 		clock_t end = clock();
 		cout << "Reading time: " << tot_read << " ms\n";
@@ -84,38 +80,90 @@ namespace CPP_Pipeline_Namespace {
 		int bufferIdx = 0;
 		unsigned int curFilePos = 0;
 		int curWindowNum;
+		PcapReader fileReader;
 		//Read the first part
 		buffer_mutex[bufferIdx].lock();
 		start_read = clock();
-		buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
-		curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
-		ifs.read(buffer[bufferIdx], buffer_len[bufferIdx]);
-		buffer_obsolete[bufferIdx] = false;
-		memcpy(overlap, &buffer[bufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-		buffer_mutex[bufferIdx].unlock();
-		bufferIdx ^= 1;
-		curFilePos += curWindowNum;
-		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
-		//Read the rest
-		while (curWindowNum == MAX_WINDOW_NUM) {
-			buffer_mutex[bufferIdx].lock();
-			while (!buffer_obsolete[bufferIdx]) {
-				buffer_mutex[bufferIdx].unlock();
-				this_thread::sleep_for(chrono::microseconds(500));
-				buffer_mutex[bufferIdx].lock();
+		if (FILE_FORMAT == PlainText) {
+			ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
+			if (!ifs.is_open()) {
+				cout << "Can not open file " << fileName << endl;
+				system("pause");
 			}
-			start_read = clock();
+
+			file_length = ifs.tellg();
+			ifs.seekg(0, ifs.beg);
+
+			cout << "File size: " << file_length / 1024 << " KB\n";
 			buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
 			curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
-			memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			ifs.read(&buffer[bufferIdx][WINDOW_SIZE - 1], curWindowNum);
-			buffer_obsolete[bufferIdx] = false;
-			memcpy(overlap, &buffer[bufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-			buffer_mutex[bufferIdx].unlock();
-			bufferIdx ^= 1;
+			ifs.read(buffer[bufferIdx], buffer_len[bufferIdx]);
 			curFilePos += curWindowNum;
-			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 		}
+		else if (FILE_FORMAT == Pcap) {
+			fileReader.SetupPcapHandle(fileName);
+			strBuffer[bufferIdx] = fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
+			buffer[bufferIdx] = &strBuffer[bufferIdx][0];
+			buffer_len[bufferIdx] = strBuffer[bufferIdx].length();
+			file_length += buffer_len[bufferIdx];
+		}
+		else
+			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+		
+		memcpy(overlap, &buffer[bufferIdx][buffer_len[bufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
+		buffer_obsolete[bufferIdx] = false;
+		buffer_mutex[bufferIdx].unlock();
+		bufferIdx ^= 1;
+		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+		//Read the rest
+		if (FILE_FORMAT == PlainText) {
+			while (curWindowNum == MAX_WINDOW_NUM) {
+				buffer_mutex[bufferIdx].lock();
+				while (!buffer_obsolete[bufferIdx]) {
+					buffer_mutex[bufferIdx].unlock();
+					this_thread::sleep_for(chrono::microseconds(500));
+					buffer_mutex[bufferIdx].lock();
+				}
+				start_read = clock();
+				buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos + WINDOW_SIZE - 1);
+				curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
+				memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+				ifs.read(&buffer[bufferIdx][WINDOW_SIZE - 1], curWindowNum);
+				buffer_obsolete[bufferIdx] = false;
+				memcpy(overlap, &buffer[bufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
+				buffer_mutex[bufferIdx].unlock();
+				bufferIdx ^= 1;
+				curFilePos += curWindowNum;
+				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+			}
+		}
+		else if (FILE_FORMAT == Pcap) {
+			while (true) {
+				buffer_mutex[bufferIdx].lock();
+				while (!buffer_obsolete[bufferIdx]) {
+					buffer_mutex[bufferIdx].unlock();
+					this_thread::sleep_for(chrono::microseconds(500));
+					buffer_mutex[bufferIdx].lock();
+				}
+				start_read = clock();
+				strBuffer[bufferIdx] = fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+				cout << "here\n";
+				cout << strBuffer[bufferIdx].length() << endl;
+				if (strBuffer[bufferIdx].length() == 0)
+					break;	//Read nothing
+				memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+				memcpy(&buffer[bufferIdx][WINDOW_SIZE - 1], &strBuffer[bufferIdx][0], strBuffer[bufferIdx].length());
+				buffer_len[bufferIdx] = strBuffer[bufferIdx].length() + WINDOW_SIZE - 1;
+				file_length += strBuffer[bufferIdx].length();
+				buffer_obsolete[bufferIdx] = false;
+				memcpy(overlap, &buffer[bufferIdx][strBuffer[bufferIdx].length()], WINDOW_SIZE - 1);	//copy the last window into overlap
+				buffer_mutex[bufferIdx].unlock();
+				bufferIdx ^= 1;
+				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+			}
+		}
+		else
+			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
 		no_more_input = true;
 	}
 

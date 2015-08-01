@@ -9,35 +9,51 @@ namespace CPP_Namespace {
 		cout << "\n============================ C++ Implementation =============================\n";
 
 		unsigned int length;
-		//char *buffer;
+		char *packet; 
+		//For pcap file
+		string payload;
 
 		if (argc != 2) {
 			cout << "Usage: " << argv[0] << " <filename>\n";
 			return -1;
 		}
-		/*ifstream ifs(argv[1], ios::in | ios::binary | ios::ate);
-		if (!ifs.is_open()) {
-			cout << "Can not open file " << argv[1] << endl;
+
+		clock_t start_read = clock();
+
+		if (FILE_FORMAT == PlainText) {
+			ifstream ifs(argv[1], ios::in | ios::binary | ios::ate);
+			if (!ifs.is_open()) {
+				fprintf(stderr, "Can not open file %s\n", argv[1]);
+				return -1;
+			}
+
+			length = ifs.tellg();
+			ifs.seekg(0, ifs.beg);
+
+			packet = new char[length];
+			ifs.read(packet, length);
+			ifs.close();
+		}
+		else if (FILE_FORMAT == Pcap) {
+			PcapReader fileReader;
+			payload = fileReader.ReadPcapFile(argv[1]);
+			packet = &payload[0];
+			length = payload.length();
+		}
+		else {
+			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
 			return -1;
 		}
-
-		length = ifs.tellg();
-		ifs.seekg(0, ifs.beg);
-
-		buffer = new char[length];
-		ifs.read(buffer, length);
-		ifs.close();*/
-		clock_t start_read = clock();
-		string payload = PcapReader::ReadPcapFile(argv[1]);
-		char* packet = &payload[0];
-		length = payload.length();
 		
 		cout << "Reading time: " << ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC << " ms\n";
 
 		cout << "File size: " << length / 1024 << " KB\n";
 
 		CPP_TestOfRabinFingerprint((char*)packet, length);
-		//delete[] buffer;
+		
+		if (FILE_FORMAT == PlainText)
+			delete[] packet;
+		
 		cout << "Total time: " << ((float)clock() - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
 		cout << "=============================================================================\n";
 		//system("pause");

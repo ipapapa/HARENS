@@ -55,6 +55,9 @@
     <ClCompile Include="PcapReader.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
+    <ClCompile Include="FixedSizedCharArray.cpp">
+      <Filter>Basic Functions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CircularHash.h">
@@ -112,6 +115,9 @@
       <Filter>Basic Functions</Filter>
     </ClInclude>
     <ClInclude Include="PcapReader.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="FixedSizedCharArray.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
   </ItemGroup>
