@@ -21,7 +21,7 @@ FixedSizedCharArray::~FixedSizedCharArray()
 * Return true when buffer is empty, otherwise return false.
 * Make sure arrLenLimit is no larger than arrSize
 */
-bool FixedSizedCharArray::Append(char* other, unsigned int arrLenLimit) {
+bool FixedSizedCharArray::Append(char* other, int otherSize, unsigned int arrLenLimit) {
 	if (bufferContentSize != 0) {
 		if (!CpyBufferToArr(arrLenLimit))
 			return false;
@@ -29,8 +29,6 @@ bool FixedSizedCharArray::Append(char* other, unsigned int arrLenLimit) {
 
 	if (other == nullptr)
 		return true;
-
-	unsigned int otherSize = strlen(other);
 
 	if (contentSize + otherSize <= arrLenLimit) {
 		memcpy(&arr[contentSize], other, otherSize);

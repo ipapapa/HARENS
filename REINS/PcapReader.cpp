@@ -1,6 +1,6 @@
 #include "PcapReader.h"
 
-char* PcapReader::Deframe(const unsigned char* packet, int frameLen) {
+std::pair<char*, int> PcapReader::Deframe(const unsigned char* packet, int frameLen) {
 	unsigned int sizeIp;
 	unsigned int sizeTcpUdp;
 
@@ -10,53 +10,47 @@ char* PcapReader::Deframe(const unsigned char* packet, int frameLen) {
 	
 	if(WLAN_DATA) {		//If this is a 802.11 frame header
 		//The 3rd and 4th bits in the first byte of 802.11 header is type
-		int wlanType = (int)(pkgPtr[0] & MASK_00110000) >> 4;	
+		int wlanType = ((int)pkgPtr[0] & MASK_00001100) >> 2;
+
 		if(wlanType == 2)	{	//When the two bits in type == 10, it's data frame 
 			if (!proceed(pkgPtr, frameLen, WLAN_HEADER_LEN))	//Skip 802.11 frame header
-				return "";
-			int dsap = (int)pkgPtr[0];
+				return EMPTY;
+			unsigned char dsap = pkgPtr[0];
 			int lowerTwoBitsInControlField = (int)(pkgPtr[2] & MASK_00000011);
 			if (lowerTwoBitsInControlField == 3) {//lower two bits are 1 and 1
 				if (!proceed(pkgPtr, frameLen, 3))	//control field 1 byte
-					return "";
+					return EMPTY;
 			}
 			else {
 				if (!proceed(pkgPtr, frameLen, 4))	//control field 2 byte
-					return "";
+					return EMPTY;
 			}
 
 			if (dsap == SNAP_EXTENSION_USED) {	//There's SNAP extension
-				if ((((int)pkgPtr[0] << 16) | ((int)pkgPtr[1] << 8) | (int)pkgPtr[2]) == 0) {
-					etherType = ((int)pkgPtr[3] << 8) | (int)pkgPtr[4];
+				if ((((int)pkgPtr[0]) | ((int)pkgPtr[1]) | (int)pkgPtr[2]) == 0) {
+					etherType = ((int)pkgPtr[3] << 8) | ((int)pkgPtr[4]);
 					if (etherType == ETHER_TYPE_IP) {
 						if (!proceed(pkgPtr, frameLen, 5))
-							return "";
+							return EMPTY;
 					}
 					else {
-						fprintf(stderr, "Unknown ethernet type, %04X, skipping...\n", etherType);
-						return "";
+						//fprintf(stderr, "Unknown ethernet type in 802.2 header, %04X, skipping...\n", etherType);
+						return EMPTY;
 					}
 				}
 				else {	//oui != 0
-					fprintf(stderr, "Unknown oui number %04X\n", (((int)pkgPtr[0] << 16) | ((int)pkgPtr[1] << 8) | (int)pkgPtr[2]));
-					return "";
+					//fprintf(stderr, "Unknown oui number %04X\n", (((int)pkgPtr[0] << 16) | ((int)pkgPtr[1] << 8) | (int)pkgPtr[2]));
+					return EMPTY;
 				}
 			}
 			else {	//no SNAP extension != 0
-				//fprintf(stderr, "No SNAP extension\n");
-				return "";
-			}
-
-			
-			//check ether type
-			if (etherType != ETHER_TYPE_IP) {
-				fprintf(stderr, "Unknown ethernet type in 802.2 header, %04X, skipping...\n", etherType);
-				return "";
+				//fprintf(stderr, "No SNAP extension. DSAP = %04X\n", dsap);
+				return EMPTY;
 			}
 		}
 		else {
 			//fprintf(stderr, "WLAN frame type %u, not data frame...\n", wlanType);
-			return "";
+			return EMPTY;
 		}
 	}
 	else {				//If this is a 802.3 frame header
@@ -64,51 +58,50 @@ char* PcapReader::Deframe(const unsigned char* packet, int frameLen) {
 		etherType = ((int)pkgPtr[12] << 8) | (int)pkgPtr[13];
 		if (etherType == ETHER_TYPE_IP) {
 			if (!proceed(pkgPtr, frameLen, 14))
-				return "";
+				return EMPTY;
 		}
 		else if ((((int)pkgPtr[16] << 8) | (int)pkgPtr[17]) == ETHER_TYPE_8021Q) {
 			if (!proceed(pkgPtr, frameLen, 18))
-				return "";
+				return EMPTY;
 		}
 		else {
-			fprintf(stderr, "Unknown ethernet type, %04X, skipping...\n", etherType);
-			return "";
+			//fprintf(stderr, "Unknown ethernet type, %04X, skipping...\n", etherType);
+			return EMPTY;
 		}
 	}
 
 	//ip packet
-	sizeIp = (int)(pkgPtr[0] & MASK_00001111) * 4;	//The 5th to 8th bits of the first byte is IHL, the word(4 bytes) number in IP header.
+	sizeIp = ((int)pkgPtr[0] & MASK_00001111) * 4;	//The 5th to 8th bits of the first byte is IHL, the word(4 bytes) number in IP header.
 	if (sizeIp < 20) {
 		fprintf(stderr, "  * Invalid IP header length: %u bytes\n", sizeIp);
-		return "";
+		return EMPTY;
 	}
 	int protocol = (int)pkgPtr[9];
 	if (!proceed(pkgPtr, frameLen, sizeIp))
-		return "";
+		return EMPTY;
 
 	//tcp/udp packet
 	if(protocol == 0x6) {	//It's tcp
 		sizeTcpUdp = (pkgPtr[12] & MASK_11110000) >> 2;	//The first 4 bits of 12th byte in TCP header is the word(4 bytes) number in TCP header.
 		if (sizeTcpUdp < 20) {
 			fprintf(stderr, "    * Invalid TCP header length: %u bytes\n", sizeTcpUdp);
-			return "";
+			return EMPTY;
 		}
 	}
 	else if(protocol == 0x11) {	//It's udp
 		sizeTcpUdp = ((int)(pkgPtr[4]) << 8) | (int)pkgPtr[5];
 		if(sizeTcpUdp < 8){
 			fprintf(stderr, "	* Invalid Udp header length: %u bytes\n", sizeTcpUdp);
-			return "";
+			return EMPTY;
 		}
 	}
 	else {
-		fprintf(stderr, "	* Unknown protocol number %u, neither TCP or UDP protocol\n", protocol);
-		return "";
+		//fprintf(stderr, "	* Unknown protocol number %u, neither TCP or UDP protocol\n", protocol);
+		return EMPTY;
 	}
 	if (!proceed(pkgPtr, frameLen, sizeTcpUdp))
-		return "";
-
-	return (char *)pkgPtr;
+		return EMPTY;
+	return std::make_pair((char *)pkgPtr, frameLen);
 }
 
 /*Return true when remaining length > 0, otherwise return false*/
@@ -119,7 +112,6 @@ bool PcapReader::proceed(unsigned char* &ptr, int &remainingLen, int proceedLen)
 		return true;
 	}
 	else {
-		//fprintf(stderr, "Empty header\n");
 		return false;
 	}
 }
@@ -145,7 +137,9 @@ std::string PcapReader::ReadPcapFile(char* fileName) {
 		if (res == 0)	//the timeout set with pcap_open_live() has elapsed
 			continue;
 
-		fileContent.append(Deframe(packet, header->caplen));
+		std::pair<char*, int> str_len_pair = Deframe(packet, header->caplen);
+		if (str_len_pair.second > 0)
+			fileContent.append(str_len_pair.first);
 
 	} //end internal loop for reading packets (all in one file) 
 
@@ -166,13 +160,12 @@ void PcapReader::SetupPcapHandle(char* fileName) {
 }
 
 //Return true when read something
-std::string PcapReader::ReadPcapFileChunk(FixedSizedCharArray charArray, unsigned int readLenLimit) {
+void PcapReader::ReadPcapFileChunk(FixedSizedCharArray &charArray, unsigned int readLenLimit) {
 	//temporary packet buffers 
 	struct pcap_pkthdr *header; // The header that pcap gives us 
 	const u_char *packet; // The actual packet 
 	std::string fileContent;
 	int res;
-
 	charArray.ClearArr(readLenLimit);
 
 	//begin processing the packets in this particular file, one at a time 
@@ -180,9 +173,11 @@ std::string PcapReader::ReadPcapFileChunk(FixedSizedCharArray charArray, unsigne
 		if (res == 0)	//the timeout set with pcap_open_live() has elapsed
 			continue;
 
-		if (!charArray.Append(Deframe(packet, header->caplen), readLenLimit))
-			break;
+		std::pair<char*, int> str_len_pair = Deframe(packet, header->caplen);
+		if (str_len_pair.second > 0) {
+			if (!charArray.Append(str_len_pair.first, str_len_pair.second, readLenLimit))
+				break;
+		}
 
 	} //end internal loop for reading packets (all in one file) 
-	return std::string(charArray.GetArr(), charArray.GetLen());
 }

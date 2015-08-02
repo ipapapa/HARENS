@@ -27,7 +27,7 @@ public:
 	* Return true when buffer is empty, otherwise return false.
 	* Make sure arrLenLimit is no larger than arrSize
 	*/
-	bool Append(char* other, unsigned int arrLenLimit);
+	bool Append(char* other, int otherSize, unsigned int arrLenLimit);
 
 	char* GetArr();
 	unsigned int GetLen();

@@ -19,7 +19,6 @@ namespace CPP_Pipeline_Namespace {
 	//shared data
 	char overlap[WINDOW_SIZE - 1];
 	char** buffer = new char*[BUFFER_NUM];	//two buffers
-	string* strBuffer = new string[BUFFER_NUM];
 	FixedSizedCharArray charArrayBuffer(MAX_BUFFER_LEN);
 
 	unsigned int buffer_len[] = { 0, 0 };
@@ -64,7 +63,6 @@ namespace CPP_Pipeline_Namespace {
 		for (int i = 0; i < BUFFER_NUM; ++i)
 			delete[] buffer[i];
 		delete[] buffer;
-		delete[] strBuffer;
 
 		clock_t end = clock();
 		cout << "Reading time: " << tot_read << " ms\n";
@@ -102,9 +100,9 @@ namespace CPP_Pipeline_Namespace {
 		}
 		else if (FILE_FORMAT == Pcap) {
 			fileReader.SetupPcapHandle(fileName);
-			strBuffer[bufferIdx] = fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
-			buffer[bufferIdx] = &strBuffer[bufferIdx][0];
-			buffer_len[bufferIdx] = strBuffer[bufferIdx].length();
+			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
+			buffer_len[bufferIdx] = charArrayBuffer.GetLen();
+			memcpy(buffer[bufferIdx], charArrayBuffer.GetArr(), buffer_len[bufferIdx]);
 			file_length += buffer_len[bufferIdx];
 		}
 		else
@@ -146,21 +144,23 @@ namespace CPP_Pipeline_Namespace {
 					buffer_mutex[bufferIdx].lock();
 				}
 				start_read = clock();
-				strBuffer[bufferIdx] = fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
-				cout << "here\n";
-				cout << strBuffer[bufferIdx].length() << endl;
-				if (strBuffer[bufferIdx].length() == 0)
+				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+				
+				if (charArrayBuffer.GetLen() == 0) {
+					buffer_mutex[bufferIdx].unlock();
 					break;	//Read nothing
+				}
 				memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-				memcpy(&buffer[bufferIdx][WINDOW_SIZE - 1], &strBuffer[bufferIdx][0], strBuffer[bufferIdx].length());
-				buffer_len[bufferIdx] = strBuffer[bufferIdx].length() + WINDOW_SIZE - 1;
-				file_length += strBuffer[bufferIdx].length();
+				memcpy(&buffer[bufferIdx][WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+				buffer_len[bufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+				file_length += charArrayBuffer.GetLen();
 				buffer_obsolete[bufferIdx] = false;
-				memcpy(overlap, &buffer[bufferIdx][strBuffer[bufferIdx].length()], WINDOW_SIZE - 1);	//copy the last window into overlap
+				memcpy(overlap, &buffer[bufferIdx][charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
 				buffer_mutex[bufferIdx].unlock();
 				bufferIdx ^= 1;
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 			}
+			cout << "File size: " << file_length / 1024 << " KB\n";
 		}
 		else
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
