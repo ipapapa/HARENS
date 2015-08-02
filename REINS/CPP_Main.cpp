@@ -3,68 +3,156 @@ using namespace std;
 
 namespace CPP_Namespace {
 
+	const unsigned int MAX_BUFFER_LEN = 4090 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
+	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
+
+	unsigned int file_length = 0;
+	RedundancyEliminator_CPP re;
+	ifstream ifs;
+	char* fileName;
+	PcapReader fileReader;
+
+	//shared data
+	bool readFirstTime = true;
+	char overlap[WINDOW_SIZE - 1];
+	char* buffer;
+	FixedSizedCharArray charArrayBuffer(MAX_BUFFER_LEN);
+
+	unsigned int buffer_len = 0;
+	deque<unsigned int> chunking_result;
+	//Result
+	unsigned int total_duplication_size = 0;
+	//Time
+	clock_t start_read, start_chunk, start_fin;
+	float tot_read = 0, tot_chunk = 0, tot_fin = 0;
+
 	int CPP_Main(int argc, char* argv[])
 	{
 		clock_t start = clock();
 		cout << "\n============================ C++ Implementation =============================\n";
-
-		unsigned int length;
-		char *packet; 
-		//For pcap file
-		string payload;
-
 		if (argc != 2) {
+			cout << "You used " << argc << " variables\n";
 			cout << "Usage: " << argv[0] << " <filename>\n";
+			system("pause");
 			return -1;
 		}
 
-		clock_t start_read = clock();
+		fileName = argv[1];
 
-		if (FILE_FORMAT == PlainText) {
-			ifstream ifs(argv[1], ios::in | ios::binary | ios::ate);
-			if (!ifs.is_open()) {
-				fprintf(stderr, "Can not open file %s\n", argv[1]);
-				return -1;
-			}
+		re.SetupRedundancyEliminator_CPP();
 
-			length = ifs.tellg();
-			ifs.seekg(0, ifs.beg);
+		buffer = new char[MAX_BUFFER_LEN];
 
-			packet = new char[length];
-			ifs.read(packet, length);
-			ifs.close();
-		}
-		else if (FILE_FORMAT == Pcap) {
-			PcapReader fileReader;
-			payload = fileReader.ReadPcapFile(argv[1]);
-			packet = &payload[0];
-			length = payload.length();
-		}
-		else {
-			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
-			return -1;
-		}
-		
-		cout << "Reading time: " << ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC << " ms\n";
+		bool keepReading = true;
+		do {
+			keepReading = ReadFile();
+			Chunking();
+			Fingerprinting();
+		} while (keepReading);
 
-		cout << "File size: " << length / 1024 << " KB\n";
+		cout << "Found " << total_duplication_size << " bytes of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
 
-		CPP_TestOfRabinFingerprint((char*)packet, length);
-		
-		if (FILE_FORMAT == PlainText)
-			delete[] packet;
-		
-		cout << "Total time: " << ((float)clock() - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
+		//delete everything that mallocated before
+		delete[] buffer;
+
+		clock_t end = clock();
+		cout << "Reading time: " << tot_read << " ms\n";
+		cout << "Chunking time: " << tot_chunk << " ms\n";
+		cout << "Fingerprinting time: " << tot_fin << " ms\n";
+		cout << "Total time: " << ((float)end - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
 		cout << "=============================================================================\n";
-		//system("pause");
+
 		return 0;
 	}
 
-	void CPP_TestOfRabinFingerprint(char* fileContent, unsigned int fileContentLen) {
-		RedundancyEliminator_CPP re;
-		re.SetupRedundancyEliminator_CPP();
-		unsigned int duplicationSize = re.eliminateRedundancy(fileContent, fileContentLen);
-		cout << "Found " << duplicationSize << " bytes of redundency, which is " << (float)duplicationSize / fileContentLen * 100 << " percent of file\n";
+	bool ReadFile() {
+		unsigned int curFilePos = 0;
+		int curWindowNum;
+		//Read the first part
+		if (readFirstTime) {
+			readFirstTime = false;
+			start_read = clock();
+			if (FILE_FORMAT == PlainText) {
+				ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
+				if (!ifs.is_open()) {
+					cout << "Can not open file " << fileName << endl;
+					system("pause");
+				}
+
+				file_length = ifs.tellg();
+				ifs.seekg(0, ifs.beg);
+
+				cout << "File size: " << file_length / 1024 << " KB\n";
+				buffer_len = min(MAX_BUFFER_LEN, file_length - curFilePos);
+				curWindowNum = buffer_len - WINDOW_SIZE + 1;
+				ifs.read(buffer, buffer_len);
+				curFilePos += curWindowNum;
+
+				return buffer_len == MAX_BUFFER_LEN;
+			}
+			else if (FILE_FORMAT == Pcap) {
+				fileReader.SetupPcapHandle(fileName);
+				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
+				buffer_len = charArrayBuffer.GetLen();
+				memcpy(buffer, charArrayBuffer.GetArr(), buffer_len);
+				file_length += buffer_len;
+
+				return buffer_len == MAX_BUFFER_LEN;
+			}
+			else
+				fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+
+			memcpy(overlap, &buffer[buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
+			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+		}
+		else { //Read the rest
+			if (FILE_FORMAT == PlainText) {
+				start_read = clock();
+				buffer_len = min(MAX_BUFFER_LEN, file_length - curFilePos + WINDOW_SIZE - 1);
+				curWindowNum = buffer_len - WINDOW_SIZE + 1;
+				memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+				ifs.read(&buffer[WINDOW_SIZE - 1], curWindowNum);
+				memcpy(overlap, &buffer[curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
+				curFilePos += curWindowNum;
+				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+
+				if (buffer_len == MAX_BUFFER_LEN)
+					ifs.close();
+				return buffer_len == MAX_BUFFER_LEN;
+			}
+			else if (FILE_FORMAT == Pcap) {
+				start_read = clock();
+				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+				memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+				memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+				buffer_len = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+				file_length += charArrayBuffer.GetLen();
+				memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+
+				if (buffer_len != MAX_BUFFER_LEN)
+					cout << "File size: " << file_length / 1024 << " KB\n";
+				return buffer_len == MAX_BUFFER_LEN;
+			}
+			else
+				fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+		}
+	}
+
+	void Chunking() {
+		start_chunk = clock();
+		deque<unsigned int> currentChunkingResult = re.chunking(buffer, buffer_len);
+		tot_chunk += ((float)clock() - start_chunk) * 1000 / CLOCKS_PER_SEC;
+
+		chunking_result = currentChunkingResult;
+	}
+
+	void Fingerprinting() {
+		//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
+		start_fin = clock();
+
+		total_duplication_size += re.fingerPrinting(chunking_result, buffer);
+		tot_fin += ((float)clock() - start_fin) * 1000 / CLOCKS_PER_SEC;
 	}
 
 	/* old function

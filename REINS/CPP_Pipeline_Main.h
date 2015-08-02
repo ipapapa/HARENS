@@ -9,9 +9,9 @@ namespace CPP_Pipeline_Namespace {
 	void TestOfRabinHash(char* fileContent, int fileContentLen);
 	*/
 
-	void CPP_ReadFile();
-	void CPP_Chunking();
-	void CPP_Fingerprinting();
+	void ReadFile();
+	void Chunking();
+	void Fingerprinting();
 
 	int CPP_Pipeline_Main(int argc, char* argv[]);
 }

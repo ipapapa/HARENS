@@ -9,7 +9,9 @@ namespace CPP_Namespace {
 	void TestOfRabinHash(char* fileContent, int fileContentLen);
 	*/
 
-	void CPP_TestOfRabinFingerprint(char* fileContent, unsigned int fileContentLen);
+	bool ReadFile();
+	void Chunking();
+	void Fingerprinting();
 
 	int CPP_Main(int argc, char* argv[]);
 }

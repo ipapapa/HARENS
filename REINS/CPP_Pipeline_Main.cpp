@@ -48,9 +48,9 @@ namespace CPP_Pipeline_Namespace {
 			buffer[i] = new char[MAX_BUFFER_LEN];
 
 		//Create threads 
-		thread tReadFile(CPP_ReadFile);
-		thread tChunking(CPP_Chunking);
-		thread tFingerprinting(CPP_Fingerprinting);
+		thread tReadFile(ReadFile);
+		thread tChunking(Chunking);
+		thread tFingerprinting(Fingerprinting);
 
 		tReadFile.join();
 		tChunking.join();
@@ -74,7 +74,7 @@ namespace CPP_Pipeline_Namespace {
 		return 0;
 	}
 
-	void CPP_ReadFile() {
+	void ReadFile() {
 		int bufferIdx = 0;
 		unsigned int curFilePos = 0;
 		int curWindowNum;
@@ -167,7 +167,7 @@ namespace CPP_Pipeline_Namespace {
 		no_more_input = true;
 	}
 
-	void CPP_Chunking() {
+	void Chunking() {
 		int bufferIdx = 0;
 		int chunkingResultIdx = 0;
 		while (true) {
@@ -201,7 +201,7 @@ namespace CPP_Pipeline_Namespace {
 		no_more_chunking_result = true;
 	}
 
-	void CPP_Fingerprinting() {
+	void Fingerprinting() {
 		int bufferIdx = 0;
 		int chunkingResultIdx = 0;
 		//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
