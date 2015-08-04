@@ -4,6 +4,7 @@
 #include <iostream>
 #include "CircularPairQueue.h"
 #include "RabinHash.h"
+#include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
 #include "OpenAddressCircularHash.h"
 

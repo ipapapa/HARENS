@@ -76,12 +76,10 @@ namespace CPP_Namespace {
 				ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
 				if (!ifs.is_open()) {
 					cout << "Can not open file " << fileName << endl;
-					system("pause");
 				}
 
 				file_length = ifs.tellg();
 				ifs.seekg(0, ifs.beg);
-
 				cout << "File size: " << file_length / 1024 << " KB\n";
 				buffer_len = min(MAX_BUFFER_LEN, file_length - curFilePos);
 				curWindowNum = buffer_len - WINDOW_SIZE + 1;

@@ -59,7 +59,6 @@ namespace CPP_Pipeline_Namespace {
 		cout << "Found " << total_duplication_size << " bytes of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
 
 		//delete everything that mallocated before
-		ifs.close();
 		for (int i = 0; i < BUFFER_NUM; ++i)
 			delete[] buffer[i];
 		delete[] buffer;
@@ -86,12 +85,10 @@ namespace CPP_Pipeline_Namespace {
 			ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
 			if (!ifs.is_open()) {
 				cout << "Can not open file " << fileName << endl;
-				system("pause");
 			}
 
 			file_length = ifs.tellg();
 			ifs.seekg(0, ifs.beg);
-
 			cout << "File size: " << file_length / 1024 << " KB\n";
 			buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
 			curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
@@ -134,6 +131,7 @@ namespace CPP_Pipeline_Namespace {
 				curFilePos += curWindowNum;
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 			}
+			ifs.close();
 		}
 		else if (FILE_FORMAT == Pcap) {
 			while (true) {
