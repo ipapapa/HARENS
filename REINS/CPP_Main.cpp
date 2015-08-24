@@ -11,6 +11,7 @@ namespace CPP_Namespace {
 	ifstream ifs;
 	char* fileName;
 	PcapReader fileReader;
+	unsigned int cur_file_pos = 0;
 
 	//shared data
 	bool readFirstTime = true;
@@ -66,7 +67,6 @@ namespace CPP_Namespace {
 	}
 
 	bool ReadFile() {
-		unsigned int curFilePos = 0;
 		int curWindowNum;
 		//Read the first part
 		if (readFirstTime) {
@@ -81,10 +81,10 @@ namespace CPP_Namespace {
 				file_length = ifs.tellg();
 				ifs.seekg(0, ifs.beg);
 				cout << "File size: " << file_length / 1024 << " KB\n";
-				buffer_len = min(MAX_BUFFER_LEN, file_length - curFilePos);
+				buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos);
 				curWindowNum = buffer_len - WINDOW_SIZE + 1;
 				ifs.read(buffer, buffer_len);
-				curFilePos += curWindowNum;
+				cur_file_pos += curWindowNum;
 
 				return buffer_len == MAX_BUFFER_LEN;
 			}
@@ -106,15 +106,15 @@ namespace CPP_Namespace {
 		else { //Read the rest
 			if (FILE_FORMAT == PlainText) {
 				start_read = clock();
-				buffer_len = min(MAX_BUFFER_LEN, file_length - curFilePos + WINDOW_SIZE - 1);
+				buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos + WINDOW_SIZE - 1);
 				curWindowNum = buffer_len - WINDOW_SIZE + 1;
 				memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
 				ifs.read(&buffer[WINDOW_SIZE - 1], curWindowNum);
 				memcpy(overlap, &buffer[curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-				curFilePos += curWindowNum;
+				cur_file_pos += curWindowNum;
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 
-				if (buffer_len == MAX_BUFFER_LEN)
+				if (buffer_len != MAX_BUFFER_LEN)
 					ifs.close();
 				return buffer_len == MAX_BUFFER_LEN;
 			}

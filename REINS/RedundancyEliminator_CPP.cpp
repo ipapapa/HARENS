@@ -61,6 +61,9 @@ unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ
 			isDuplicate = false;
 		}
 		addNewChunk(chunkHash, chunk, chunkLen, isDuplicate);
+		/*unsigned long long toBeDel;
+		if (circHash.FindAndAdd(chunkHash, toBeDel))
+			duplicationSize += chunkLen;*/
 
 		prevIdx = *iter;
 	}

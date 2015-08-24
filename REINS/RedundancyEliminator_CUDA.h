@@ -38,6 +38,7 @@ public:
 	void ChunkHashingAscynWithCircularQueue(unsigned int* indices, int indicesNum, char* package,
 		CircularPairQueue<unsigned long long, unsigned int> &chunkHashQ);
 	unsigned int fingerPrinting(deque<unsigned int> indexQ, char* package);
+	unsigned int fingerPrinting(unsigned int* idxArr, unsigned int idxArrLen, char* package);
 	void RabinHashAsync(char* inputKernel, char* inputHost, unsigned int inputLen, 
 		unsigned long long* resultKernel, unsigned long long* resultHost, cudaStream_t stream);
 

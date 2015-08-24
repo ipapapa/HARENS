@@ -7,6 +7,7 @@
 #include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
 #include "OpenAddressCircularHash.h"
+#include "LinkedTrie.h"
 
 namespace CUDA_Pipeline_Namespace {
 
@@ -14,6 +15,8 @@ namespace CUDA_Pipeline_Namespace {
 	void Transfer();
 	void ChunkingKernel();
 	void ChunkingResultProc();
+	void ChunkMatch();
+
 	void ChunkHashing();
 	void ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum);
 	void RoundQuery();

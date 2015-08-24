@@ -7,12 +7,12 @@ namespace CUDA_Pipeline_Namespace {
 	const unsigned int MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
 	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 	const int PAGABLE_BUFFER_NUM = 10;
-	const int FIXED_BUFFER_NUM = 4;
+	const int FIXED_BUFFER_NUM = 3;
 	const int STREAM_NUM = 3;
 	const int FINGERPRINTING_THREAD_NUM = 8;
 	//determin if one thread is end
 	bool read_file_end = false; 
-	bool transfer_end = false;
+	/*bool transfer_end = false;*/
 	bool chunking_kernel_end = false;
 	bool chunking_proc_end = false;
 	bool chunk_hashing_end = false;
@@ -31,9 +31,9 @@ namespace CUDA_Pipeline_Namespace {
 	//fixed buffer
 	array<char*, FIXED_BUFFER_NUM> fixed_buffer;
 	array<unsigned int, FIXED_BUFFER_NUM> fixed_buffer_len;
-	array<mutex, FIXED_BUFFER_NUM> fixed_buffer_mutex;
+	/*array<mutex, FIXED_BUFFER_NUM> fixed_buffer_mutex;
 	array<condition_variable, FIXED_BUFFER_NUM> fixed_buffer_cond;
-	array<bool, FIXED_BUFFER_NUM> fixed_buffer_obsolete;
+	array<bool, FIXED_BUFFER_NUM> fixed_buffer_obsolete;*/
 	//RedundancyEliminator_CUDA
 	RedundancyEliminator_CUDA re;
 	//chunking kernel asynchronize
@@ -56,6 +56,7 @@ namespace CUDA_Pipeline_Namespace {
 	array<array<CircularPairQueue<unsigned long long, unsigned int>, FINGERPRINTING_THREAD_NUM>, STREAM_NUM> chunk_hash_queue;
 	//chunk matching 
 	mutex chunk_hashing_end_mutex;
+	LinkedTrie linked_trie;
 	OpenAddressCircularHash hash_pool(MAX_CHUNK_NUM);
 	unsigned int total_duplication_size = 0;
 	//Time
@@ -72,7 +73,7 @@ namespace CUDA_Pipeline_Namespace {
 
 		fileName = argv[1];
 
-		re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::MultiFingerprint);
+		re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::NonMultifingerprint);
 		//initialize pagable buffer
 		for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) {
 			pagable_buffer[i] = new char[MAX_BUFFER_LEN];
@@ -81,7 +82,7 @@ namespace CUDA_Pipeline_Namespace {
 		//initialize fixed buffer
 		for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
 			cudaMallocHost((void**)&fixed_buffer[i], MAX_BUFFER_LEN);
-			fixed_buffer_obsolete[i] = true;
+			//fixed_buffer_obsolete[i] = true;
 		}
 		//initialize chunking kernel ascychronize
 		for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
@@ -110,24 +111,25 @@ namespace CUDA_Pipeline_Namespace {
 
 		//Create threads
 		thread tReadFile(ReadFile);
-		thread tTransfer(Transfer);
+		//thread tTransfer(Transfer);
 		thread tChunkingKernel(ChunkingKernel);
 		thread tChunkingResultProc(ChunkingResultProc);
-		thread tChunkHashing;
-		tChunkHashing = thread(ChunkHashing);
-		thread tRoundQuery(RoundQuery);
+		thread tChunkMatch(ChunkMatch);
+		//thread tChunkHashing = thread(ChunkHashing);
+		//thread tRoundQuery(RoundQuery);
 
 		tReadFile.join();
-		tTransfer.join();
+		//tTransfer.join();
 		tChunkingKernel.join();
 		tChunkingResultProc.join();
-		tChunkHashing.join();
-		tRoundQuery.join();
+		tChunkMatch.join();
+		//tChunkHashing.join();
+		//tRoundQuery.join();
 
 		end = clock();
 		time = (end - start) * 1000 / CLOCKS_PER_SEC;
 		printf("Read file time: %f ms\n", time_r);
-		printf("Transfer time: %f ms\n", time_t);
+		//printf("Transfer time: %f ms\n", time_t);
 		printf("Chunking kernel time: %f ms\n", time_ck);
 		printf("Chunking processing time: %f ms\n", time_cp);
 		printf("Chunk hashing time: %f ms\n", time_ch);
@@ -192,7 +194,7 @@ namespace CUDA_Pipeline_Namespace {
 		else
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
 
-		memcpy(overlap, &pagable_buffer[pagableBufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
+		memcpy(overlap, &pagable_buffer[pagableBufferIdx][pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 		pagable_buffer_obsolete[pagableBufferIdx] = false;
 		readFileInitLock.unlock();
 		pagable_buffer_cond[pagableBufferIdx].notify_one();
@@ -227,6 +229,7 @@ namespace CUDA_Pipeline_Namespace {
 			while (true) {
 				unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
 				while (pagable_buffer_obsolete[pagableBufferIdx] == false) {
+					//cout << 1 << endl;
 					pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
 				}
 				start_r = clock();
@@ -234,6 +237,7 @@ namespace CUDA_Pipeline_Namespace {
 
 				if (charArrayBuffer.GetLen() == 0) {
 					readFileIterLock.unlock();
+					pagable_buffer_cond[pagableBufferIdx].notify_all();
 					break;	//Read nothing
 				}
 
@@ -253,76 +257,91 @@ namespace CUDA_Pipeline_Namespace {
 		}
 		else
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+		//cout << "end of reading file\n";
 		read_file_end = true;
 	}
 
-	void Transfer() {
+	//void Transfer() {
+	//	int pagableBufferIdx = 0;
+	//	int fixedBufferIdx = 0;
+	//	while (true) {
+	//		//Get pagable buffer ready
+	//		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
+	//		while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
+	//			cout << 2 << endl;
+	//			if (read_file_end) {
+	//				transfer_end = true;
+	//				cout << "end transfer \n";
+	//				return;
+	//			}
+	//			pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
+	//		}
+	//		//Get fixed buffer ready
+	//		unique_lock<mutex> fixedLock(fixed_buffer_mutex[fixedBufferIdx]);
+	//		while (fixed_buffer_obsolete[fixedBufferIdx] == false) {
+	//			cout << 3 << endl;
+	//			fixed_buffer_cond[fixedBufferIdx].wait(fixedLock);
+	//		}
+	//		start_t = clock();
+	//		fixed_buffer_len[fixedBufferIdx] = pagable_buffer_len[pagableBufferIdx];
+	//		memcpy(fixed_buffer[fixedBufferIdx], pagable_buffer[pagableBufferIdx], fixed_buffer_len[fixedBufferIdx]);
+	//		//pagable buffer is still not obsolete here!
+	//		fixed_buffer_obsolete[fixedBufferIdx] = false;
+	//		pagableLock.unlock();
+	//		pagable_buffer_cond[pagableBufferIdx].notify_one();
+	//		fixedLock.unlock();
+	//		fixed_buffer_cond[fixedBufferIdx].notify_one();
+	//		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+	//		fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
+	//		end_t = clock();
+	//		time_t += (end_t - start_t) * 1000 / CLOCKS_PER_SEC;
+	//	}
+	//}
+
+	void ChunkingKernel() {
 		int pagableBufferIdx = 0;
 		int fixedBufferIdx = 0;
+		int streamIdx = 0;
 		while (true) {
 			//Get pagable buffer ready
 			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
 			while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
+				//cout << 2 << endl;
 				if (read_file_end) {
-					transfer_end = true;
+					chunking_kernel_end = true;
+					//cout << "end chunking kernel\n";
 					return;
 				}
 				pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
 			}
-			//Get fixed buffer ready
-			unique_lock<mutex> fixedLock(fixed_buffer_mutex[fixedBufferIdx]);
-			while (fixed_buffer_obsolete[fixedBufferIdx] == false) {
-				fixed_buffer_cond[fixedBufferIdx].wait(fixedLock);
-			}
-			start_t = clock();
-			fixed_buffer_len[fixedBufferIdx] = pagable_buffer_len[pagableBufferIdx];
-			memcpy(fixed_buffer[fixedBufferIdx], pagable_buffer[pagableBufferIdx], fixed_buffer_len[fixedBufferIdx]);
-			//pagable buffer is still not obsolete here!
-			fixed_buffer_obsolete[fixedBufferIdx] = false;
-			pagableLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].notify_one();
-			fixedLock.unlock();
-			fixed_buffer_cond[fixedBufferIdx].notify_one();
-			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-			fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
-			end_t = clock();
-			time_t += (end_t - start_t) * 1000 / CLOCKS_PER_SEC;
-		}
-	}
 
-	void ChunkingKernel() {
-		int fixedBufferIdx = 0;
-		int streamIdx = 0;
-		while (true) {
-			//Get fixed buffer ready
-			unique_lock<mutex> fixedLock(fixed_buffer_mutex[fixedBufferIdx]);
-			while (fixed_buffer_obsolete[fixedBufferIdx] == true) {
-				if (transfer_end) {
-					chunking_kernel_end = true;
-					return;
-				}
-				fixed_buffer_cond[fixedBufferIdx].wait(fixedLock);
-			}
 			//Get result host ready
 			unique_lock<mutex> resultHostLock(result_host_mutex[fixedBufferIdx]);
 			while (result_host_obsolete[fixedBufferIdx] == false) {
+				//cout << 5 << endl;
 				result_host_cond[fixedBufferIdx].wait(resultHostLock);
 			}
+
 			start_ck = clock();
+			fixed_buffer_len[fixedBufferIdx] = pagable_buffer_len[pagableBufferIdx];
+			memcpy(fixed_buffer[fixedBufferIdx], pagable_buffer[pagableBufferIdx], fixed_buffer_len[fixedBufferIdx]);
+			//pagable buffer is still not obsolete here!
+			pagableLock.unlock();
+			pagable_buffer_cond[pagableBufferIdx].notify_one();
+			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+
 			re.RabinHashAsync(input_kernel[fixedBufferIdx], fixed_buffer[fixedBufferIdx], fixed_buffer_len[fixedBufferIdx],
 				result_kernel[fixedBufferIdx], result_host[fixedBufferIdx], stream[streamIdx]);
 			
 			result_host_len[fixedBufferIdx] = fixed_buffer_len[fixedBufferIdx] - WINDOW_SIZE + 1;
-			fixed_buffer_obsolete[fixedBufferIdx] = true;
 			result_host_obsolete[fixedBufferIdx] = false;
-			fixedLock.unlock();
-			fixed_buffer_cond[fixedBufferIdx].notify_one();
 			resultHostLock.unlock();
 			result_host_cond[fixedBufferIdx].notify_one();
 			fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
 			streamIdx = (streamIdx + 1) % STREAM_NUM;
 			end_ck = clock();
 			time_ck += (end_ck - start_ck) * 1000 / CLOCKS_PER_SEC;
+			//cout << "end chunking kernel this round\n";
 		}
 	}
 
@@ -334,8 +353,10 @@ namespace CUDA_Pipeline_Namespace {
 			//Get result host ready
 			unique_lock<mutex> resultHostLock(result_host_mutex[resultHostIdx]);
 			while (result_host_obsolete[resultHostIdx] == true) {
+				//cout << 6 << endl;
 				if (chunking_kernel_end) {
 					chunking_proc_end = true;
+					//cout << "end chunkging result processing\n";
 					return;
 				}
 				result_host_cond[resultHostIdx].wait(resultHostLock);
@@ -344,6 +365,7 @@ namespace CUDA_Pipeline_Namespace {
 			//Get the chunking result ready
 			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
 			while (chunking_result_obsolete[streamIdx] == false) {
+				//cout << 7 << endl;
 				chunking_result_cond[streamIdx].wait(chunkingResultLock);
 			}
 			
@@ -370,6 +392,62 @@ namespace CUDA_Pipeline_Namespace {
 			resultHostIdx = (resultHostIdx + 1) % FIXED_BUFFER_NUM;
 			end_cp = clock();
 			time_cp += (end_cp - start_cp) * 1000 / CLOCKS_PER_SEC;
+			//cout << "end chunking result process this round\n";
+		}
+	}
+
+	void ChunkMatch() {
+		int pagableBufferIdx = 0;
+		int chunkingResultIdx = 0;
+		while (true) {
+			//Get pagable buffer ready
+			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
+			while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
+				//cout << 8 << endl;
+				if (chunking_proc_end) {
+					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
+					chunk_hashing_end = true;
+					//cout << "end chunk hashing\n";
+					return;
+				}
+				pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
+			}
+			//Get the chunking result ready
+			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
+			while (chunking_result_obsolete[chunkingResultIdx] == true) {
+				//cout << 9 << endl;
+				if (chunking_proc_end) {
+					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
+					chunk_hashing_end = true;
+					//cout << "end chunk hashing\n";
+					return;
+				}
+				chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
+			}
+
+			start_ch = clock();
+			
+
+			total_duplication_size += re.fingerPrinting(chunking_result[chunkingResultIdx], chunking_result_len[chunkingResultIdx], pagable_buffer[pagableBufferIdx]);
+			/*int prev = chunking_result[chunkingResultIdx][0];
+			for (int i = 1; i < chunking_result_len[chunkingResultIdx]; ++i) {
+				if (linked_trie.FindAndPut(&pagable_buffer[pagableBufferIdx][prev], chunking_result[chunkingResultIdx][i] - prev))
+					total_duplication_size += chunking_result[chunkingResultIdx][i] - prev;
+				prev = chunking_result[chunkingResultIdx][i];
+			}*/
+
+			pagable_buffer_obsolete[pagableBufferIdx] = true;
+			chunking_result_obsolete[chunkingResultIdx] = true;
+			pagableLock.unlock();
+			pagable_buffer_cond[pagableBufferIdx].notify_one();
+			chunkingResultLock.unlock();
+			chunking_result_cond[chunkingResultIdx].notify_one();
+
+			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+			chunkingResultIdx = (chunkingResultIdx + 1) % STREAM_NUM;
+			end_ch = clock();
+			time_ch += (end_ch - start_ch) * 1000 / CLOCKS_PER_SEC;
+			//cout << "end chunk hashing this round\n";
 		}
 	}
 
@@ -380,9 +458,11 @@ namespace CUDA_Pipeline_Namespace {
 			//Get pagable buffer ready
 			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
 			while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
+				//cout << 8 << endl;
 				if (chunking_proc_end) {
 					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 					chunk_hashing_end = true;
+					//cout << "end chunk hashing\n";
 					return;
 				}
 				pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
@@ -390,9 +470,11 @@ namespace CUDA_Pipeline_Namespace {
 			//Get the chunking result ready
 			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
 			while (chunking_result_obsolete[chunkingResultIdx] == true) {
+				//cout << 9 << endl;
 				if (chunking_proc_end) {
 					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 					chunk_hashing_end = true;
+					//cout << "end chunk hashing\n";
 					return;
 				}
 				chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
@@ -418,6 +500,7 @@ namespace CUDA_Pipeline_Namespace {
 			chunkingResultIdx = (chunkingResultIdx + 1) % STREAM_NUM;
 			end_ch = clock();
 			time_ch += (end_ch - start_ch) * 1000 / CLOCKS_PER_SEC;
+			//cout << "end chunk hashing this round\n";
 		}
 	}
 
@@ -429,6 +512,15 @@ namespace CUDA_Pipeline_Namespace {
 			segLen = listSize - segmentNum * listSize / FINGERPRINTING_THREAD_NUM;
 		re.ChunkHashingAscynWithCircularQueue(chunkingResultSeg, segLen, pagable_buffer[pagableBufferIdx],
 			chunk_hash_queue[chunkingResultIdx][segmentNum]);
+		unsigned int chunkLen;
+		unsigned long long chunkHash = 0;
+		unsigned long long toBeDel;
+		do {
+			chunk_hash_queue[chunkingResultIdx][segmentNum].Pop(chunkHash, chunkLen);
+			if (hash_pool.FindAndAdd(chunkHash, toBeDel)) {
+				total_duplication_size += chunkLen;
+			}
+		} while (chunkLen != -1);
 	}
 
 	void RoundQuery() {
@@ -459,7 +551,7 @@ namespace CUDA_Pipeline_Namespace {
 			else
 				noHashValueFoundTimes = 0;
 
-			if (noHashValueFoundTimes == STREAM_NUM) {
+			if (noHashValueFoundTimes >= STREAM_NUM) {
 				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 				if (chunk_hashing_end) {
 					end_cm = clock();
@@ -470,6 +562,6 @@ namespace CUDA_Pipeline_Namespace {
 				noHashValueFoundTimes = 0;
 			}
 		}
-		
+		//cout << "end round query\n";
 	}
 }

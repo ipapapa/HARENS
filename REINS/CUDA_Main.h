@@ -1,10 +1,20 @@
 #pragma once
+#include <cuda_runtime_api.h> 
+#include <cuda.h>
+#include <iostream>
+#include "CircularPairQueue.h"
 #include "RabinHash.h"
+#include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
+#include "OpenAddressCircularHash.h"
+#include "LinkedTrie.h"
 
 namespace CUDA_Namespace {
 
-	void CUDA_TestOfRabinFingerprint(char* fileContent, unsigned int fileContentLen);
+	bool ReadFile();
+	void ChunkingKernel();
+	void ChunkingResultProc();
+	void ChunkMatch();
 
 	int CUDA_Main(int argc, char* argv[]);
 }

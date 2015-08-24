@@ -243,7 +243,36 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> index
 		addNewChunk(chunkHash, chunk, chunkLen, isDuplicate);
 		prevIdx = *iter;
 	}
-	//system("pause");
+	return duplicationSize;
+}
+
+unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, unsigned int idxArrLen, char* package) {
+	unsigned int duplicationSize = 0;
+	unsigned int prevIdx = 0;
+	char* chunk;
+	unsigned long long chunkHash;
+	unsigned int chunkLen;
+	bool isDuplicate;
+	for (int i = 0; i < idxArrLen; ++i) {
+		if (prevIdx == 0) {
+			prevIdx = idxArr[i];
+			continue;
+		}
+		chunkLen = idxArr[i] - prevIdx;
+		chunk = &(package[prevIdx]);
+
+		//Mind! never use sizeof(chunk) to check the chunk size
+		chunkHash = computeChunkHash(chunk, chunkLen);
+		if (circHash->Find(chunkHash)) { //find duplications
+			duplicationSize += chunkLen;
+			isDuplicate = true;
+		}
+		else {
+			isDuplicate = false;
+		}
+		addNewChunk(chunkHash, chunk, chunkLen, isDuplicate);
+		prevIdx = idxArr[i];
+	}
 	return duplicationSize;
 }
 
