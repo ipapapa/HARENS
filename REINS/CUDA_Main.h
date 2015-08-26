@@ -2,12 +2,10 @@
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
 #include <iostream>
-#include "CircularPairQueue.h"
 #include "RabinHash.h"
 #include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
 #include "OpenAddressCircularHash.h"
-#include "LinkedTrie.h"
 
 namespace CUDA_Namespace {
 

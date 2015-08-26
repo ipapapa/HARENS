@@ -1,7 +1,7 @@
 #pragma once
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-#include "CircularPairQueue.h"
+#include "CircularQueuePool.h"
 #include "RabinHash.h"
 #include "CircularHash.h"
 #include "CircularHashPool.h"
@@ -35,8 +35,8 @@ public:
 	/*deque<tuple<unsigned char*, unsigned int>> is for simulation, deque<unsigned char*> for real case*/
 	void ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 
 		unsigned long long* chunkHashValueList, unsigned int* chunkLenList, mutex &chunkMutex);
-	void ChunkHashingAscynWithCircularQueue(unsigned int* indices, int indicesNum, char* package,
-		CircularPairQueue<unsigned long long, unsigned int> &chunkHashQ);
+	void ChunkHashingAscynWithCircularQueuePool(unsigned int* indices, int indicesNum, char* package,
+		CircularQueuePool<tuple<unsigned long long, unsigned int>> &chunkHashQ);
 	unsigned int fingerPrinting(deque<unsigned int> indexQ, char* package);
 	unsigned int fingerPrinting(unsigned int* idxArr, unsigned int idxArrLen, char* package);
 	void RabinHashAsync(char* inputKernel, char* inputHost, unsigned int inputLen, 
@@ -57,3 +57,5 @@ __device__ const char* GetSubStr(const char *str, const unsigned int blockNum);
 __device__ unsigned int GetUIntFromStr(const char* strs, const unsigned int idx);
 __device__ unsigned long long GetULongFromStr(const char* strs, const unsigned int idx);
 __device__ char GetChar(const char* subStr, const unsigned int idx);
+
+int mod(tuple<unsigned long long, unsigned int> tup, int divisor);

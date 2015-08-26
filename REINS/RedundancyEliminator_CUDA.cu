@@ -169,8 +169,8 @@ unsigned int RedundancyEliminator_CUDA::ChunkMatching(deque<unsigned long long> 
 	return duplicationSize;
 }
 
-void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(unsigned int* indices, int indicesNum, char* package,
-	CircularPairQueue<unsigned long long, unsigned int> &chunkHashQ) {
+void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned int* indices, int indicesNum, char* package,
+	CircularQueuePool<tuple<unsigned long long, unsigned int>> &chunkHashQ) {
 	//unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
 	char* chunk;
@@ -184,7 +184,7 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueue(unsigned int*
 		chunk = &(package[prevIdx]);
 		chunkLen = indices[i] - prevIdx;
 		chunkHashValue = computeChunkHash(chunk, chunkLen);
-		chunkHashQ.Push(chunkHashValue, chunkLen);
+		chunkHashQ.Push(make_tuple(chunkHashValue, chunkLen), (*mod));
 
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];
@@ -390,4 +390,8 @@ Compute the hash value of chunk, should use sha256 to avoid collision
 inline unsigned long long RedundancyEliminator_CUDA::computeChunkHash(char* chunk, unsigned int chunkSize) {
 	return hashFunc.Hash(chunk, chunkSize);
 	//SHA((unsigned char*)chunk, chunkSize, hashValue);
+}
+
+int mod(tuple<unsigned long long, unsigned int> tup, int divisor) {
+	return get<0>(tup) % divisor;
 }

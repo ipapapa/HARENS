@@ -2,24 +2,21 @@
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
 #include <iostream>
-#include "CircularPairQueue.h"
+#include "CircularQueuePool.h"
 #include "RabinHash.h"
 #include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
-#include "OpenAddressCircularHash.h"
-#include "LinkedTrie.h"
 
 namespace CUDA_Pipeline_Namespace {
 
 	void ReadFile();
-	void Transfer();
+	//void Transfer();
 	void ChunkingKernel();
 	void ChunkingResultProc();
-	void ChunkMatch();
-
 	void ChunkHashing();
+	void ChunkMatch(int hashPoolIdx);
+
 	void ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum);
-	void RoundQuery();
 
 	int CUDA_Pipeline_Main(int argc, char* argv[]);
 }
