@@ -40,13 +40,13 @@
       <Filter>Basic Functions</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="TreeHash.cpp">
-      <Filter>Basic Functions</Filter>
-    </ClCompile>
     <ClCompile Include="PcapReader.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
     <ClCompile Include="FixedSizedCharArray.cpp">
+      <Filter>Basic Functions</Filter>
+    </ClCompile>
+    <ClCompile Include="TreeHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
   </ItemGroup>
@@ -90,9 +90,6 @@
     <ClInclude Include="CircularQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
-    <ClInclude Include="TreeHash.h">
-      <Filter>Basic Functions</Filter>
-    </ClInclude>
     <ClInclude Include="PcapReader.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
@@ -100,6 +97,9 @@
       <Filter>Basic Functions</Filter>
     </ClInclude>
     <ClInclude Include="CircularQueuePool.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
   </ItemGroup>
