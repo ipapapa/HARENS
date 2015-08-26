@@ -32,7 +32,8 @@ unsigned long long CircularHash::Add(const unsigned long long hashValue, const b
 		map[hashValue] += 1;
 	}
 	else {
-		map.insert({ hashValue, 1 });
+		map[hashValue] = 1;
+		//map.insert({ hashValue, 1 });
 	}
 	return toBeDel;
 }
@@ -57,7 +58,8 @@ bool CircularHash::FindAndAdd(const unsigned long long& hashValue, unsigned long
 		map[hashValue] += 1;
 	}
 	else {
-		map.insert({ hashValue, 1 });
+		map[hashValue] = 1;
+		//map.insert({ hashValue, 1 });
 	}
 	return isFound;
 }

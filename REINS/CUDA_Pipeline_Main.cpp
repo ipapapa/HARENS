@@ -9,8 +9,8 @@ namespace CUDA_Pipeline_Namespace {
 	const int PAGABLE_BUFFER_NUM = 10;
 	const int FIXED_BUFFER_NUM = 3;
 	const int STREAM_NUM = 3;
-	const int FINGERPRINTING_THREAD_NUM = 8;
-	const int CIRC_Q_POOL_SIZE = 8;	//Better be power of 2, it would make the module operation faster
+	const int FINGERPRINTING_THREAD_NUM = 6;
+	const int CIRC_Q_POOL_SIZE = 256;	//Better be power of 2, it would make the module operation faster
 	//determin if one thread is end
 	bool read_file_end = false; 
 	/*bool transfer_end = false;*/
@@ -53,16 +53,17 @@ namespace CUDA_Pipeline_Namespace {
 	array<condition_variable, STREAM_NUM> chunking_result_cond;
 	array<bool, STREAM_NUM> chunking_result_obsolete;
 	//chunk hashing
-	array<thread*, STREAM_NUM> segment_threads;
+	array<thread, FINGERPRINTING_THREAD_NUM> segment_threads;
 	CircularQueuePool<tuple<unsigned long long, unsigned int>> chunk_hash_queue_pool(CIRC_Q_POOL_SIZE);
 	//chunk matching 
 	mutex chunk_hashing_end_mutex;
 	array<thread, CIRC_Q_POOL_SIZE> chunk_match_threads;
 	vector<CircularHash> circ_hash_pool(CIRC_Q_POOL_SIZE, CircularHash(MAX_CHUNK_NUM / CIRC_Q_POOL_SIZE * 2));
+	vector<unsigned int> duplication_size(CIRC_Q_POOL_SIZE, 0);
 	unsigned int total_duplication_size = 0;
 	//Time
-	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;
-	double time = 0, time_r = 0, time_t = 0, time_ck = 0, time_cp = 0, time_ch, time_cm;
+	clock_t start, end, start_r, end_r, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;
+	double time = 0, time_r = 0, time_ck = 0, time_cp = 0, time_ch, time_cm;
 	
 	int CUDA_Pipeline_Main(int argc, char* argv[]) {
 		cout << "\n============ CUDA Implementation With Pipeline and Round Query ============\n";
@@ -99,14 +100,14 @@ namespace CUDA_Pipeline_Namespace {
 			chunking_result_obsolete[i] = true;
 		}
 		//initialize chunk hashing
-		for (int i = 0; i < STREAM_NUM; ++i) {
-			segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
-			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
-				//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
-				/*chunk_hashing_value_queue[i][j] = CircularUcharArrayQueue(MAX_WINDOW_NUM / 4);
-				chunk_len_queue[i][j] = CircularUintQueue(MAX_WINDOW_NUM / 4);*/
-			}
-		}
+		//for (int i = 0; i < STREAM_NUM; ++i) {
+		//	segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
+		//	for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
+		//		//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
+		//		/*chunk_hashing_value_queue[i][j] = CircularUcharArrayQueue(MAX_WINDOW_NUM / 4);
+		//		chunk_len_queue[i][j] = CircularUintQueue(MAX_WINDOW_NUM / 4);*/
+		//	}
+		//}
 
 		start = clock();
 
@@ -140,12 +141,14 @@ namespace CUDA_Pipeline_Namespace {
 		printf("Chunk hashing time: %f ms\n", time_ch);
 		printf("Round query chunk matching time %f ms\n", time_cm);
 		printf("Total time: %f ms\n", time);
+		for (int i = 0; i < CIRC_Q_POOL_SIZE; ++i)
+			total_duplication_size += duplication_size[i];
 		printf("Found %d bytes of redundancy, which is %f percent of file\n", total_duplication_size, total_duplication_size * 100.0 / file_length);
 
 		//destruct chunk hashing & matching
-		for (int i = 0; i < STREAM_NUM; ++i) {
+		/*for (int i = 0; i < STREAM_NUM; ++i) {
 			delete[] segment_threads[i];
-		}
+		}*/
 		//destruct chunking result proc
 		for (int i = 0; i < STREAM_NUM; ++i) {
 			cudaStreamDestroy(stream[i]);
@@ -418,11 +421,11 @@ namespace CUDA_Pipeline_Namespace {
 
 			start_ch = clock();
 			for (int i = 0; i < FINGERPRINTING_THREAD_NUM; ++i) {
-				segment_threads[chunkingResultIdx][i] = thread(ChunkSegmentHashing, pagableBufferIdx, chunkingResultIdx, i);
+				segment_threads[i] = thread(ChunkSegmentHashing, pagableBufferIdx, chunkingResultIdx, i);
 			}
 
 			for (int i = 0; i < FINGERPRINTING_THREAD_NUM; ++i) {
-				segment_threads[chunkingResultIdx][i].join();
+				segment_threads[i].join();
 			}
 
 			pagable_buffer_obsolete[pagableBufferIdx] = true;
@@ -475,7 +478,7 @@ namespace CUDA_Pipeline_Namespace {
 
 			tuple<unsigned long long, unsigned int> valLenPair = chunk_hash_queue_pool.Pop(hashPoolIdx);
 			if (circ_hash_pool[hashPoolIdx].FindAndAdd(get<0>(valLenPair), toBeDel))
-				total_duplication_size += get<1>(valLenPair);
+				duplication_size[hashPoolIdx] += get<1>(valLenPair);
 			//Do something with toBeDel
 
 			end_cm = clock();
