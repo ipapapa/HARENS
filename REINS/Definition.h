@@ -29,6 +29,7 @@ const int WINDOW_SIZE = 12;
 const int TEST_MAX_KERNEL_INPUT_LEN = 4096 * 128;	//For testing
 //while P = 2^k, fingerprint % P means fingerprint & P_MINUS (P - 1). We set P = 32 here
 const int P_MINUS = 0x1F;	
+const int MIN_CHUNK_LEN = 32;
 enum FileFormat {PlainText, Pcap, UnkownTest};
 const std::string FILE_FORMAT_TEXT[] {"PlainText", "Pcap", "UnkownTest"};
 const FileFormat FILE_FORMAT = Pcap;

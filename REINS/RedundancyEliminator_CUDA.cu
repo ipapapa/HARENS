@@ -181,8 +181,12 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned 
 			prevIdx = indices[i];
 			continue;
 		}
-		chunk = &(package[prevIdx]);
 		chunkLen = indices[i] - prevIdx;
+		//if chunk is too small, combine it with the next chunk
+		if (chunkLen < MIN_CHUNK_LEN)
+			continue;
+
+		chunk = &(package[prevIdx]);
 		chunkHashValue = computeChunkHash(chunk, chunkLen);
 		chunkHashQ.Push(make_tuple(chunkHashValue, chunkLen), (*mod));
 
@@ -259,6 +263,10 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, uns
 			continue;
 		}
 		chunkLen = idxArr[i] - prevIdx;
+		//if chunk is too small, combine it with the next chunk
+		if (chunkLen < MIN_CHUNK_LEN)
+			continue;
+		
 		chunk = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size

@@ -4,7 +4,7 @@
 #include "CUDA_Pipeline_Main.h"
 
 enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_COMPARE, ALL };
-Method method = CUDA_Pipeline;
+Method method = ALL;
 
 int main(int argc, char* argv[]) {
 	switch (method) {

@@ -51,6 +51,10 @@ unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ
 			continue;
 		}
 		unsigned int chunkLen = *iter - prevIdx;
+		//if chunk is too small, combine it with the next chunk
+		if (chunkLen < MIN_CHUNK_LEN)	
+			continue;
+
 		chunk = &(package[prevIdx]);
 		unsigned long long chunkHash = computeChunkHash(chunk, chunkLen);
 		if (circHash.Find(chunkHash)) { //find duplications
