@@ -171,6 +171,7 @@ unsigned int RedundancyEliminator_CUDA::ChunkMatching(deque<unsigned long long> 
 
 void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned int* indices, int indicesNum, char* package,
 	CircularQueuePool<tuple<unsigned long long, unsigned int>> &chunkHashQ) {
+	//cout << "start\n";
 	//unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
 	char* chunk;
@@ -193,6 +194,7 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned 
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];
 	}
+	//cout << "end\n";
 }
 
 void RedundancyEliminator_CUDA::ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 

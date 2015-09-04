@@ -6,11 +6,12 @@
 #include "RabinHash.h"
 #include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
+#include <cassert>
 
 namespace CUDA_Pipeline_Namespace {
 
 	void ReadFile();
-	//void Transfer();
+	void Transfer();
 	void ChunkingKernel();
 	void ChunkingResultProc();
 	void ChunkHashing();
