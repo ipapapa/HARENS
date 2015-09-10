@@ -44,22 +44,24 @@ bool CircularHash::Find(const unsigned long long hashValue) {
 }
 
 bool CircularHash::FindAndAdd(const unsigned long long& hashValue, unsigned long long& toBeDel) {
-	bool isFound = map.find(hashValue) != map.end();
+	std::unordered_map<unsigned long long, unsigned int>::iterator it = map.find(hashValue);
+	bool isFound = it != map.end();
 	toBeDel = circularQueue.Add(hashValue);
 	if (toBeDel != NULL) {
-		if (map[toBeDel] == 1) {
-			map.erase(toBeDel);
+		std::unordered_map<unsigned long long, unsigned int>::iterator toBeDelIt = map.find(toBeDel);
+		if (toBeDelIt->second == 1) {
+			map.erase(toBeDelIt, toBeDelIt);
 		}
 		else {
-			map[toBeDel] -= 1;
+			toBeDelIt->second -= 1;
 		}
 	}
 	if (isFound) {
-		map[hashValue] += 1;
+		it->second += 1;
 	}
 	else {
-		map[hashValue] = 1;
-		//map.insert({ hashValue, 1 });
+		//map[hashValue] = 1;
+		map.insert({ hashValue, 1 });
 	}
 	return isFound;
 }

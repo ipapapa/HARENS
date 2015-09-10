@@ -14,7 +14,7 @@ public:
 	int poolSize;
 	int *front, *rear;	//rear point to the last used entry, there's an empty entry after rear
 	const unsigned int queueSize;
-	mutex *frontMutex, *rearMutex;
+	mutex *frontMutex, *rearMutex; 
 	//Size control
 	unsigned int *curQueueSize;
 	mutex *curQueueSizeMutex;
@@ -57,14 +57,14 @@ public:
 		while (curQueueSize[poolAnchor] >= queueSize) {
 			fullCond[poolAnchor].wait(sizeLock);
 		}
-		sizeLock.unlock();
+		//sizeLock.unlock();
 
-		rearMutex[poolAnchor].lock();
+		//rearMutex[poolAnchor].lock();
 		rear[poolAnchor] = (rear[poolAnchor] + 1) % queueSize;
 		queuePool[poolAnchor][rear[poolAnchor]] = hashValue;
-		rearMutex[poolAnchor].unlock();
+		//rearMutex[poolAnchor].unlock();
 
-		sizeLock.lock();
+		//sizeLock.lock();
 		++curQueueSize[poolAnchor];
 		sizeLock.unlock();
 
@@ -78,14 +78,14 @@ public:
 		while (curQueueSize[poolAnchor] <= 0) {
 			emptyCond[poolAnchor].wait(sizeLock);
 		}
-		sizeLock.unlock();
+		//sizeLock.unlock();
 
-		frontMutex[poolAnchor].lock();
+		//frontMutex[poolAnchor].lock();
 		T ret = queuePool[poolAnchor][front[poolAnchor]];
 		front[poolAnchor] = (front[poolAnchor] + 1) % queueSize;
-		frontMutex[poolAnchor].unlock();
+		//frontMutex[poolAnchor].unlock();
 
-		sizeLock.lock();
+		//sizeLock.lock();
 		--curQueueSize[poolAnchor];
 		sizeLock.unlock();
 

@@ -6,7 +6,7 @@ namespace CUDA_Pipeline_Namespace {
 	//constants
 	const unsigned int MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
 	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
-	const int PAGABLE_BUFFER_NUM = 10;
+	const int PAGABLE_BUFFER_NUM = 550;
 	const int FIXED_BUFFER_NUM = 3;
 	const int STREAM_NUM = 3;
 	const int FINGERPRINTING_THREAD_NUM = 6;
@@ -110,10 +110,11 @@ namespace CUDA_Pipeline_Namespace {
 		//	}
 		//}
 
-		start = clock();
 
 		//Create threads
 		thread tReadFile(ReadFile);
+		tReadFile.join();
+		start = clock();
 		//thread tTransfer(Transfer);
 		thread tChunkingKernel(ChunkingKernel);
 		thread tChunkingResultProc(ChunkingResultProc);
@@ -121,13 +122,9 @@ namespace CUDA_Pipeline_Namespace {
 		for (int i = 0; i < CIRC_Q_POOL_SIZE; ++i)
 			chunk_match_threads[i] = thread(ChunkMatch, i);
 
-		tReadFile.join();
 		//tTransfer.join();
 		tChunkingKernel.join();
 		tChunkingResultProc.join();
-		/*for (int i = 0; i < STREAM_NUM; ++i)
-			for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j)
-				segment_threads[i][j].join();*/
 		tChunkHashing.join();
 		for (int i = 0; i < CIRC_Q_POOL_SIZE; ++i)
 			chunk_match_threads[i].join();
@@ -269,6 +266,7 @@ namespace CUDA_Pipeline_Namespace {
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
 		unique_lock<mutex> readFileEndLock(read_file_end_mutex);
 		read_file_end = true;
+		cout << "Reading end\n";
 	}
 
 	//void Transfer() {
@@ -313,6 +311,7 @@ namespace CUDA_Pipeline_Namespace {
 		int fixedBufferIdx = 0;
 		int streamIdx = 0;
 		while (true) {
+			//Wait for the last process of this stream to finish
 			//Get pagable buffer ready
 			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
 			while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
@@ -320,6 +319,7 @@ namespace CUDA_Pipeline_Namespace {
 				if (read_file_end) {
 					unique_lock<mutex> chunkingKernelEndLock(chunking_kernel_end_mutex);
 					chunking_kernel_end = true;
+					cout << "chunking kernel end\n";
 					return;
 				}
 				readFileEndLock.unlock();
@@ -329,7 +329,9 @@ namespace CUDA_Pipeline_Namespace {
 			//Get result host ready
 			unique_lock<mutex> resultHostLock(result_host_mutex[fixedBufferIdx]);
 			while (result_host_obsolete[fixedBufferIdx] == false) {
+				cout << "waiting\n";
 				result_host_cond[fixedBufferIdx].wait(resultHostLock);
+				cout << "done waiting\n";
 			}
 
 			start_ck = clock();
@@ -342,7 +344,8 @@ namespace CUDA_Pipeline_Namespace {
 
 			re.RabinHashAsync(input_kernel[fixedBufferIdx], fixed_buffer[fixedBufferIdx], fixed_buffer_len[fixedBufferIdx],
 				result_kernel[fixedBufferIdx], result_host[fixedBufferIdx], stream[streamIdx]);
-			
+
+			cudaStreamSynchronize(stream[streamIdx]);
 			result_host_len[fixedBufferIdx] = fixed_buffer_len[fixedBufferIdx] - WINDOW_SIZE + 1;
 			result_host_obsolete[fixedBufferIdx] = false;
 			resultHostLock.unlock();
@@ -371,7 +374,7 @@ namespace CUDA_Pipeline_Namespace {
 				chunkingKernelEndLock.unlock();
 				result_host_cond[resultHostIdx].wait(resultHostLock);
 			}
-			cudaStreamSynchronize(stream[streamIdx]);
+			//cudaStreamSynchronize(stream[streamIdx]);
 			//Get the chunking result ready
 			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
 			while (chunking_result_obsolete[streamIdx] == false) {
