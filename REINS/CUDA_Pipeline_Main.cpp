@@ -94,6 +94,7 @@ namespace CUDA_Pipeline_Namespace {
 			cudaMalloc((void**)&result_kernel[i], MAX_WINDOW_NUM * BYTES_IN_ULONG);
 			cudaMallocHost((void**)&result_host[i], MAX_WINDOW_NUM * BYTES_IN_ULONG);
 			result_host_obsolete[i] = true;
+			result_host_executing[i] = false;
 		}
 		//initialize chunking result processing
 		for (int i = 0; i < STREAM_NUM; ++i) {
@@ -329,10 +330,8 @@ namespace CUDA_Pipeline_Namespace {
 
 			//Get result host ready
 			unique_lock<mutex> resultHostLock(result_host_mutex[fixedBufferIdx]);
-			while (result_host_obsolete[fixedBufferIdx] == false) {
-				cout << "waiting\n";
+			while (result_host_executing[fixedBufferIdx] == true) {
 				result_host_cond[fixedBufferIdx].wait(resultHostLock);
-				cout << "done waiting\n";
 			}
 
 			start_ck = clock();
@@ -375,8 +374,6 @@ namespace CUDA_Pipeline_Namespace {
 				result_host_cond[resultHostIdx].wait(resultHostLock);
 			}
 			cudaStreamSynchronize(stream[streamIdx]);
-			result_host_executing[resultHostIdx] = false;
-			result_host_obsolete[resultHostIdx] = false;
 			//Get the chunking result ready
 			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
 			while (chunking_result_obsolete[streamIdx] == false) {
@@ -395,7 +392,7 @@ namespace CUDA_Pipeline_Namespace {
 
 			chunking_result_len[streamIdx] = chunkingResultIdx;
 
-			result_host_obsolete[resultHostIdx] = true;
+			result_host_executing[resultHostIdx] = false;
 			chunking_result_obsolete[streamIdx] = false;
 			resultHostLock.unlock();
 			result_host_cond[resultHostIdx].notify_one();
