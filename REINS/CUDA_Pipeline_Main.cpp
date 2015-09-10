@@ -46,6 +46,7 @@ namespace CUDA_Pipeline_Namespace {
 	array<mutex, FIXED_BUFFER_NUM> result_host_mutex;
 	array<condition_variable, FIXED_BUFFER_NUM> result_host_cond;
 	array<bool, FIXED_BUFFER_NUM> result_host_obsolete;
+	array<bool, FIXED_BUFFER_NUM> result_host_executing;
 	//chunking result processing
 	array<cudaStream_t, STREAM_NUM> stream;
 	array<unsigned int*, STREAM_NUM> chunking_result;
@@ -345,9 +346,8 @@ namespace CUDA_Pipeline_Namespace {
 			re.RabinHashAsync(input_kernel[fixedBufferIdx], fixed_buffer[fixedBufferIdx], fixed_buffer_len[fixedBufferIdx],
 				result_kernel[fixedBufferIdx], result_host[fixedBufferIdx], stream[streamIdx]);
 
-			cudaStreamSynchronize(stream[streamIdx]);
 			result_host_len[fixedBufferIdx] = fixed_buffer_len[fixedBufferIdx] - WINDOW_SIZE + 1;
-			result_host_obsolete[fixedBufferIdx] = false;
+			result_host_executing[fixedBufferIdx] = true;
 			resultHostLock.unlock();
 			result_host_cond[fixedBufferIdx].notify_one();
 			fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
@@ -364,7 +364,7 @@ namespace CUDA_Pipeline_Namespace {
 		while (true) {
 			//Get result host ready
 			unique_lock<mutex> resultHostLock(result_host_mutex[resultHostIdx]);
-			while (result_host_obsolete[resultHostIdx] == true) {
+			while (result_host_executing[resultHostIdx] == false) {
 				unique_lock<mutex> chunkingKernelEndLock(chunking_kernel_end_mutex);
 				if (chunking_kernel_end) {
 					unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
@@ -374,7 +374,9 @@ namespace CUDA_Pipeline_Namespace {
 				chunkingKernelEndLock.unlock();
 				result_host_cond[resultHostIdx].wait(resultHostLock);
 			}
-			//cudaStreamSynchronize(stream[streamIdx]);
+			cudaStreamSynchronize(stream[streamIdx]);
+			result_host_executing[resultHostIdx] = false;
+			result_host_obsolete[resultHostIdx] = false;
 			//Get the chunking result ready
 			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
 			while (chunking_result_obsolete[streamIdx] == false) {
