@@ -61,18 +61,18 @@ namespace CUDA_Namespace {
 		//initialize chunking result processing
 		chunking_result = new unsigned int[MAX_WINDOW_NUM];
 
-		start = clock();
 
 		bool keepReading = true;
 		do {
 			keepReading = ReadFile();
+			start = clock();
 			ChunkingKernel();
 			ChunkingResultProc();
 			ChunkMatch();
+			end = clock();
+			time += (end - start) * 1000 / CLOCKS_PER_SEC;
 		} while (keepReading);
 
-		end = clock();
-		time = (end - start) * 1000 / CLOCKS_PER_SEC;
 		printf("Read file time: %f ms\n", time_r);
 		//printf("Transfer time: %f ms\n", time_t);
 		printf("Chunking kernel time: %f ms\n", time_ck);

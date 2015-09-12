@@ -25,11 +25,11 @@ namespace CPP_Namespace {
 	unsigned int total_duplication_size = 0;
 	//Time
 	clock_t start_read, start_chunk, start_fin;
-	float tot_read = 0, tot_chunk = 0, tot_fin = 0;
+	float tot_read = 0, tot_chunk = 0, tot_fin = 0, tot_time = 0;
 
 	int CPP_Main(int argc, char* argv[])
 	{
-		clock_t start = clock();
+		clock_t start, end;
 		cout << "\n============================ C++ Implementation =============================\n";
 		if (argc != 2) {
 			cout << "You used " << argc << " variables\n";
@@ -47,8 +47,11 @@ namespace CPP_Namespace {
 		bool keepReading = true;
 		do {
 			keepReading = ReadFile();
+			start = clock();
 			Chunking();
 			Fingerprinting();
+			end = clock();
+			tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 		} while (keepReading);
 
 		cout << "Found " << total_duplication_size << " bytes of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
@@ -56,11 +59,10 @@ namespace CPP_Namespace {
 		//delete everything that mallocated before
 		delete[] buffer;
 
-		clock_t end = clock();
 		cout << "Reading time: " << tot_read << " ms\n";
 		cout << "Chunking time: " << tot_chunk << " ms\n";
 		cout << "Fingerprinting time: " << tot_fin << " ms\n";
-		cout << "Total time: " << ((float)end - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
+		cout << "Total time: " << tot_time << " ms\n";
 		cout << "=============================================================================\n";
 
 		return 0;

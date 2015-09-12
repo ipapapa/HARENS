@@ -268,7 +268,9 @@ namespace CUDA_Pipeline_Namespace {
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
 		unique_lock<mutex> readFileEndLock(read_file_end_mutex);
 		read_file_end = true;
-		cout << "Reading end\n";
+		//In case the other threads stuck in waiting for condition variable
+		pagable_buffer_cond[pagableBufferIdx].notify_all();
+
 	}
 
 	//void Transfer() {
@@ -321,7 +323,6 @@ namespace CUDA_Pipeline_Namespace {
 				if (read_file_end) {
 					unique_lock<mutex> chunkingKernelEndLock(chunking_kernel_end_mutex);
 					chunking_kernel_end = true;
-					cout << "chunking kernel end\n";
 					return;
 				}
 				readFileEndLock.unlock();

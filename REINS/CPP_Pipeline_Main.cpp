@@ -3,8 +3,9 @@ using namespace std;
 
 namespace CPP_Pipeline_Namespace {
 
-	const int BUFFER_NUM = 2;
-	const unsigned int MAX_BUFFER_LEN = 4090 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
+	const int BUFFER_NUM = 550;
+	const int CHUNKING_RESULT_NUM = 2;
+	const unsigned int MAX_BUFFER_LEN = 4096 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
 	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 
 	unsigned int file_length = 0;
@@ -12,17 +13,22 @@ namespace CPP_Pipeline_Namespace {
 	ifstream ifs;
 	char* fileName;
 	//syncronize
-	mutex buffer_mutex[2], chunking_result_mutex[2];		//lock for buffer and chunking_result
-	bool buffer_obsolete[2] = { true, true }, chunking_result_obsolete[2] = { true, true };	//state of buffer and chunking_result
-	bool no_more_input = false;
-	bool no_more_chunking_result = false;
+	array<mutex, BUFFER_NUM> buffer_mutex;							//lock for buffer
+	array<condition_variable, BUFFER_NUM> buffer_cond;
+	array<mutex, CHUNKING_RESULT_NUM> chunking_result_mutex;		//lock for chunking_result
+	array<condition_variable, CHUNKING_RESULT_NUM> chunking_result_cond;
+	array<bool, BUFFER_NUM> buffer_obsolete;					//states of buffer
+	array<bool, CHUNKING_RESULT_NUM> chunking_result_obsolete;	//states of chunking_result
+	bool read_file_end = false;
+	bool chunking_end = false;
+	mutex read_file_end_mutex, chunking_end_mutex;
 	//shared data
 	char overlap[WINDOW_SIZE - 1];
 	char** buffer = new char*[BUFFER_NUM];	//two buffers
 	FixedSizedCharArray charArrayBuffer(MAX_BUFFER_LEN);
 
-	unsigned int buffer_len[] = { 0, 0 };
-	deque<unsigned int>* chunking_result = new deque<unsigned int>[2];
+	array<unsigned int, BUFFER_NUM> buffer_len;
+	array<deque<unsigned int>, CHUNKING_RESULT_NUM> chunking_result;
 	//Result
 	unsigned int total_duplication_size = 0;
 	//Time
@@ -31,7 +37,6 @@ namespace CPP_Pipeline_Namespace {
 
 	int CPP_Pipeline_Main(int argc, char* argv[])
 	{
-		clock_t start = clock();
 		cout << "\n================== Pipeline Version of C++ Implementation ===================\n";
 		if (argc != 2) {
 			cout << "You used " << argc << " variables\n";
@@ -44,15 +49,23 @@ namespace CPP_Pipeline_Namespace {
 
 		re.SetupRedundancyEliminator_CPP();
 
-		for (int i = 0; i < BUFFER_NUM; ++i)
+		for (int i = 0; i < BUFFER_NUM; ++i) {
 			buffer[i] = new char[MAX_BUFFER_LEN];
+			buffer_len[i] = 0;
+			buffer_obsolete[i] = true;
+		}
+
+		for (int i = 0; i < CHUNKING_RESULT_NUM; ++i) {
+			chunking_result_obsolete[i] = true;
+		}
 
 		//Create threads 
 		thread tReadFile(ReadFile);
+		tReadFile.join();
+		clock_t start = clock();
 		thread tChunking(Chunking);
 		thread tFingerprinting(Fingerprinting);
 
-		tReadFile.join();
 		tChunking.join();
 		tFingerprinting.join();
 
@@ -79,7 +92,7 @@ namespace CPP_Pipeline_Namespace {
 		int curWindowNum;
 		PcapReader fileReader;
 		//Read the first part
-		buffer_mutex[bufferIdx].lock();
+		unique_lock<mutex> readFileInitLock(buffer_mutex[bufferIdx]);
 		start_read = clock();
 		if (FILE_FORMAT == PlainText) {
 			ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
@@ -107,27 +120,27 @@ namespace CPP_Pipeline_Namespace {
 		
 		memcpy(overlap, &buffer[bufferIdx][buffer_len[bufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 		buffer_obsolete[bufferIdx] = false;
-		buffer_mutex[bufferIdx].unlock();
-		bufferIdx ^= 1;
+		readFileInitLock.unlock();
+		buffer_cond[bufferIdx].notify_one();
+		bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
 		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 		//Read the rest
 		if (FILE_FORMAT == PlainText) {
 			while (curWindowNum == MAX_WINDOW_NUM) {
-				buffer_mutex[bufferIdx].lock();
-				while (!buffer_obsolete[bufferIdx]) {
-					buffer_mutex[bufferIdx].unlock();
-					this_thread::sleep_for(chrono::microseconds(500));
-					buffer_mutex[bufferIdx].lock();
+				unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
+				while (buffer_obsolete[bufferIdx] == false) {
+					buffer_cond[bufferIdx].wait(readFileIterLock);
 				}
 				start_read = clock();
 				buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos + WINDOW_SIZE - 1);
 				curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
 				memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
 				ifs.read(&buffer[bufferIdx][WINDOW_SIZE - 1], curWindowNum);
-				buffer_obsolete[bufferIdx] = false;
 				memcpy(overlap, &buffer[bufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-				buffer_mutex[bufferIdx].unlock();
-				bufferIdx ^= 1;
+				buffer_obsolete[bufferIdx] = false;
+				readFileIterLock.unlock();
+				buffer_cond[bufferIdx].notify_one();
+				bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
 				curFilePos += curWindowNum;
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 			}
@@ -135,17 +148,16 @@ namespace CPP_Pipeline_Namespace {
 		}
 		else if (FILE_FORMAT == Pcap) {
 			while (true) {
-				buffer_mutex[bufferIdx].lock();
-				while (!buffer_obsolete[bufferIdx]) {
-					buffer_mutex[bufferIdx].unlock();
-					this_thread::sleep_for(chrono::microseconds(500));
-					buffer_mutex[bufferIdx].lock();
+				unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
+				while (buffer_obsolete[bufferIdx] == false) {
+					buffer_cond[bufferIdx].wait(readFileIterLock);
 				}
 				start_read = clock();
 				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 				
 				if (charArrayBuffer.GetLen() == 0) {
-					buffer_mutex[bufferIdx].unlock();
+					readFileIterLock.unlock();
+					buffer_cond[bufferIdx].notify_all();
 					break;	//Read nothing
 				}
 				memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
@@ -154,49 +166,55 @@ namespace CPP_Pipeline_Namespace {
 				file_length += charArrayBuffer.GetLen();
 				buffer_obsolete[bufferIdx] = false;
 				memcpy(overlap, &buffer[bufferIdx][charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
-				buffer_mutex[bufferIdx].unlock();
-				bufferIdx ^= 1;
+				readFileIterLock.unlock();
+				buffer_cond[bufferIdx].notify_one();
+				bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 			}
 			cout << "File size: " << file_length / 1024 << " KB\n";
 		}
 		else
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
-		no_more_input = true;
+		unique_lock<mutex> readFileEndLock(read_file_end_mutex);
+		read_file_end = true;
+		//In case the other threads stuck in waiting for condition variable
+		buffer_cond[bufferIdx].notify_all();
 	}
 
 	void Chunking() {
 		int bufferIdx = 0;
 		int chunkingResultIdx = 0;
 		while (true) {
-			buffer_mutex[bufferIdx].lock();
+			unique_lock<mutex> bufferLock(buffer_mutex[bufferIdx]);
 			if (buffer_obsolete[bufferIdx]) {
-				buffer_mutex[bufferIdx].unlock();
-				if (no_more_input)
-					break;
-				this_thread::sleep_for(chrono::microseconds(500));
-				continue;
+				unique_lock<mutex> readFileEndLock(read_file_end_mutex);
+				if (read_file_end){
+					unique_lock<mutex> chunkingEndLock(chunking_end_mutex);
+					chunking_end = true;
+					return;
+				}
+				readFileEndLock.unlock();
+				buffer_cond[bufferIdx].wait(bufferLock);
 			}
 
 			start_chunk = clock();
 			deque<unsigned int> currentChunkingResult = re.chunking(buffer[bufferIdx], buffer_len[bufferIdx]);
 			tot_chunk += ((float)clock() - start_chunk) * 1000 / CLOCKS_PER_SEC;
-			buffer_mutex[bufferIdx].unlock();
+			bufferLock.unlock();
+			buffer_cond[bufferIdx].notify_one();
+			bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
 
-			chunking_result_mutex[chunkingResultIdx].lock();
-			while (!chunking_result_obsolete[chunkingResultIdx]) {
-				chunking_result_mutex[chunkingResultIdx].unlock();
-				this_thread::sleep_for(chrono::microseconds(500));
-				chunking_result_mutex[chunkingResultIdx].lock();
+			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
+			while (chunking_result_obsolete[chunkingResultIdx] == false) {
+				chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
 			}
 			chunking_result[chunkingResultIdx] = currentChunkingResult;
 			chunking_result_obsolete[chunkingResultIdx] = false;
-			chunking_result_mutex[chunkingResultIdx].unlock();
-			chunkingResultIdx ^= 1;
+			chunkingResultLock.unlock();
+			chunking_result_cond[chunkingResultIdx].notify_one();
+			chunkingResultIdx = (chunkingResultIdx + 1) % CHUNKING_RESULT_NUM;
 
-			bufferIdx ^= 1;
 		}
-		no_more_chunking_result = true;
 	}
 
 	void Fingerprinting() {
@@ -204,23 +222,37 @@ namespace CPP_Pipeline_Namespace {
 		int chunkingResultIdx = 0;
 		//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
 		while (true) {
-			lock<mutex, mutex>(buffer_mutex[bufferIdx], chunking_result_mutex[chunkingResultIdx]);
-			lock_guard<mutex> lk1(buffer_mutex[bufferIdx], adopt_lock);
-			lock_guard<mutex> lk2(chunking_result_mutex[chunkingResultIdx], adopt_lock);
-
-			if (buffer_obsolete[bufferIdx] || chunking_result_obsolete[chunkingResultIdx]) {
-				if (no_more_chunking_result)
-					break;
-				this_thread::sleep_for(chrono::microseconds(500));
-				continue;
+			//Get buffer ready
+			unique_lock<mutex> bufferLock(buffer_mutex[bufferIdx]);
+			while (buffer_obsolete[bufferIdx]) {
+				unique_lock<mutex> chunkingEndLock(chunking_end_mutex);
+				if (chunking_end)
+					return;
+				chunkingEndLock.unlock();
+				buffer_cond[bufferIdx].wait(bufferLock);
 			}
+			//Get chunking result ready
+			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
+			while (chunking_result_obsolete[chunkingResultIdx]) {
+				unique_lock<mutex> chunkingEndLock(chunking_end_mutex);
+				if (chunking_end)
+					return;
+				chunkingEndLock.unlock();
+				chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
+			}
+
 			start_fin = clock();
 
 			total_duplication_size += re.fingerPrinting(chunking_result[chunkingResultIdx], buffer[bufferIdx]);
 			buffer_obsolete[bufferIdx] = true;
 			chunking_result_obsolete[chunkingResultIdx] = true;
-			bufferIdx ^= 1;
-			chunkingResultIdx ^= 1;
+			bufferLock.unlock();
+			buffer_cond[bufferIdx].notify_one();
+			chunkingResultLock.unlock();
+			chunking_result_cond[chunkingResultIdx].notify_one();
+
+			bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
+			chunkingResultIdx = (chunkingResultIdx + 1) % CHUNKING_RESULT_NUM;
 			tot_fin += ((float)clock() - start_fin) * 1000 / CLOCKS_PER_SEC;
 		}
 	}
