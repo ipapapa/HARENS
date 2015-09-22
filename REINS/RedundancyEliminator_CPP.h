@@ -8,8 +8,8 @@ private:
 	CircularHash circHash;
 
 	//Add a new chunk into cache, if hash value queue is full also delete the oldest chunk
-	void addNewChunk(unsigned long long hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate);
-	inline unsigned long long computeChunkHash(char* chunk, unsigned int chunkSize);
+	void addNewChunk(unsigned char* hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate);
+	inline void computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue);
 		
 public:
 	deque<unsigned int> chunking(char* package, unsigned int packageSize);

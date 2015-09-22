@@ -9,7 +9,7 @@ namespace CUDA_Pipeline_Namespace {
 	const int PAGABLE_BUFFER_NUM = 550;
 	const int FIXED_BUFFER_NUM = 3;
 	const int STREAM_NUM = 3;
-	const int FINGERPRINTING_THREAD_NUM = 6;
+	const int FINGERPRINTING_THREAD_NUM = 8;
 	const int CIRC_Q_POOL_SIZE = 256;	//Better be power of 2, it would make the module operation faster
 	//determin if one thread is end
 	bool read_file_end = false; 
@@ -56,7 +56,7 @@ namespace CUDA_Pipeline_Namespace {
 	array<bool, STREAM_NUM> chunking_result_obsolete;
 	//chunk hashing
 	array<thread, FINGERPRINTING_THREAD_NUM> segment_threads;
-	CircularQueuePool<tuple<unsigned long long, unsigned int>> chunk_hash_queue_pool(CIRC_Q_POOL_SIZE);
+	CircularQueuePool chunk_hash_queue_pool(CIRC_Q_POOL_SIZE);
 	//chunk matching 
 	array<thread, CIRC_Q_POOL_SIZE> chunk_match_threads;
 	vector<CircularHash> circ_hash_pool(CIRC_Q_POOL_SIZE, CircularHash(MAX_CHUNK_NUM / CIRC_Q_POOL_SIZE * 2));
@@ -478,7 +478,7 @@ namespace CUDA_Pipeline_Namespace {
 	}
 
 	void ChunkMatch(int hashPoolIdx) {
-		unsigned long long toBeDel;
+		unsigned char* toBeDel = nullptr;
 		while (true) {
 			if (chunk_hash_queue_pool.IsEmpty(hashPoolIdx)) {
 				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
@@ -493,10 +493,12 @@ namespace CUDA_Pipeline_Namespace {
 			
 			start_cm = clock();
 
-			tuple<unsigned long long, unsigned int> valLenPair = chunk_hash_queue_pool.Pop(hashPoolIdx);
+			tuple<unsigned char*, unsigned int> valLenPair = chunk_hash_queue_pool.Pop(hashPoolIdx);
 			if (circ_hash_pool[hashPoolIdx].FindAndAdd(get<0>(valLenPair), toBeDel))
 				duplication_size[hashPoolIdx] += get<1>(valLenPair);
-			//Do something with toBeDel
+			if (toBeDel != nullptr) {
+				//Remove chunk corresponding to toBeDel from storage
+			}
 
 			end_cm = clock();
 			time_cm += (end_cm - start_cm) * 1000 / CLOCKS_PER_SEC;

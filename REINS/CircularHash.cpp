@@ -7,20 +7,19 @@ CircularHash::CircularHash(unsigned int _size) : VirtualHash(_size), circularQue
 void CircularHash::SetupCircularHash(unsigned int _size) {
 	SetupVirtualHash(_size);
 	circularQueue.SetupCircularQueue(_size);
-	map = std::unordered_map<unsigned long long, unsigned int>(_size);
+	map = charPtMap(_size);
 }
 
 
 CircularHash::~CircularHash()
 {
-	map.clear();
 }
 
-unsigned long long CircularHash::Add(const unsigned long long hashValue, const bool isDuplicated) {
-	unsigned long long toBeDel = 0;
+unsigned char* CircularHash::Add(unsigned char* hashValue, const bool isDuplicated) {
+	unsigned char* toBeDel;
 	//Deal with the oldest hash value if the circular map is full
 	toBeDel = circularQueue.Add(hashValue);
-	if (toBeDel != NULL) {
+	if (toBeDel != nullptr) {
 		if (map[toBeDel] == 1) {
 			map.erase(toBeDel);
 		}
@@ -29,7 +28,10 @@ unsigned long long CircularHash::Add(const unsigned long long hashValue, const b
 		}
 	}
 	if (isDuplicated) {
-		map[hashValue] += 1;
+		//Use the newest char array as the key
+		int occurence = map[hashValue];
+		map.erase(hashValue);
+		map[hashValue] = occurence + 1;
 	}
 	else {
 		map[hashValue] = 1;
@@ -39,16 +41,16 @@ unsigned long long CircularHash::Add(const unsigned long long hashValue, const b
 }
 
 
-bool CircularHash::Find(const unsigned long long hashValue) {
+bool CircularHash::Find(unsigned char* hashValue) {
 	return map.find(hashValue) != map.end();
 }
 
-bool CircularHash::FindAndAdd(const unsigned long long& hashValue, unsigned long long& toBeDel) {
-	std::unordered_map<unsigned long long, unsigned int>::iterator it = map.find(hashValue);
+bool CircularHash::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
+	charPtMap::iterator it = map.find(hashValue);
 	bool isFound = it != map.end();
 	toBeDel = circularQueue.Add(hashValue);
-	if (toBeDel != NULL) {
-		std::unordered_map<unsigned long long, unsigned int>::iterator toBeDelIt = map.find(toBeDel);
+	if (toBeDel != nullptr) {
+		charPtMap::iterator toBeDelIt = map.find(toBeDel);
 		if (toBeDelIt->second == 1) {
 			map.erase(toBeDelIt, toBeDelIt);
 		}
@@ -57,7 +59,10 @@ bool CircularHash::FindAndAdd(const unsigned long long& hashValue, unsigned long
 		}
 	}
 	if (isFound) {
-		it->second += 1;
+		//Use the newest char array as the key
+		int occurence = it->second;
+		map.erase(it, it);
+		map[hashValue] = occurence + 1;
 	}
 	else {
 		//map[hashValue] = 1;

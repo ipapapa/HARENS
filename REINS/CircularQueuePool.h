@@ -6,11 +6,11 @@ using namespace std;
 We have 2 threads accessing an object of this class simultaneously
 one for push, the other for pop
 */
-template <class T>
 class CircularQueuePool
 {
 public:
-	T** queuePool;
+	unsigned char*** chunkHashQueuePool;
+	unsigned int **chunkLenQueuePool;
 	int poolSize;
 	int *front, *rear;	//rear point to the last used entry, there's an empty entry after rear
 	const unsigned int queueSize;
@@ -30,7 +30,8 @@ public:
 
 	void Initiate(int _poolSize) {
 		poolSize = _poolSize;
-		queuePool = new T*[poolSize];
+		chunkHashQueuePool = new unsigned char**[poolSize];
+		chunkLenQueuePool = new unsigned int*[poolSize];
 		front = new int[poolSize];
 		rear = new int[poolSize];
 		frontMutex = new mutex[poolSize];
@@ -42,7 +43,11 @@ public:
 		fullCond = new condition_variable[poolSize];
 
 		for (int i = 0; i < poolSize; ++i) {
-			queuePool[i] = new T[queueSize];
+			chunkHashQueuePool[i] = new unsigned char*[queueSize];
+			for (int j = 0; j < queueSize; ++j) {
+				chunkHashQueuePool[i][j] = new unsigned char[SHA_DIGEST_LENGTH];
+			}
+			chunkLenQueuePool[i] = new unsigned int[queueSize];
 			front[i] = 0;
 			rear[i] = queueSize - 1;
 			curQueueSize[i] = 0;
@@ -50,7 +55,7 @@ public:
 		//The full situation is front == (rear + 2) % size
 	}
 
-	void Push(T hashValue, int (*mod)(T, int)) {
+	void Push(unsigned char* hashValue, unsigned int chunkLen, int(*mod)(unsigned char*, int)) {
 		//Make sure that the queue is not full
 		int poolAnchor = mod(hashValue, poolSize);
 		unique_lock<mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
@@ -61,7 +66,8 @@ public:
 
 		//rearMutex[poolAnchor].lock();
 		rear[poolAnchor] = (rear[poolAnchor] + 1) % queueSize;
-		queuePool[poolAnchor][rear[poolAnchor]] = hashValue;
+		memcpy(chunkHashQueuePool[poolAnchor][rear[poolAnchor]], hashValue, SHA_DIGEST_LENGTH);
+		chunkLenQueuePool[poolAnchor][rear[poolAnchor]] = chunkLen;
 		//rearMutex[poolAnchor].unlock();
 
 		//sizeLock.lock();
@@ -72,7 +78,7 @@ public:
 		emptyCond[poolAnchor].notify_one();
 	}
 
-	T Pop(int poolAnchor) {
+	tuple<unsigned char*, unsigned int> Pop(int poolAnchor) {
 		//Make sure that the queue is not empty
 		unique_lock<mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
 		while (curQueueSize[poolAnchor] <= 0) {
@@ -81,7 +87,9 @@ public:
 		//sizeLock.unlock();
 
 		//frontMutex[poolAnchor].lock();
-		T ret = queuePool[poolAnchor][front[poolAnchor]];
+		tuple<unsigned char*, unsigned int> ret = make_tuple(
+			chunkHashQueuePool[poolAnchor][front[poolAnchor]],
+			chunkLenQueuePool[poolAnchor][front[poolAnchor]]);
 		front[poolAnchor] = (front[poolAnchor] + 1) % queueSize;
 		//frontMutex[poolAnchor].unlock();
 
@@ -102,9 +110,13 @@ public:
 
 	~CircularQueuePool() {
 		for (int i = 0; i < poolSize; ++i) {
-			delete[] queuePool[i];
+			for (int j = 0; j < queueSize; ++j)
+				delete[] chunkHashQueuePool[i][j];
+			delete[] chunkHashQueuePool[i];
+			delete[] chunkLenQueuePool[i];
 		}
-		delete[] queuePool;
+		delete[] chunkHashQueuePool;
+		delete[] chunkLenQueuePool;
 		delete[] front;
 		delete[] rear;
 		delete[] frontMutex;

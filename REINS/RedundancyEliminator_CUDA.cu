@@ -125,58 +125,59 @@ RedundancyEliminator_CUDA::~RedundancyEliminator_CUDA() {
 /*
 Add a new chunck into the file system, if the hash value queue is full, also delete the oldest chunk.
 */
-void RedundancyEliminator_CUDA::addNewChunk(unsigned long long hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate) {
-	unsigned long long to_be_del = circHash->Add(hashValue, isDuplicate);
+void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate) {
+	unsigned char* toBeDel = circHash->Add(hashValue, isDuplicate);
+	//Remove chunk corresponding to toBeDel from storage
 	/*fstream file(hashValue.c_str(), std::fstream::in | std::fstream::out);
 	file << chunk;
 	file.close();*/
 }
 
-void RedundancyEliminator_CUDA::ChunkHashing(unsigned int* indices, int indicesNum, char* package, 
-	char** chunkList, unsigned long long* chunkHashValueList, unsigned int* chunkLenList) {
-	unsigned int prevIdx = 0;
-	for (int i = 0; i < indicesNum; ++i) {
-		if (prevIdx == 0) {
-			prevIdx = indices[i];
-			continue;
-		}
-		chunkLenList[i - 1] = indices[i] - prevIdx;
-		chunkList[i - 1] = &(package[prevIdx]);
+//void RedundancyEliminator_CUDA::ChunkHashing(unsigned int* indices, int indicesNum, char* package, 
+//	char** chunkList, unsigned long long* chunkHashValueList, unsigned int* chunkLenList) {
+//	unsigned int prevIdx = 0;
+//	for (int i = 0; i < indicesNum; ++i) {
+//		if (prevIdx == 0) {
+//			prevIdx = indices[i];
+//			continue;
+//		}
+//		chunkLenList[i - 1] = indices[i] - prevIdx;
+//		chunkList[i - 1] = &(package[prevIdx]);
+//
+//		//Mind! never use sizeof(chunk) to check the chunk size
+//		chunkHashValueList[i - 1] = computeChunkHash(chunkList[i - 1], chunkLenList[i - 1]);
+//		prevIdx = indices[i];
+//	}
+//}
 
-		//Mind! never use sizeof(chunk) to check the chunk size
-		chunkHashValueList[i - 1] = computeChunkHash(chunkList[i - 1], chunkLenList[i - 1]);
-		prevIdx = indices[i];
-	}
-}
-
-unsigned int RedundancyEliminator_CUDA::ChunkMatching(deque<unsigned long long> &hashValues, deque<tuple<char*, unsigned int>> &chunks) {
-	unsigned int duplicationSize = 0;
-	bool isDuplicate;
-	deque<unsigned long long>::const_iterator hashValueIter = hashValues.begin();
-	deque<tuple<char*, unsigned int>>::const_iterator chunksIter = chunks.begin();
-	while (hashValueIter != hashValues.end()) {
-		if (circHash->Find(*hashValueIter)) {
-			duplicationSize += get<1>(*chunksIter);
-			isDuplicate = true;
-		}
-		else {
-			isDuplicate = false;
-		}
-		addNewChunk(*hashValueIter, get<0>(*chunksIter), get<1>(*chunksIter), isDuplicate);
-		++hashValueIter;
-		++chunksIter;
-	}
-	return duplicationSize;
-}
+//unsigned int RedundancyEliminator_CUDA::ChunkMatching(deque<unsigned long long> &hashValues, deque<tuple<char*, unsigned int>> &chunks) {
+//	unsigned int duplicationSize = 0;
+//	bool isDuplicate;
+//	deque<unsigned long long>::const_iterator hashValueIter = hashValues.begin();
+//	deque<tuple<char*, unsigned int>>::const_iterator chunksIter = chunks.begin();
+//	while (hashValueIter != hashValues.end()) {
+//		if (circHash->Find(*hashValueIter)) {
+//			duplicationSize += get<1>(*chunksIter);
+//			isDuplicate = true;
+//		}
+//		else {
+//			isDuplicate = false;
+//		}
+//		addNewChunk(*hashValueIter, get<0>(*chunksIter), get<1>(*chunksIter), isDuplicate);
+//		++hashValueIter;
+//		++chunksIter;
+//	}
+//	return duplicationSize;
+//}
 
 void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned int* indices, int indicesNum, char* package,
-	CircularQueuePool<tuple<unsigned long long, unsigned int>> &chunkHashQ) {
+	CircularQueuePool &chunkHashQ) {
 	//cout << "start\n";
 	//unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
 	char* chunk;
+	unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
 	unsigned int chunkLen;
-	unsigned long long chunkHashValue;
 	for (int i = 0; i < indicesNum; ++i) {
 		if (prevIdx == 0) {
 			prevIdx = indices[i];
@@ -188,8 +189,8 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned 
 			continue;
 
 		chunk = &(package[prevIdx]);
-		chunkHashValue = computeChunkHash(chunk, chunkLen);
-		chunkHashQ.Push(make_tuple(chunkHashValue, chunkLen), (*mod));
+		computeChunkHash(chunk, chunkLen, chunkHash);
+		chunkHashQ.Push(chunkHash, chunkLen, (*mod));
 
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];
@@ -197,26 +198,26 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned 
 	//cout << "end\n";
 }
 
-void RedundancyEliminator_CUDA::ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 
-	unsigned long long* chunkHashValueList, unsigned int* chunkLenList, mutex &chunkMutex) {
-	//unsigned int duplicationSize = 0;
-	unsigned int prevIdx = 0;
-	char* chunk;
-	for (int i = 0; i < indicesNum; ++i) {
-		if (prevIdx == 0) {
-			prevIdx = indices[i];
-			continue;
-		}
-		chunkLenList[i - 1] = indices[i] - prevIdx;
-		chunk = &(package[prevIdx]);
-
-		//Mind! never use sizeof(chunk) to check the chunk size
-		chunkMutex.lock();
-		chunkHashValueList[i - 1] = computeChunkHash(chunk, chunkLenList[i - 1]);
-		chunkMutex.unlock();
-		prevIdx = indices[i];
-	}
-}
+//void RedundancyEliminator_CUDA::ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 
+//	unsigned long long* chunkHashValueList, unsigned int* chunkLenList, mutex &chunkMutex) {
+//	//unsigned int duplicationSize = 0;
+//	unsigned int prevIdx = 0;
+//	char* chunk;
+//	for (int i = 0; i < indicesNum; ++i) {
+//		if (prevIdx == 0) {
+//			prevIdx = indices[i];
+//			continue;
+//		}
+//		chunkLenList[i - 1] = indices[i] - prevIdx;
+//		chunk = &(package[prevIdx]);
+//
+//		//Mind! never use sizeof(chunk) to check the chunk size
+//		chunkMutex.lock();
+//		chunkHashValueList[i - 1] = computeChunkHash(chunk, chunkLenList[i - 1]);
+//		chunkMutex.unlock();
+//		prevIdx = indices[i];
+//	}
+//}
 
 unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> indexQ, char* package) {
 	/*deque<unsigned char*> hashValues;
@@ -226,7 +227,6 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> index
 	unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
 	char* chunk;
-	unsigned long long chunkHash;
 	unsigned int chunkLen;
 	bool isDuplicate;
 	for (deque<unsigned int>::const_iterator iter = indexQ.begin(); iter != indexQ.end(); ++iter) {
@@ -238,7 +238,8 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> index
 		chunk = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		chunkHash = computeChunkHash(chunk, chunkLen);
+		unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		computeChunkHash(chunk, chunkLen, chunkHash);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
 			isDuplicate = true;
@@ -256,7 +257,6 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, uns
 	unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
 	char* chunk;
-	unsigned long long chunkHash;
 	unsigned int chunkLen;
 	bool isDuplicate;
 	for (int i = 0; i < idxArrLen; ++i) {
@@ -272,7 +272,8 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, uns
 		chunk = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		chunkHash = computeChunkHash(chunk, chunkLen);
+		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		computeChunkHash(chunk, chunkLen, chunkHash);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
 			isDuplicate = true;
@@ -395,13 +396,14 @@ unsigned int RedundancyEliminator_CUDA::eliminateRedundancy(char* package, unsig
 }
 
 /*
-Compute the hash value of chunk, should use sha256 to avoid collision
+Compute the hash value of chunk, should use sha1 to avoid collision
 */
-inline unsigned long long RedundancyEliminator_CUDA::computeChunkHash(char* chunk, unsigned int chunkSize) {
-	return hashFunc.Hash(chunk, chunkSize);
-	//SHA((unsigned char*)chunk, chunkSize, hashValue);
+inline void RedundancyEliminator_CUDA::computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
+	SHA1((unsigned char*)chunk, chunkSize, hashValue);
 }
 
-int mod(tuple<unsigned long long, unsigned int> tup, int divisor) {
-	return get<0>(tup) % divisor;
+int mod(unsigned char* hashValue, int divisor) {
+	unsigned int* hashValueInt = new unsigned int[1];
+	memcpy(hashValueInt, hashValue, sizeof(unsigned int));
+	return (int)(*hashValueInt % divisor);
 }

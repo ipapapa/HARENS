@@ -36,9 +36,9 @@ public:
 	void SetupVirtualHash(unsigned int _size);
 	~VirtualHash();
 
-	virtual unsigned long long Add(const unsigned long long hashValue, const bool isDuplicated) = 0;
+	virtual unsigned char* Add(unsigned char* hashValue, const bool isDuplicated) = 0;
 
-	virtual bool Find(const unsigned long long hashValue) = 0;
+	virtual bool Find(unsigned char* hashValue) = 0;
 
-	virtual bool FindAndAdd(const unsigned long long& hashValue, unsigned long long& toBeDel) = 0;
+	virtual bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) = 0;
 };

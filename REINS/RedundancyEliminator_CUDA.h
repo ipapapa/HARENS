@@ -21,22 +21,22 @@ private:
 	VirtualHash* circHash;
 
 	//Add a new chunk into cache, if hash value queue is full also delete the oldest chunk
-	void addNewChunk(unsigned long long hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate);
+	void addNewChunk(unsigned char* hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate);
 	/*Take chunk and chunk size as input, hashValue as output*/
-	inline unsigned long long computeChunkHash(char* chunk, unsigned int chunkSize);
+	inline void computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue);
 public:
 	unsigned long long *kernelTA, *kernelTB, *kernelTC, *kernelTD;
 	enum Type {MultiFingerprint, NonMultifingerprint};
 
 	//deque<unsigned int> chunking(char* kernelInput, unsigned int inputLen, unsigned long long *resultHost);
-	void ChunkHashing(unsigned int* indices, int indicesNum, char* package,
-		char** chunkList, unsigned long long* chunkHashValueList, unsigned int* chunkLenList);
-	unsigned int ChunkMatching(deque<unsigned long long> &hashValues, deque<tuple<char*, unsigned int>> &chunks);
+	//void ChunkHashing(unsigned int* indices, int indicesNum, char* package,
+	//	char** chunkList, unsigned long long* chunkHashValueList, unsigned int* chunkLenList);
+	//unsigned int ChunkMatching(deque<unsigned long long> &hashValues, deque<tuple<char*, unsigned int>> &chunks);
 	/*deque<tuple<unsigned char*, unsigned int>> is for simulation, deque<unsigned char*> for real case*/
-	void ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 
-		unsigned long long* chunkHashValueList, unsigned int* chunkLenList, mutex &chunkMutex);
+	//void ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 
+	//	unsigned long long* chunkHashValueList, unsigned int* chunkLenList, mutex &chunkMutex);
 	void ChunkHashingAscynWithCircularQueuePool(unsigned int* indices, int indicesNum, char* package,
-		CircularQueuePool<tuple<unsigned long long, unsigned int>> &chunkHashQ);
+		CircularQueuePool &chunkHashQ);
 	unsigned int fingerPrinting(deque<unsigned int> indexQ, char* package);
 	unsigned int fingerPrinting(unsigned int* idxArr, unsigned int idxArrLen, char* package);
 	void RabinHashAsync(char* inputKernel, char* inputHost, unsigned int inputLen, 
@@ -58,4 +58,4 @@ __device__ unsigned int GetUIntFromStr(const char* strs, const unsigned int idx)
 __device__ unsigned long long GetULongFromStr(const char* strs, const unsigned int idx);
 __device__ char GetChar(const char* subStr, const unsigned int idx);
 
-int mod(tuple<unsigned long long, unsigned int> tup, int divisor);
+int mod(unsigned char* hash, int divisor);

@@ -18,8 +18,9 @@ RedundancyEliminator_CPP::~RedundancyEliminator_CPP() {
 /*
 Add a new chunck into the file system, if the hash value queue is full, also delete the oldest chunk.
 */
-void RedundancyEliminator_CPP::addNewChunk(unsigned long long hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate) {
-	unsigned long long to_be_del = circHash.Add(hashValue, isDuplicate);
+void RedundancyEliminator_CPP::addNewChunk(unsigned char* hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate) {
+	unsigned char* toBeDel = circHash.Add(hashValue, isDuplicate);
+	//Remove chunk corresponding to toBeDel from storage
 	//fstream file(hashValue.c_str(), std::fstream::in|std::fstream::out);
 	////we are actually supposed to do something with chunkSize here
 	//file << chunk;
@@ -56,7 +57,8 @@ unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ
 			continue;
 
 		chunk = &(package[prevIdx]);
-		unsigned long long chunkHash = computeChunkHash(chunk, chunkLen);
+		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		computeChunkHash(chunk, chunkLen, chunkHash);
 		if (circHash.Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
 			isDuplicate = true;
@@ -86,9 +88,10 @@ unsigned int RedundancyEliminator_CPP::eliminateRedundancy(char* package, unsign
 Compute the hash value of chunk, should use sha3 to avoid collision,
 I'm using rabin hash here for convience
 */
-inline unsigned long long RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize) {
+inline void RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
 	/*UCHAR* hashValue = new UCHAR[SHA_DIGEST_LENGTH];
 	SHA((UCHAR*)chunk, chunkSize, hashValue);
 	return hashValue;*/
-	return hashFunc.Hash(chunk, chunkSize);
+	//return hashFunc.Hash(chunk, chunkSize);
+	SHA1((unsigned char*)chunk, chunkSize, hashValue);
 }
