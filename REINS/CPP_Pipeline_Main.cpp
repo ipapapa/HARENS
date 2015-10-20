@@ -69,7 +69,7 @@ namespace CPP_Pipeline_Namespace {
 		tChunking.join();
 		tFingerprinting.join();
 
-		cout << "Found " << total_duplication_size << " bytes of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
+		cout << "Found " << InterpretSize(total_duplication_size) << " of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
 
 		//delete everything that mallocated before
 		for (int i = 0; i < BUFFER_NUM; ++i)
@@ -102,7 +102,7 @@ namespace CPP_Pipeline_Namespace {
 
 			file_length = ifs.tellg();
 			ifs.seekg(0, ifs.beg);
-			cout << "File size: " << file_length / 1024 << " KB\n";
+			cout << "File size: " << InterpretSize(file_length) << endl;
 			buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
 			curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
 			ifs.read(buffer[bufferIdx], buffer_len[bufferIdx]);
@@ -171,7 +171,7 @@ namespace CPP_Pipeline_Namespace {
 				bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 			}
-			cout << "File size: " << file_length / 1024 << " KB\n";
+			cout << "File size: " << InterpretSize(file_length) << endl;
 		}
 		else
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);

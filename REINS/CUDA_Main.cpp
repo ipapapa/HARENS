@@ -79,7 +79,7 @@ namespace CUDA_Namespace {
 		printf("Chunking processing time: %f ms\n", time_cp);
 		printf("Chunk hashing time: %f ms\n", time_ch);
 		printf("Total time: %f ms\n", time);
-		printf("Found %d bytes of redundancy, which is %f percent of file\n", total_duplication_size, total_duplication_size * 100.0 / file_length);
+		printf("Found %s of redundancy, which is %f percent of file\n", InterpretSize(total_duplication_size), total_duplication_size * 100.0 / file_length);
 
 		//destruct chunking result proc
 		delete[] chunking_result;
@@ -108,7 +108,7 @@ namespace CUDA_Namespace {
 
 				file_length = ifs.tellg();
 				ifs.seekg(0, ifs.beg);
-				cout << "File size: " << file_length / 1024 << " KB\n";
+				cout << "File size: " << InterpretSize(file_length) << endl;
 				pagable_buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos);
 				curWindowNum = pagable_buffer_len - WINDOW_SIZE + 1;
 				ifs.read(pagable_buffer, pagable_buffer_len);
@@ -157,7 +157,7 @@ namespace CUDA_Namespace {
 				time_r += ((float)clock() - start_r) * 1000 / CLOCKS_PER_SEC;
 
 				if (pagable_buffer_len != MAX_BUFFER_LEN)
-					cout << "File size: " << file_length / 1024 << " KB\n";
+					cout << "File size: " << InterpretSize(file_length) << endl;
 				return pagable_buffer_len == MAX_BUFFER_LEN;
 			}
 			else

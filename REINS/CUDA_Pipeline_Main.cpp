@@ -6,7 +6,7 @@ namespace CUDA_Pipeline_Namespace {
 	//constants
 	const unsigned int MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
 	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
-	const int PAGABLE_BUFFER_NUM = 550;
+	const int PAGABLE_BUFFER_NUM = 1000;
 	const int FIXED_BUFFER_NUM = 3;
 	const int STREAM_NUM = 3;
 	const int FINGERPRINTING_THREAD_NUM = 8;
@@ -143,7 +143,7 @@ namespace CUDA_Pipeline_Namespace {
 		printf("Total time: %f ms\n", time);
 		for (int i = 0; i < CIRC_Q_POOL_SIZE; ++i)
 			total_duplication_size += duplication_size[i];
-		printf("Found %d bytes of redundancy, which is %f percent of file\n", total_duplication_size, total_duplication_size * 100.0 / file_length);
+		printf("Found %s of redundancy, which is %f percent of file\n", InterpretSize(total_duplication_size), total_duplication_size * 100.0 / file_length);
 
 		//destruct chunk hashing & matching
 		/*for (int i = 0; i < STREAM_NUM; ++i) {
@@ -186,14 +186,13 @@ namespace CUDA_Pipeline_Namespace {
 			}
 			file_length = ifs.tellg();
 			ifs.seekg(0, ifs.beg);
-			cout << "File size: " << file_length / 1024 << " KB\n";
+			cout << "File size: " << InterpretSize(file_length) << endl;
 			pagable_buffer_len[pagableBufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
 			curWindowNum = pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1;
 			ifs.read(pagable_buffer[pagableBufferIdx], pagable_buffer_len[pagableBufferIdx]);
 			curFilePos += curWindowNum;
 		}
 		else if (FILE_FORMAT == Pcap) {
-			++count;
 			fileReader.SetupPcapHandle(fileName);
 			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
 			pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
@@ -202,6 +201,7 @@ namespace CUDA_Pipeline_Namespace {
 		}
 		else
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+		++count;
 
 		memcpy(overlap, &pagable_buffer[pagableBufferIdx][pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 		pagable_buffer_obsolete[pagableBufferIdx] = false;
@@ -218,6 +218,7 @@ namespace CUDA_Pipeline_Namespace {
 				while (pagable_buffer_obsolete[pagableBufferIdx] == false) {
 					pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
 				}
+				++count;
 				start_r = clock();
 				pagable_buffer_len[pagableBufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
 				curWindowNum = pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1;
@@ -261,12 +262,12 @@ namespace CUDA_Pipeline_Namespace {
 				end_r = clock();
 				time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 			}
-			cout << "File size: " << file_length / 1024 << " KB\n";
-			cout << "Need " << count << " pagable buffers\n";
+			cout << "File size: " << InterpretSize(file_length) << endl;
 		}
 		else
 			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
 		unique_lock<mutex> readFileEndLock(read_file_end_mutex);
+		cout << "Need " << count << " pagable buffers\n";
 		read_file_end = true;
 		//In case the other threads stuck in waiting for condition variable
 		pagable_buffer_cond[pagableBufferIdx].notify_all();

@@ -54,7 +54,7 @@ namespace CPP_Namespace {
 			tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 		} while (keepReading);
 
-		cout << "Found " << total_duplication_size << " bytes of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
+		cout << "Found " << InterpretSize(total_duplication_size) << " of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
 
 		//delete everything that mallocated before
 		delete[] buffer;
@@ -82,7 +82,7 @@ namespace CPP_Namespace {
 
 				file_length = ifs.tellg();
 				ifs.seekg(0, ifs.beg);
-				cout << "File size: " << file_length / 1024 << " KB\n";
+				cout << "File Length: " << InterpretSize(file_length) << endl;
 				buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos);
 				curWindowNum = buffer_len - WINDOW_SIZE + 1;
 				ifs.read(buffer, buffer_len);
@@ -131,7 +131,7 @@ namespace CPP_Namespace {
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 
 				if (buffer_len != MAX_BUFFER_LEN)
-					cout << "File size: " << file_length / 1024 << " KB\n";
+					cout << "File size: " << InterpretSize(file_length) << endl;
 				return buffer_len == MAX_BUFFER_LEN;
 			}
 			else
