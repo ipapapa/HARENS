@@ -1,4 +1,4 @@
-#include "CUDA_Pipeline_Main.h"
+#include "CUDAPipelineExecution.h"
 using namespace std;
 
 namespace CUDA_Pipeline_Namespace {
@@ -19,7 +19,6 @@ namespace CUDA_Pipeline_Namespace {
 	bool chunk_hashing_end = false;
 	mutex read_file_end_mutex, chunking_kernel_end_mutex, chunking_proc_end_mutex, chunk_hashing_end_mutex;
 	//file
-	char* fileName;
 	ifstream ifs;
 	unsigned int file_length;
 	FixedSizedCharArray charArrayBuffer(MAX_BUFFER_LEN);
@@ -59,7 +58,7 @@ namespace CUDA_Pipeline_Namespace {
 	CircularQueuePool chunk_hash_queue_pool(CIRC_Q_POOL_SIZE);
 	//chunk matching 
 	array<thread, CIRC_Q_POOL_SIZE> chunk_match_threads;
-	vector<CircularHash> circ_hash_pool(CIRC_Q_POOL_SIZE, CircularHash(MAX_CHUNK_NUM / CIRC_Q_POOL_SIZE * 2));
+	vector<CircularHash> circ_hash_pool(CIRC_Q_POOL_SIZE, CircularHash(MAX_CHUNK_NUM / CIRC_Q_POOL_SIZE));
 	vector<unsigned int> duplication_size(CIRC_Q_POOL_SIZE, 0);
 	unsigned int total_duplication_size = 0;
 	//Time
@@ -67,16 +66,9 @@ namespace CUDA_Pipeline_Namespace {
 	double time = 0, time_r = 0, time_ck = 0, time_cp = 0, time_ch, time_cm;
 	int count = 0;
 	
-	int CUDA_Pipeline_Main(int argc, char* argv[]) {
-		cout << "\n======= CUDA Implementation With Pipeline and Single Machine MapReduce ======\n";
-		if (argc != 2) {
-			printf("Usage: %s <filename>\n", argv[0]);
-			system("pause");
-			return -1;
-		}
-
-		fileName = argv[1];
-
+	int CUDAPipelineExecute() {
+		IO::Print("\n======= CUDA Implementation With Pipeline and Single Machine MapReduce ======\n");
+		
 		re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::NonMultifingerprint);
 		//initialize pagable buffer
 		for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) {
@@ -112,7 +104,6 @@ namespace CUDA_Pipeline_Namespace {
 		//	}
 		//}
 
-
 		//Create threads
 		thread tReadFile(ReadFile);
 		tReadFile.join();
@@ -134,16 +125,18 @@ namespace CUDA_Pipeline_Namespace {
 
 		end = clock();
 		time = (end - start) * 1000 / CLOCKS_PER_SEC;
-		printf("Read file time: %f ms\n", time_r);
+		IO::Print("Read file time: %f ms\n", time_r);
 		//printf("Transfer time: %f ms\n", time_t);
-		printf("Chunking kernel time: %f ms\n", time_ck);
-		printf("Chunking processing time: %f ms\n", time_cp);
-		printf("Map (Chunk hashing) time: %f ms\n", time_ch);
-		printf("Reduce (Chunk matching) time %f ms\n", time_cm);
-		printf("Total time: %f ms\n", time);
+		IO::Print("Chunking kernel time: %f ms\n", time_ck);
+		IO::Print("Chunking processing time: %f ms\n", time_cp);
+		IO::Print("Map (Chunk hashing) time: %f ms\n", time_ch);
+		IO::Print("Reduce (Chunk matching) time %f ms\n", time_cm);
+		IO::Print("Total time: %f ms\n", time);
 		for (int i = 0; i < CIRC_Q_POOL_SIZE; ++i)
 			total_duplication_size += duplication_size[i];
-		printf("Found %s of redundancy, which is %f percent of file\n", InterpretSize(total_duplication_size), total_duplication_size * 100.0 / file_length);
+		IO::Print("Found %s of redundancy, which is %f percent of file\n"
+			, IO::InterpretSize(total_duplication_size)
+			, total_duplication_size * 100.0 / file_length);
 
 		//destruct chunk hashing & matching
 		/*for (int i = 0; i < STREAM_NUM; ++i) {
@@ -179,28 +172,29 @@ namespace CUDA_Pipeline_Namespace {
 		//Read the first part
 		unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
 		start_r = clock();
-		if (FILE_FORMAT == PlainText) {
-			ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
+		if (IO::FILE_FORMAT == PlainText) {
+			ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
 			if (!ifs.is_open()) {
-				cout << "Can not open file " << fileName << endl;
+				printf("Can not open file %s\n", IO::input_file_name);
+				return;
 			}
 			file_length = ifs.tellg();
 			ifs.seekg(0, ifs.beg);
-			cout << "File size: " << InterpretSize(file_length) << endl;
+			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 			pagable_buffer_len[pagableBufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
 			curWindowNum = pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1;
 			ifs.read(pagable_buffer[pagableBufferIdx], pagable_buffer_len[pagableBufferIdx]);
 			curFilePos += curWindowNum;
 		}
-		else if (FILE_FORMAT == Pcap) {
-			fileReader.SetupPcapHandle(fileName);
+		else if (IO::FILE_FORMAT == Pcap) {
+			fileReader.SetupPcapHandle(IO::input_file_name);
 			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
 			pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
 			memcpy(pagable_buffer[pagableBufferIdx], charArrayBuffer.GetArr(), pagable_buffer_len[pagableBufferIdx]);
 			file_length += pagable_buffer_len[pagableBufferIdx];
 		}
 		else
-			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+			fprintf(stderr, "Unknown file format\n");
 		++count;
 
 		memcpy(overlap, &pagable_buffer[pagableBufferIdx][pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
@@ -211,7 +205,7 @@ namespace CUDA_Pipeline_Namespace {
 		end_r = clock();
 		time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 		//Read the rest
-		if (FILE_FORMAT == PlainText) {
+		if (IO::FILE_FORMAT == PlainText) {
 			//curWindowNum will be less than MAX_BUFFER_LEN - WINDOW_SIZE + 1 when reading the last part
 			while (curWindowNum == MAX_WINDOW_NUM) {
 				unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
@@ -235,7 +229,7 @@ namespace CUDA_Pipeline_Namespace {
 			}
 			ifs.close();
 		}
-		else if (FILE_FORMAT == Pcap) {
+		else if (IO::FILE_FORMAT == Pcap) {
 			while (true) {
 				unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
 				while (pagable_buffer_obsolete[pagableBufferIdx] == false) {
@@ -262,12 +256,12 @@ namespace CUDA_Pipeline_Namespace {
 				end_r = clock();
 				time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 			}
-			cout << "File size: " << InterpretSize(file_length) << endl;
+			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 		}
 		else
-			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+			fprintf(stderr, "Unknown file format\n");
 		unique_lock<mutex> readFileEndLock(read_file_end_mutex);
-		cout << "Need " << count << " pagable buffers\n";
+		IO::Print("Need %d pagable buffers\n", count);
 		read_file_end = true;
 		//In case the other threads stuck in waiting for condition variable
 		pagable_buffer_cond[pagableBufferIdx].notify_all();

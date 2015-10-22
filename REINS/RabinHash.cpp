@@ -52,10 +52,10 @@ RabinHash::RabinHash() {
 void RabinHash::print() {
     for(int i = 0; i < 256; i++) {
         for(int j = 0; j < 2; j++) {
-			cout << "Values : " << TA[i * TABLE_COL_NUM + j] << "\t" 
-				<< TB[i * TABLE_COL_NUM + j] << "\t" 
-				<< TC[i * TABLE_COL_NUM + j] << "\t" 
-				<< TD[i * TABLE_COL_NUM + j] << endl;
+			printf("Values : %d\t%d\t%d\t%d\n", TA[i * TABLE_COL_NUM + j]
+				, TB[i * TABLE_COL_NUM + j]
+				, TC[i * TABLE_COL_NUM + j] 
+				, TD[i * TABLE_COL_NUM + j]);
         }
     }
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "IO.h"
 #include "RabinHash.h"
 #include "RedundancyEliminator_CPP.h"
 #include "PcapReader.h"
@@ -13,5 +14,5 @@ namespace CPP_Pipeline_Namespace {
 	void Chunking();
 	void Fingerprinting();
 
-	int CPP_Pipeline_Main(int argc, char* argv[]);
+	int CPPPipelineExecute();
 }

@@ -1,4 +1,4 @@
-#include "CPP_Main.h"
+#include "CPPExecution.h"
 using namespace std;
 
 namespace CPP_Namespace {
@@ -9,7 +9,6 @@ namespace CPP_Namespace {
 	unsigned int file_length = 0;
 	RedundancyEliminator_CPP re;
 	ifstream ifs;
-	char* fileName;
 	PcapReader fileReader;
 	unsigned int cur_file_pos = 0;
 
@@ -27,18 +26,11 @@ namespace CPP_Namespace {
 	clock_t start_read, start_chunk, start_fin;
 	float tot_read = 0, tot_chunk = 0, tot_fin = 0, tot_time = 0;
 
-	int CPP_Main(int argc, char* argv[])
+	int CPPExecute()
 	{
 		clock_t start, end;
-		cout << "\n============================ C++ Implementation =============================\n";
-		if (argc != 2) {
-			cout << "You used " << argc << " variables\n";
-			cout << "Usage: " << argv[0] << " <filename>\n";
-			system("pause");
-			return -1;
-		}
 
-		fileName = argv[1];
+		IO::Print("\n============================ C++ Implementation =============================\n");
 
 		re.SetupRedundancyEliminator_CPP();
 
@@ -54,16 +46,18 @@ namespace CPP_Namespace {
 			tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 		} while (keepReading);
 
-		cout << "Found " << InterpretSize(total_duplication_size) << " of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
+		IO::Print("Found %s of redundency, which is %f % of file\n", 
+			IO::InterpretSize(total_duplication_size)
+			, (float)total_duplication_size / file_length * 100);
 
 		//delete everything that mallocated before
 		delete[] buffer;
 
-		cout << "Reading time: " << tot_read << " ms\n";
-		cout << "Chunking time: " << tot_chunk << " ms\n";
-		cout << "Fingerprinting time: " << tot_fin << " ms\n";
-		cout << "Total time: " << tot_time << " ms\n";
-		cout << "=============================================================================\n";
+		IO::Print("Reading time: %f ms\n", tot_read);
+		IO::Print("Chunking time: %f ms\n", tot_chunk);
+		IO::Print("Fingerprinting time: %f ms\n", tot_fin);
+		IO::Print("Total time: %f ms\n", tot_time);
+		IO::Print("=============================================================================\n");
 
 		return 0;
 	}
@@ -74,15 +68,16 @@ namespace CPP_Namespace {
 		if (readFirstTime) {
 			readFirstTime = false;
 			start_read = clock();
-			if (FILE_FORMAT == PlainText) {
-				ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
+			if (IO::FILE_FORMAT == PlainText) {
+				ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
 				if (!ifs.is_open()) {
-					cout << "Can not open file " << fileName << endl;
+					printf("Can not open file %s\n", IO::input_file_name);
+					return false;
 				}
 
 				file_length = ifs.tellg();
 				ifs.seekg(0, ifs.beg);
-				cout << "File Length: " << InterpretSize(file_length) << endl;
+				IO::Print("File Length: %s \n", IO::InterpretSize(file_length));
 				buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos);
 				curWindowNum = buffer_len - WINDOW_SIZE + 1;
 				ifs.read(buffer, buffer_len);
@@ -90,8 +85,8 @@ namespace CPP_Namespace {
 
 				return buffer_len == MAX_BUFFER_LEN;
 			}
-			else if (FILE_FORMAT == Pcap) {
-				fileReader.SetupPcapHandle(fileName);
+			else if (IO::FILE_FORMAT == Pcap) {
+				fileReader.SetupPcapHandle(IO::input_file_name);
 				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
 				buffer_len = charArrayBuffer.GetLen();
 				memcpy(buffer, charArrayBuffer.GetArr(), buffer_len);
@@ -100,13 +95,13 @@ namespace CPP_Namespace {
 				return buffer_len == MAX_BUFFER_LEN;
 			}
 			else
-				fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+				fprintf(stderr, "Unknown file format\n");
 
 			memcpy(overlap, &buffer[buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 		}
 		else { //Read the rest
-			if (FILE_FORMAT == PlainText) {
+			if (IO::FILE_FORMAT == PlainText) {
 				start_read = clock();
 				buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos + WINDOW_SIZE - 1);
 				curWindowNum = buffer_len - WINDOW_SIZE + 1;
@@ -120,7 +115,7 @@ namespace CPP_Namespace {
 					ifs.close();
 				return buffer_len == MAX_BUFFER_LEN;
 			}
-			else if (FILE_FORMAT == Pcap) {
+			else if (IO::FILE_FORMAT == Pcap) {
 				start_read = clock();
 				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 				memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
@@ -131,11 +126,11 @@ namespace CPP_Namespace {
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 
 				if (buffer_len != MAX_BUFFER_LEN)
-					cout << "File size: " << InterpretSize(file_length) << endl;
+					IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 				return buffer_len == MAX_BUFFER_LEN;
 			}
 			else
-				fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+				fprintf(stderr, "Unknown file format\n");
 		}
 	}
 

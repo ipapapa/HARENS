@@ -1,9 +1,9 @@
-#include "CPP_Pipeline_Main.h"
+#include "CPPPipelineExecution.h"
 using namespace std;
 
 namespace CPP_Pipeline_Namespace {
 
-	const int BUFFER_NUM = 550;
+	const int BUFFER_NUM = 1000;
 	const int CHUNKING_RESULT_NUM = 2;
 	const unsigned int MAX_BUFFER_LEN = 4096 * 512 + WINDOW_SIZE - 1;	//Just to keep it the same as cuda
 	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
@@ -11,7 +11,6 @@ namespace CPP_Pipeline_Namespace {
 	unsigned int file_length = 0;
 	RedundancyEliminator_CPP re;
 	ifstream ifs;
-	char* fileName;
 	//syncronize
 	array<mutex, BUFFER_NUM> buffer_mutex;							//lock for buffer
 	array<condition_variable, BUFFER_NUM> buffer_cond;
@@ -35,17 +34,9 @@ namespace CPP_Pipeline_Namespace {
 	clock_t start_read, start_chunk, start_fin;
 	float tot_read = 0, tot_chunk = 0, tot_fin = 0;
 
-	int CPP_Pipeline_Main(int argc, char* argv[])
+	int CPPPipelineExecute()
 	{
-		cout << "\n================== Pipeline Version of C++ Implementation ===================\n";
-		if (argc != 2) {
-			cout << "You used " << argc << " variables\n";
-			cout << "Usage: " << argv[0] << " <filename>\n";
-			system("pause");
-			return -1;
-		}
-
-		fileName = argv[1];
+		IO::Print("\n================== Pipeline Version of C++ Implementation ===================\n");
 
 		re.SetupRedundancyEliminator_CPP();
 
@@ -69,7 +60,9 @@ namespace CPP_Pipeline_Namespace {
 		tChunking.join();
 		tFingerprinting.join();
 
-		cout << "Found " << InterpretSize(total_duplication_size) << " of redundency, which is " << (float)total_duplication_size / file_length * 100 << " percent of file\n";
+		IO::Print("Found %s of redundency, which is %f % of file\n"
+			, IO::InterpretSize(total_duplication_size)
+			, (float)total_duplication_size / file_length * 100);
 
 		//delete everything that mallocated before
 		for (int i = 0; i < BUFFER_NUM; ++i)
@@ -77,11 +70,11 @@ namespace CPP_Pipeline_Namespace {
 		delete[] buffer;
 
 		clock_t end = clock();
-		cout << "Reading time: " << tot_read << " ms\n";
-		cout << "Chunking time: " << tot_chunk << " ms\n";
-		cout << "Fingerprinting time: " << tot_fin << " ms\n";
-		cout << "Total time: " << ((float)end - start) * 1000 / CLOCKS_PER_SEC << " ms\n";
-		cout << "=============================================================================\n";
+		IO::Print("Reading time: %f ms\n", tot_read);
+		IO::Print("Chunking time: %f ms\n", tot_chunk);
+		IO::Print("Fingerprinting time: %f ms\n", tot_fin);
+		IO::Print("Total time: %f ms\n", ((float)end - start) * 1000 / CLOCKS_PER_SEC);
+		IO::Print("=============================================================================\n");
 
 		return 0;
 	}
@@ -94,29 +87,30 @@ namespace CPP_Pipeline_Namespace {
 		//Read the first part
 		unique_lock<mutex> readFileInitLock(buffer_mutex[bufferIdx]);
 		start_read = clock();
-		if (FILE_FORMAT == PlainText) {
-			ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
+		if (IO::FILE_FORMAT == PlainText) {
+			ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
 			if (!ifs.is_open()) {
-				cout << "Can not open file " << fileName << endl;
+				printf("Can not open file %s\n", IO::input_file_name);
+				return;
 			}
 
 			file_length = ifs.tellg();
 			ifs.seekg(0, ifs.beg);
-			cout << "File size: " << InterpretSize(file_length) << endl;
+			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 			buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
 			curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
 			ifs.read(buffer[bufferIdx], buffer_len[bufferIdx]);
 			curFilePos += curWindowNum;
 		}
-		else if (FILE_FORMAT == Pcap) {
-			fileReader.SetupPcapHandle(fileName);
+		else if (IO::FILE_FORMAT == Pcap) {
+			fileReader.SetupPcapHandle(IO::input_file_name);
 			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
 			buffer_len[bufferIdx] = charArrayBuffer.GetLen();
 			memcpy(buffer[bufferIdx], charArrayBuffer.GetArr(), buffer_len[bufferIdx]);
 			file_length += buffer_len[bufferIdx];
 		}
 		else
-			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+			fprintf(stderr, "Unknown file format\n");
 		
 		memcpy(overlap, &buffer[bufferIdx][buffer_len[bufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 		buffer_obsolete[bufferIdx] = false;
@@ -125,7 +119,7 @@ namespace CPP_Pipeline_Namespace {
 		bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
 		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 		//Read the rest
-		if (FILE_FORMAT == PlainText) {
+		if (IO::FILE_FORMAT == PlainText) {
 			while (curWindowNum == MAX_WINDOW_NUM) {
 				unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
 				while (buffer_obsolete[bufferIdx] == false) {
@@ -146,7 +140,7 @@ namespace CPP_Pipeline_Namespace {
 			}
 			ifs.close();
 		}
-		else if (FILE_FORMAT == Pcap) {
+		else if (IO::FILE_FORMAT == Pcap) {
 			while (true) {
 				unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
 				while (buffer_obsolete[bufferIdx] == false) {
@@ -171,10 +165,10 @@ namespace CPP_Pipeline_Namespace {
 				bufferIdx = (bufferIdx + 1) % BUFFER_NUM;
 				tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 			}
-			cout << "File size: " << InterpretSize(file_length) << endl;
+			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 		}
 		else
-			fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+			fprintf(stderr, "Unknown file format\n");
 		unique_lock<mutex> readFileEndLock(read_file_end_mutex);
 		read_file_end = true;
 		//In case the other threads stuck in waiting for condition variable

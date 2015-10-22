@@ -15,18 +15,6 @@
     <ClCompile Include="CircularHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
-    <ClCompile Include="CPP_Main.cpp">
-      <Filter>CPP Implementation</Filter>
-    </ClCompile>
-    <ClCompile Include="CPP_Pipeline_Main.cpp">
-      <Filter>CPP Implementation</Filter>
-    </ClCompile>
-    <ClCompile Include="CUDA_Main.cpp">
-      <Filter>CUDA Implementation</Filter>
-    </ClCompile>
-    <ClCompile Include="CUDA_Pipeline_Main.cpp">
-      <Filter>CUDA Implementation</Filter>
-    </ClCompile>
     <ClCompile Include="RabinHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
@@ -49,22 +37,25 @@
     <ClCompile Include="CircularHashPool.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
+    <ClCompile Include="CPPExecution.cpp">
+      <Filter>CPP Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="CPPPipelineExecution.cpp">
+      <Filter>CPP Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="CUDAExecution.cpp">
+      <Filter>CUDA Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="CUDAPipelineExecution.cpp">
+      <Filter>CUDA Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="IO.cpp">
+      <Filter>Basic Functions</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CircularHash.h">
       <Filter>Basic Functions</Filter>
-    </ClInclude>
-    <ClInclude Include="CPP_Main.h">
-      <Filter>CPP Implementation</Filter>
-    </ClInclude>
-    <ClInclude Include="CPP_Pipeline_Main.h">
-      <Filter>CPP Implementation</Filter>
-    </ClInclude>
-    <ClInclude Include="CUDA_Main.h">
-      <Filter>CUDA Implementation</Filter>
-    </ClInclude>
-    <ClInclude Include="CUDA_Pipeline_Main.h">
-      <Filter>CUDA Implementation</Filter>
     </ClInclude>
     <ClInclude Include="Definition.h">
       <Filter>Basic Functions</Filter>
@@ -100,6 +91,21 @@
       <Filter>Basic Functions</Filter>
     </ClInclude>
     <ClInclude Include="CircularHashPool.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="CPPExecution.h">
+      <Filter>CPP Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="CPPPipelineExecution.h">
+      <Filter>CPP Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="CUDAExecution.h">
+      <Filter>CUDA Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="CUDAPipelineExecution.h">
+      <Filter>CUDA Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="IO.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
   </ItemGroup>

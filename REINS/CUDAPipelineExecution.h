@@ -1,7 +1,7 @@
 #pragma once
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
-#include <iostream>
+#include "IO.h"
 #include "CircularQueuePool.h"
 #include "RabinHash.h"
 #include "PcapReader.h"
@@ -19,5 +19,5 @@ namespace CUDA_Pipeline_Namespace {
 
 	void ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum);
 
-	int CUDA_Pipeline_Main(int argc, char* argv[]);
+	int CUDAPipelineExecute();
 }

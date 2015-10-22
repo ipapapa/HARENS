@@ -1,4 +1,4 @@
-#include "CUDA_Main.h" 
+#include "CUDAExecution.h" 
 using namespace std;
 
 namespace CUDA_Namespace {
@@ -7,7 +7,6 @@ namespace CUDA_Namespace {
 	const unsigned int MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
 	const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 	//file
-	char* fileName;
 	ifstream ifs;
 	PcapReader fileReader;
 	bool readFirstTime = true;
@@ -39,15 +38,8 @@ namespace CUDA_Namespace {
 	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;
 	double time = 0, time_r = 0, time_t = 0, time_ck = 0, time_cp = 0, time_ch, time_cm;
 
-	int CUDA_Main(int argc, char* argv[]) {
-		cout << "\n============================ CUDA Implementation ============================\n";
-		if (argc != 2) {
-			printf("Usage: %s <filename>\n", argv[0]);
-			system("pause");
-			return -1;
-		}
-
-		fileName = argv[1];
+	int CUDAExecute() {
+		IO::Print("\n============================ CUDA Implementation ============================\n");
 
 		re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::NonMultifingerprint);
 		//initialize pagable buffer
@@ -73,13 +65,15 @@ namespace CUDA_Namespace {
 			time += (end - start) * 1000 / CLOCKS_PER_SEC;
 		} while (keepReading);
 
-		printf("Read file time: %f ms\n", time_r);
+		IO::Print("Read file time: %f ms\n", time_r);
 		//printf("Transfer time: %f ms\n", time_t);
-		printf("Chunking kernel time: %f ms\n", time_ck);
-		printf("Chunking processing time: %f ms\n", time_cp);
-		printf("Chunk hashing time: %f ms\n", time_ch);
-		printf("Total time: %f ms\n", time);
-		printf("Found %s of redundancy, which is %f percent of file\n", InterpretSize(total_duplication_size), total_duplication_size * 100.0 / file_length);
+		IO::Print("Chunking kernel time: %f ms\n", time_ck);
+		IO::Print("Chunking processing time: %f ms\n", time_cp);
+		IO::Print("Chunk hashing time: %f ms\n", time_ch);
+		IO::Print("Total time: %f ms\n", time);
+		IO::Print("Found %s of redundancy, which is %f percent of file\n"
+			, IO::InterpretSize(total_duplication_size)
+			, total_duplication_size * 100.0 / file_length);
 
 		//destruct chunking result proc
 		delete[] chunking_result;
@@ -100,15 +94,16 @@ namespace CUDA_Namespace {
 		if (readFirstTime) {
 			readFirstTime = false;
 			start_r = clock();
-			if (FILE_FORMAT == PlainText) {
-				ifs = ifstream(fileName, ios::in | ios::binary | ios::ate);
+			if (IO::FILE_FORMAT == PlainText) {
+				ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
 				if (!ifs.is_open()) {
-					cout << "Can not open file " << fileName << endl;
+					printf("Can not open file %s\n", IO::input_file_name);
+					return false;
 				}
 
 				file_length = ifs.tellg();
 				ifs.seekg(0, ifs.beg);
-				cout << "File size: " << InterpretSize(file_length) << endl;
+				IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 				pagable_buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos);
 				curWindowNum = pagable_buffer_len - WINDOW_SIZE + 1;
 				ifs.read(pagable_buffer, pagable_buffer_len);
@@ -116,8 +111,8 @@ namespace CUDA_Namespace {
 
 				return pagable_buffer_len == MAX_BUFFER_LEN;
 			}
-			else if (FILE_FORMAT == Pcap) {
-				fileReader.SetupPcapHandle(fileName);
+			else if (IO::FILE_FORMAT == Pcap) {
+				fileReader.SetupPcapHandle(IO::input_file_name);
 				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
 				pagable_buffer_len = charArrayBuffer.GetLen();
 				memcpy(pagable_buffer, charArrayBuffer.GetArr(), pagable_buffer_len);
@@ -126,13 +121,13 @@ namespace CUDA_Namespace {
 				return pagable_buffer_len == MAX_BUFFER_LEN;
 			}
 			else
-				fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+				fprintf(stderr, "Unknown file format\n");
 
 			memcpy(overlap, &pagable_buffer[pagable_buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 			time_r += ((float)clock() - start_r) * 1000 / CLOCKS_PER_SEC;
 		}
 		else { //Read the rest
-			if (FILE_FORMAT == PlainText) {
+			if (IO::FILE_FORMAT == PlainText) {
 				start_r = clock();
 				pagable_buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos + WINDOW_SIZE - 1);
 				curWindowNum = pagable_buffer_len - WINDOW_SIZE + 1;
@@ -146,7 +141,7 @@ namespace CUDA_Namespace {
 					ifs.close();
 				return pagable_buffer_len == MAX_BUFFER_LEN;
 			}
-			else if (FILE_FORMAT == Pcap) {
+			else if (IO::FILE_FORMAT == Pcap) {
 				start_r = clock();
 				fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 				memcpy(pagable_buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
@@ -157,11 +152,11 @@ namespace CUDA_Namespace {
 				time_r += ((float)clock() - start_r) * 1000 / CLOCKS_PER_SEC;
 
 				if (pagable_buffer_len != MAX_BUFFER_LEN)
-					cout << "File size: " << InterpretSize(file_length) << endl;
+					IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 				return pagable_buffer_len == MAX_BUFFER_LEN;
 			}
 			else
-				fprintf(stderr, "Unknown file format %s\n", FILE_FORMAT_TEXT[FILE_FORMAT]);
+				fprintf(stderr, "Unknown file format\n");
 		}
 	}
 
