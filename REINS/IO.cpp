@@ -17,7 +17,7 @@ void IO::Print(const char* format, ...) {
 	}
 	va_end(args);
 }
-
+ 
 std::string IO::InterpretSize(int file_len) {
 	for (int i = 0; i < 5; ++i) {
 		if (file_len < 1000) {
