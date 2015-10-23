@@ -403,7 +403,7 @@ inline void RedundancyEliminator_CUDA::computeChunkHash(char* chunk, unsigned in
 }
 
 int mod(unsigned char* hashValue, int divisor) {
-	unsigned int* hashValueInt = new unsigned int[1];
-	memcpy(hashValueInt, hashValue, sizeof(unsigned int));
-	return (int)(*hashValueInt % divisor);
+	unsigned int hashValueInt;
+	memcpy(&hashValueInt, hashValue, sizeof(unsigned int));
+	return (int)(hashValueInt % divisor);
 }

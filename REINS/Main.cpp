@@ -4,7 +4,7 @@
 #include "Harens.h"
 
 enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_COMPARE, ALL };
-Method method = ALL;
+Method method = CUDA_Pipeline;
 
 void PrintUsage();
 void Execute(Method method, int mapperNum, int reducerNum);
@@ -111,7 +111,7 @@ void PrintUsage() {
 -o:\toutput to console/file\n\
 \te.g. -o console (default) or -o \"file name\"\n\
 -h:\thelp\n\
-	");
+e.g. REINS.exe -f inputfile.txt -a cuda_pipe -m 8 -r 256\n");
 }
 
 void Execute(Method method, int mapperNum, int reducerNum) {

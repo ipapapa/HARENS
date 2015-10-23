@@ -27,7 +27,7 @@ int	NaiveCpp::Execute()
 		tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 	} while (keepReading);
 
-	IO::Print("Found %s of redundency, which is %f \% of file\n", 
+	IO::Print("Found %s of redundency, which is %f %% of file\n", 
 		IO::InterpretSize(total_duplication_size)
 		, (float)total_duplication_size / file_length * 100);
 

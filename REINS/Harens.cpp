@@ -115,7 +115,7 @@ int Harens::Execute() {
 	IO::Print("Total time: %f ms\n", time);
 	for (int i = 0; i < reducerNum; ++i)
 		total_duplication_size += duplication_size[i];
-	IO::Print("Found %s of redundancy, which is %f \% of file\n"
+	IO::Print("Found %s of redundancy, which is %f %% of file\n"
 		, IO::InterpretSize(total_duplication_size)
 		, total_duplication_size * 100.0 / file_length);
 
