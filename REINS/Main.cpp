@@ -1,7 +1,7 @@
-#include "CPPExecution.h"
-#include "CPPPipelineExecution.h"
-#include "CUDAExecution.h"
-#include "CUDAPipelineExecution.h"
+#include "NaiveCpp.h"
+#include "CppPipeline.h"
+#include "CudaAcceleratedAlg.h"
+#include "Harens.h"
 
 enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_COMPARE, ALL };
 Method method = ALL;

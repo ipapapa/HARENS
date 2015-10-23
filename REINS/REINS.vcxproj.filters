@@ -46,10 +46,10 @@
     <ClCompile Include="CppPipeline.cpp">
       <Filter>CPP Implementation</Filter>
     </ClCompile>
-    <ClCompile Include="CudaAccleratedAlg.cpp">
+    <ClCompile Include="Harens.cpp">
       <Filter>CUDA Implementation</Filter>
     </ClCompile>
-    <ClCompile Include="Harens.cpp">
+    <ClCompile Include="CudaAcceleratedAlg.cpp">
       <Filter>CUDA Implementation</Filter>
     </ClCompile>
   </ItemGroup>
@@ -102,10 +102,10 @@
     <ClInclude Include="CppPipeline.h">
       <Filter>CPP Implementation</Filter>
     </ClInclude>
-    <ClInclude Include="CudaAccleratedAlg.h">
+    <ClInclude Include="Harens.h">
       <Filter>CUDA Implementation</Filter>
     </ClInclude>
-    <ClInclude Include="Harens.h">
+    <ClInclude Include="CudaAcceleratedAlg.h">
       <Filter>CUDA Implementation</Filter>
     </ClInclude>
   </ItemGroup>

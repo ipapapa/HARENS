@@ -24,7 +24,7 @@
     <ClCompile Include="FixedSizedCharArray.cpp" />
     <ClCompile Include="NaiveCpp.cpp" />
     <ClCompile Include="CppPipeline.cpp" />
-    <ClCompile Include="CudaAccleratedAlg.cpp" />
+    <ClCompile Include="CudaAcceleratedAlg.cpp" />
     <ClCompile Include="Harens.cpp" />
     <ClCompile Include="IO.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -45,7 +45,7 @@
     <ClInclude Include="SelfMantainedCircularQueue.h" />
     <ClInclude Include="NaiveCpp.h" />
     <ClInclude Include="CppPipeline.h" />
-    <ClInclude Include="CudaAccleratedAlg.h" />
+    <ClInclude Include="CudaAcceleratedAlg.h" />
     <ClInclude Include="Harens.h" />
     <ClInclude Include="Definition.h" />
     <ClInclude Include="RabinHash.h" />

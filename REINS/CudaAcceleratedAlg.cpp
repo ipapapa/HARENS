@@ -1,4 +1,4 @@
-#include "CudaAccleratedAlg.h" 
+#include "CudaAcceleratedAlg.h" 
 using namespace std;
 
 CudaAccleratedAlg::CudaAccleratedAlg() 
