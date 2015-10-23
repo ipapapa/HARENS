@@ -7,14 +7,6 @@
 #include "CircularHashPool.h"
 #include "Definition.h"
 
-//The maximum block number in the server GPU
-const int BLOCK_NUM = 4096;
-//The maximum thread nubmer per block in the server GPU
-const int THREAD_PER_BLOCK = 512;
-//Mention! this is just the number of windows for each thread
-//const int NUM_OF_WINDOWS_PER_THREAD = 4;
-const unsigned int MAX_KERNEL_INPUT_LEN = BLOCK_NUM * THREAD_PER_BLOCK + WINDOW_SIZE - 1;
-
 class RedundancyEliminator_CUDA {
 private:
 	RabinHash hashFunc;

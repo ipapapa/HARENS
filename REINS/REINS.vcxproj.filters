@@ -37,20 +37,20 @@
     <ClCompile Include="CircularHashPool.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
-    <ClCompile Include="CPPExecution.cpp">
-      <Filter>CPP Implementation</Filter>
-    </ClCompile>
-    <ClCompile Include="CPPPipelineExecution.cpp">
-      <Filter>CPP Implementation</Filter>
-    </ClCompile>
-    <ClCompile Include="CUDAExecution.cpp">
-      <Filter>CUDA Implementation</Filter>
-    </ClCompile>
-    <ClCompile Include="CUDAPipelineExecution.cpp">
-      <Filter>CUDA Implementation</Filter>
-    </ClCompile>
     <ClCompile Include="IO.cpp">
       <Filter>Basic Functions</Filter>
+    </ClCompile>
+    <ClCompile Include="NaiveCpp.cpp">
+      <Filter>CPP Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="CppPipeline.cpp">
+      <Filter>CPP Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="CudaAccleratedAlg.cpp">
+      <Filter>CUDA Implementation</Filter>
+    </ClCompile>
+    <ClCompile Include="Harens.cpp">
+      <Filter>CUDA Implementation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -93,20 +93,20 @@
     <ClInclude Include="CircularHashPool.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
-    <ClInclude Include="CPPExecution.h">
-      <Filter>CPP Implementation</Filter>
-    </ClInclude>
-    <ClInclude Include="CPPPipelineExecution.h">
-      <Filter>CPP Implementation</Filter>
-    </ClInclude>
-    <ClInclude Include="CUDAExecution.h">
-      <Filter>CUDA Implementation</Filter>
-    </ClInclude>
-    <ClInclude Include="CUDAPipelineExecution.h">
-      <Filter>CUDA Implementation</Filter>
-    </ClInclude>
     <ClInclude Include="IO.h">
       <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="NaiveCpp.h">
+      <Filter>CPP Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="CppPipeline.h">
+      <Filter>CPP Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="CudaAccleratedAlg.h">
+      <Filter>CUDA Implementation</Filter>
+    </ClInclude>
+    <ClInclude Include="Harens.h">
+      <Filter>CUDA Implementation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

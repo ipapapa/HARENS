@@ -7,10 +7,12 @@ enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_COMPARE, ALL 
 Method method = ALL;
 
 void PrintUsage();
-void Execute(Method method);
+void Execute(Method method, int mapperNum, int reducerNum);
 
 int main(int argc, char* argv[]) {
 	int argNum = 1;
+	int mapperNum = 8;
+	int reducerNum = 256;
 	while (argNum < argc) {
 		try {
 			string arg = argv[argNum];
@@ -36,6 +38,14 @@ int main(int argc, char* argv[]) {
 					printf("Error: unknown algorithm: %s\n", alg);
 					return 1;
 				}
+			}
+			else if (arg == "-m") {
+				++argNum;
+				mapperNum = std::stoi(argv[argNum], nullptr, 10);
+			}
+			else if (arg == "-r") {
+				++argNum;
+				reducerNum = std::stoi(argv[argNum], nullptr, 10);
 			}
 			else if (arg == "-f") {
 				++argNum;
@@ -80,7 +90,7 @@ int main(int argc, char* argv[]) {
 		PrintUsage();
 		return 1;
 	}
-	Execute(method);
+	Execute(method, mapperNum, reducerNum);
 	return 0;
 }
 
@@ -92,6 +102,10 @@ void PrintUsage() {
 \tcuda:\t\t\tCUDA accelerated algorithm\n\
 \tcuda_pipe (default):\tCUDA accelerated algorithm \n\
 \t\t\t\twith multi-theaded pipeline\n\
+-m:\tmapper number (parameter for cuda_pipe)\n\
+\te.g. -m 8 (default)\n\
+-r:\treducer number (parameter for cuda_pipe)\n\
+\te.g. -r 256 (default)\n\
 -f:\tinput file name (required)\n\
 -i:\tinput format, choose from plain (default) and pcap\n\
 -o:\toutput to console/file\n\
@@ -100,28 +114,28 @@ void PrintUsage() {
 	");
 }
 
-void Execute(Method method) {
+void Execute(Method method, int mapperNum, int reducerNum) {
 	switch (method) {
 	case CPP_Imp:
-		CPP_Namespace::CPPExecute();
+		NaiveCpp().Execute();
 		break;
 	case CPP_Pipeline:
-		CPP_Pipeline_Namespace::CPPPipelineExecute();
+		CppPipeline().Execute();
 		break;
 	case CUDA_Imp:
-		CUDA_Namespace::CUDAExecute();
+		CudaAccleratedAlg().Execute();
 		break;
 	case CUDA_Pipeline:
-		CUDA_Pipeline_Namespace::CUDAPipelineExecute();
+		Harens(mapperNum, reducerNum).Execute();
 		break;
 	case CUDA_COMPARE:
-		CUDA_Namespace::CUDAExecute();
-		CUDA_Pipeline_Namespace::CUDAPipelineExecute();
+		CudaAccleratedAlg().Execute();
+		Harens(mapperNum, reducerNum).Execute();
 		break;
 	default:
-		CPP_Namespace::CPPExecute();
-		CPP_Pipeline_Namespace::CPPPipelineExecute();
-		CUDA_Namespace::CUDAExecute();
-		CUDA_Pipeline_Namespace::CUDAPipelineExecute();
+		NaiveCpp().Execute();
+		CppPipeline().Execute();
+		CudaAccleratedAlg().Execute();
+		Harens(mapperNum, reducerNum).Execute();
 	}
 }
