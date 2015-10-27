@@ -6,25 +6,24 @@ using namespace std;
 We have 2 threads accessing an object of this class simultaneously
 one for push, the other for pop
 */
-class CircularQueuePool
+class LRUQueuePool
 {
 public:
 	unsigned char*** chunkHashQueuePool;
-	unsigned int **chunkLenQueuePool;
+	unsigned int** chunkLenQueuePool;
 	int poolSize;
 	int *front, *rear;	//rear point to the last used entry, there's an empty entry after rear
 	const unsigned int queueSize;
-	mutex *frontMutex, *rearMutex; 
 	//Size control
 	unsigned int *curQueueSize;
 	mutex *curQueueSizeMutex;
 	condition_variable *emptyCond, *fullCond;
 
-	CircularQueuePool(int _poolSize) : queueSize(TEST_MAX_KERNEL_INPUT_LEN) {
+	LRUQueuePool(int _poolSize) : queueSize(TEST_MAX_KERNEL_INPUT_LEN) {
 		Initiate(_poolSize);
 	}
 
-	CircularQueuePool(int _poolSize, int _size) : queueSize(_size) {
+	LRUQueuePool(int _poolSize, int _size) : queueSize(_size) {
 		Initiate(_poolSize);
 	}
 
@@ -34,8 +33,6 @@ public:
 		chunkLenQueuePool = new unsigned int*[poolSize];
 		front = new int[poolSize];
 		rear = new int[poolSize];
-		frontMutex = new mutex[poolSize];
-		rearMutex = new mutex[poolSize];
 
 		curQueueSize = new unsigned int[poolSize];
 		curQueueSizeMutex = new mutex[poolSize];
@@ -108,7 +105,7 @@ public:
 		return isEmpty;
 	}
 
-	~CircularQueuePool() {
+	~LRUQueuePool() {
 		for (int i = 0; i < poolSize; ++i) {
 			for (int j = 0; j < queueSize; ++j)
 				delete[] chunkHashQueuePool[i][j];
@@ -119,8 +116,6 @@ public:
 		delete[] chunkLenQueuePool;
 		delete[] front;
 		delete[] rear;
-		delete[] frontMutex;
-		delete[] rearMutex;
 		delete[] curQueueSize;
 		delete[] curQueueSizeMutex;
 		delete[] emptyCond;

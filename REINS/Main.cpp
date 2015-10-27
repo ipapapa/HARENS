@@ -11,8 +11,8 @@ void Execute(Method method, int mapperNum, int reducerNum);
 
 int main(int argc, char* argv[]) {
 	int argNum = 1;
-	int mapperNum = 8;
-	int reducerNum = 256;
+	int mapperNum = 11;
+	int reducerNum = 212;
 	while (argNum < argc) {
 		try {
 			string arg = argv[argNum];

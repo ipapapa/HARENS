@@ -1,20 +1,20 @@
 #pragma once
 #include "Definition.h"
 
-class SelfMantainedCircularQueue
+class SelfMantainedLRUQueue
 {
 public:
 	unsigned char** queue;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
 	unsigned int size;
 
-	SelfMantainedCircularQueue() {}
+	SelfMantainedLRUQueue() {}
 
-	SelfMantainedCircularQueue(int _size) {
-		SetupCircularQueue(_size);
+	SelfMantainedLRUQueue(int _size) {
+		SetupLRUQueue(_size);
 	}
 
-	void SetupCircularQueue(int _size) {
+	void SetupLRUQueue(int _size) {
 		size = _size;
 		queue = new unsigned char*[size];
 		for (int i = 0; i < size; ++i)
@@ -34,7 +34,7 @@ public:
 		return to_be_del;
 	}
 
-	~SelfMantainedCircularQueue() {
+	~SelfMantainedLRUQueue() {
 		/*while ((rear + 1) % size == front) {
 			delete[] queue[front];
 			front = (front + 1) % size;

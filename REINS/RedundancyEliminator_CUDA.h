@@ -1,10 +1,10 @@
 #pragma once
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-#include "CircularQueuePool.h"
+#include "LRUQueuePool.h"
 #include "RabinHash.h"
-#include "CircularHash.h"
-#include "CircularHashPool.h"
+#include "LRUHash.h"
+#include "LRUHashPool.h"
 #include "Definition.h"
 
 class RedundancyEliminator_CUDA {
@@ -25,10 +25,9 @@ public:
 	//	char** chunkList, unsigned long long* chunkHashValueList, unsigned int* chunkLenList);
 	//unsigned int ChunkMatching(deque<unsigned long long> &hashValues, deque<tuple<char*, unsigned int>> &chunks);
 	/*deque<tuple<unsigned char*, unsigned int>> is for simulation, deque<unsigned char*> for real case*/
-	//void ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 
-	//	unsigned long long* chunkHashValueList, unsigned int* chunkLenList, mutex &chunkMutex);
-	void ChunkHashingAscynWithCircularQueuePool(unsigned int* indices, int indicesNum, char* package,
-		CircularQueuePool &chunkHashQ);
+
+	void ChunkHashingAsync(unsigned int* indices, int indicesNum, char* package,
+		LRUQueuePool &chunkHashQ);
 	unsigned int fingerPrinting(deque<unsigned int> indexQ, char* package);
 	unsigned int fingerPrinting(unsigned int* idxArr, unsigned int idxArrLen, char* package);
 	void RabinHashAsync(char* inputKernel, char* inputHost, unsigned int inputLen, 

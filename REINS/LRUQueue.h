@@ -7,7 +7,7 @@ We have 2 threads accessing an object of this class simultaneously
 one for push, the other for pop
 */
 template <class T>
-class CircularQueue
+class LRUQueue
 {
 public:
 	T* queue;
@@ -16,7 +16,7 @@ public:
 	mutex contentMutex;
 	condition_variable contentCond;
 
-	CircularQueue() {
+	LRUQueue() {
 		size = TEST_MAX_KERNEL_INPUT_LEN;
 		queue = new T[size];
 		front = 0;
@@ -24,7 +24,7 @@ public:
 		//The full situation is front == (rear + 2) % size
 	}
 
-	CircularQueue(int _size) {
+	LRUQueue(int _size) {
 		size = _size;
 		queue = new T[size];
 		front = 0;
@@ -32,7 +32,7 @@ public:
 		//The full situation is front == (rear + 2) % size
 	}
 
-	/*CircularUintQueue& operator=(CircularUintQueue obj) {
+	/*LRUUintQueue& operator=(LRUUintQueue obj) {
 		this->queue = obj.queue;
 		this->front = obj.front;
 		this->rear = obj.rear;
@@ -77,7 +77,7 @@ public:
 		return isEmpty;
 	}
 
-	~CircularQueue() {
+	~LRUQueue() {
 		delete[] queue;
 	}
 };

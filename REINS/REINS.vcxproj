@@ -19,9 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CircularHash.cpp" />
-    <ClCompile Include="CircularHashPool.cpp" />
+    <ClCompile Include="LRUHash.cpp" />
+    <ClCompile Include="LRUHashPool.cpp" />
     <ClCompile Include="FixedSizedCharArray.cpp" />
+    <ClCompile Include="HashCollisionTest.cpp" />
     <ClCompile Include="NaiveCpp.cpp" />
     <ClCompile Include="CppPipeline.cpp" />
     <ClCompile Include="CudaAcceleratedAlg.cpp" />
@@ -31,18 +32,21 @@
     <ClCompile Include="PcapReader.cpp" />
     <ClCompile Include="RabinHash.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP.cpp" />
+    <ClCompile Include="RedundancyEliminator_CPP_CollisionTest.cpp" />
     <ClCompile Include="TreeHash.cpp" />
     <ClCompile Include="VirtualHash.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CircularHash.h" />
-    <ClInclude Include="CircularHashPool.h" />
-    <ClInclude Include="CircularQueue.h" />
-    <ClInclude Include="CircularQueuePool.h" />
+    <ClInclude Include="LRUHash.h" />
+    <ClInclude Include="LRUHashPool.h" />
+    <ClInclude Include="LRUQueue.h" />
+    <ClInclude Include="LRUQueuePool.h" />
     <ClInclude Include="FixedSizedCharArray.h" />
+    <ClInclude Include="HashCollisionTest.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="PcapReader.h" />
-    <ClInclude Include="SelfMantainedCircularQueue.h" />
+    <ClInclude Include="RedundancyEliminator_CPP_CollisionTest.h" />
+    <ClInclude Include="SelfMantainedLRUQueue.h" />
     <ClInclude Include="NaiveCpp.h" />
     <ClInclude Include="CppPipeline.h" />
     <ClInclude Include="CudaAcceleratedAlg.h" />

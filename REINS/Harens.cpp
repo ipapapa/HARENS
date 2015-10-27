@@ -7,10 +7,10 @@ Harens::Harens(int mapperNum, int reducerNum)
 	this->reducerNum = reducerNum;
 	segment_threads = new thread[mapperNum];
 	chunk_match_threads = new thread[reducerNum];
-	circ_hash_pool = new CircularHash[reducerNum];
+	circ_hash_pool = new LRUHash[reducerNum];
 	duplication_size = new unsigned int[reducerNum];
 	for (int i = 0; i < reducerNum; ++i) {
-		circ_hash_pool[i] = CircularHash(MAX_CHUNK_NUM / reducerNum);
+		circ_hash_pool[i] = LRUHash(MAX_CHUNK_NUM / reducerNum);
 		duplication_size[i] = 0;
 	}
 
@@ -44,8 +44,8 @@ Harens::Harens(int mapperNum, int reducerNum)
 	//	segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
 	//	for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
 	//		//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
-	//		/*chunk_hashing_value_queue[i][j] = CircularUcharArrayQueue(MAX_WINDOW_NUM / 4);
-	//		chunk_len_queue[i][j] = CircularUintQueue(MAX_WINDOW_NUM / 4);*/
+	//		/*chunk_hashing_value_queue[i][j] = LRUUcharArrayQueue(MAX_WINDOW_NUM / 4);
+	//		chunk_len_queue[i][j] = LRUUintQueue(MAX_WINDOW_NUM / 4);*/
 	//	}
 	//}
 }
@@ -419,7 +419,7 @@ void Harens::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, in
 	int segLen = listSize / mapperNum;
 	if ((segmentNum + 1) * listSize / mapperNum > listSize)
 		segLen = listSize - segmentNum * listSize / mapperNum;
-	re.ChunkHashingAscynWithCircularQueuePool(chunkingResultSeg, segLen, pagable_buffer[pagableBufferIdx],
+	re.ChunkHashingAsync(chunkingResultSeg, segLen, pagable_buffer[pagableBufferIdx],
 		chunk_hash_queue_pool);
 	/*tuple<unsigned long long, unsigned int> chunkInfo;
 	unsigned long long toBeDel;

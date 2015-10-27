@@ -6,9 +6,9 @@ RedundancyEliminator_CPP::RedundancyEliminator_CPP() {
 
 void RedundancyEliminator_CPP::SetupRedundancyEliminator_CPP() {
 	hashFunc = RabinHash();
-	circHash.SetupCircularHash(MAX_CHUNK_NUM);
+	circHash.SetupLRUHash(MAX_CHUNK_NUM);
 	//The real software need to generate a initial file named 0xFF here
-	//Check Circular.cpp to see the reason
+	//Check LRU.cpp to see the reason
 }
 
 RedundancyEliminator_CPP::~RedundancyEliminator_CPP() {
@@ -85,8 +85,7 @@ unsigned int RedundancyEliminator_CPP::eliminateRedundancy(char* package, unsign
 }
 
 /*
-Compute the hash value of chunk, should use sha3 to avoid collision,
-I'm using rabin hash here for convience
+Compute the hash value of chunk, should use sha to avoid collision,
 */
 inline void RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
 	/*UCHAR* hashValue = new UCHAR[SHA_DIGEST_LENGTH];

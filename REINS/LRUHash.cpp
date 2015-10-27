@@ -1,21 +1,21 @@
-#include "CircularHash.h"
+#include "LRUHash.h"
 
-CircularHash::CircularHash(unsigned int _size) : VirtualHash(_size), circularQueue(_size), map(size)
+LRUHash::LRUHash(unsigned int _size) : VirtualHash(_size), circularQueue(_size), map(size)
 {
 }
 
-void CircularHash::SetupCircularHash(unsigned int _size) {
+void LRUHash::SetupLRUHash(unsigned int _size) {
 	SetupVirtualHash(_size);
-	circularQueue.SetupCircularQueue(_size);
+	circularQueue.SetupLRUQueue(_size);
 	map = charPtMap(_size);
 }
 
 
-CircularHash::~CircularHash()
+LRUHash::~LRUHash()
 {
 }
 
-unsigned char* CircularHash::Add(unsigned char* hashValue, const bool isDuplicated) {
+unsigned char* LRUHash::Add(unsigned char* hashValue, const bool isDuplicated) {
 	unsigned char* toBeDel;
 	//Deal with the oldest hash value if the circular map is full
 	toBeDel = circularQueue.Add(hashValue);
@@ -41,11 +41,11 @@ unsigned char* CircularHash::Add(unsigned char* hashValue, const bool isDuplicat
 }
 
 
-bool CircularHash::Find(unsigned char* hashValue) {
+bool LRUHash::Find(unsigned char* hashValue) {
 	return map.find(hashValue) != map.end();
 }
 
-bool CircularHash::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
+bool LRUHash::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
 	charPtMap::iterator it = map.find(hashValue);
 	bool isFound = it != map.end();
 	toBeDel = circularQueue.Add(hashValue);

@@ -1,22 +1,22 @@
-#include "CircularHashPool.h"
+#include "LRUHashPool.h"
 using namespace std;
 
-CircularHashPool::CircularHashPool(unsigned int _size) : VirtualHash(_size)
+LRUHashPool::LRUHashPool(unsigned int _size) : VirtualHash(_size)
 {
 	for (auto& segPool : mapPool)
 		segPool = charPtMap(size / POOL_SEGMENT_NUM);
-	circularQueue = SelfMantainedCircularQueue(size);
+	circularQueue = SelfMantainedLRUQueue(size);
 }
 
 
-CircularHashPool::~CircularHashPool()
+LRUHashPool::~LRUHashPool()
 {
 	for (auto& segPool : mapPool)
 		segPool.clear();
 }
 
 
-unsigned char* CircularHashPool::Add(unsigned char* hashValue, const bool isDuplicated) {
+unsigned char* LRUHashPool::Add(unsigned char* hashValue, const bool isDuplicated) {
 	unsigned char* toBeDel;
 	int segNum = (int)((hashValue[0] << 16) + (hashValue[1] << 8) + hashValue[2]) % POOL_SEGMENT_NUM;
 
@@ -47,7 +47,7 @@ unsigned char* CircularHashPool::Add(unsigned char* hashValue, const bool isDupl
 	return toBeDel;
 }
 
-bool CircularHashPool::Find(unsigned char* hashValue) {
+bool LRUHashPool::Find(unsigned char* hashValue) {
 	bool isFound;
 	int segNum = (int)((hashValue[0] << 16) + (hashValue[1] << 8) + hashValue[2]) % POOL_SEGMENT_NUM;
 	mapPoolMutex[segNum].lock();
@@ -56,7 +56,7 @@ bool CircularHashPool::Find(unsigned char* hashValue) {
 	return isFound;
 }
 
-bool CircularHashPool::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
+bool LRUHashPool::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
 	bool isFound;
 	int segNum = (int)((hashValue[0] << 16) + (hashValue[1] << 8) + hashValue[2]) % POOL_SEGMENT_NUM;
 

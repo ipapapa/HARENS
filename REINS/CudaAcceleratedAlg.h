@@ -5,7 +5,6 @@
 #include "RabinHash.h"
 #include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
-#include "OpenAddressCircularHash.h"
 
 class CudaAccleratedAlg {
 private:
@@ -35,7 +34,7 @@ private:
 	unsigned int* chunking_result;
 	unsigned int chunking_result_len;
 	//chunk matching 
-	CircularHash hash_pool;
+	LRUHash hash_pool;
 	unsigned int total_duplication_size = 0;
 	//Time
 	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;

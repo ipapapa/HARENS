@@ -1,18 +1,18 @@
 #pragma once
 #include "VirtualHash.h"
-#include "SelfMantainedCircularQueue.h"
+#include "SelfMantainedLRUQueue.h"
 #include "Definition.h"
 
-class CircularHash : public VirtualHash {
+class LRUHash : public VirtualHash {
 private:
-	SelfMantainedCircularQueue circularQueue;
+	SelfMantainedLRUQueue circularQueue;
 	charPtMap map;
 
 public:
-	CircularHash(): VirtualHash(0) {}
-	CircularHash(unsigned int _size);
-	void SetupCircularHash(unsigned int _size);
-	~CircularHash();
+	LRUHash(): VirtualHash(0) {}
+	LRUHash(unsigned int _size);
+	void SetupLRUHash(unsigned int _size);
+	~LRUHash();
 	unsigned char* Add(unsigned char* hashValue, const bool isDuplicated);
 	bool Find(unsigned char* hashValue);
 	bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel);

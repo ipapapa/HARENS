@@ -2,7 +2,7 @@
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
 #include "IO.h"
-#include "CircularQueuePool.h"
+#include "LRUQueuePool.h"
 #include "RabinHash.h"
 #include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
@@ -57,10 +57,10 @@ private:
 	array<bool, RESULT_BUFFER_NUM> chunking_result_obsolete;
 	//chunk hashing
 	thread *segment_threads;
-	CircularQueuePool chunk_hash_queue_pool;
+	LRUQueuePool chunk_hash_queue_pool;
 	//chunk matching 
 	thread *chunk_match_threads;
-	CircularHash *circ_hash_pool;
+	LRUHash *circ_hash_pool;
 	unsigned int *duplication_size;
 	unsigned int total_duplication_size = 0;
 	//Time

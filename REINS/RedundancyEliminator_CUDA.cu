@@ -77,9 +77,9 @@ __global__ void Hash(const unsigned long long *TA, const unsigned long long *TB,
 
 RedundancyEliminator_CUDA::RedundancyEliminator_CUDA(Type type) {
 	if (type == NonMultifingerprint)
-		circHash = new CircularHash(MAX_CHUNK_NUM);
+		circHash = new LRUHash(MAX_CHUNK_NUM);
 	else
-		circHash = new CircularHashPool(MAX_CHUNK_NUM);
+		circHash = new LRUHashPool(MAX_CHUNK_NUM);
 	hashFunc = RabinHash();
 	int tableSize = RabinHash::TABLE_ROW_NUM * BYTES_IN_ULONG;
 	cudaMalloc((void**)&kernelTA, tableSize);
@@ -91,14 +91,14 @@ RedundancyEliminator_CUDA::RedundancyEliminator_CUDA(Type type) {
 	cudaMemcpy(kernelTC, hashFunc.GetTCLONG(), tableSize, cudaMemcpyHostToDevice);
 	cudaMemcpy(kernelTD, hashFunc.GetTDLONG(), tableSize, cudaMemcpyHostToDevice);
 	//The real software need to generate a initial file named 0xFF here
-	//Check Circular.cpp to see the reason
+	//Check LRU.cpp to see the reason
 }
 
 void RedundancyEliminator_CUDA::SetupRedundancyEliminator_CUDA(Type type) {
 	if (type == NonMultifingerprint)
-		circHash = new CircularHash(MAX_CHUNK_NUM);
+		circHash = new LRUHash(MAX_CHUNK_NUM);
 	else
-		circHash = new CircularHashPool(MAX_CHUNK_NUM);
+		circHash = new LRUHashPool(MAX_CHUNK_NUM);
 	hashFunc = RabinHash();
 	int tableSize = RabinHash::TABLE_ROW_NUM * BYTES_IN_ULONG;
 	cudaMalloc((void**)&kernelTA, tableSize);
@@ -110,7 +110,7 @@ void RedundancyEliminator_CUDA::SetupRedundancyEliminator_CUDA(Type type) {
 	cudaMemcpy(kernelTC, hashFunc.GetTCLONG(), tableSize, cudaMemcpyHostToDevice);
 	cudaMemcpy(kernelTD, hashFunc.GetTDLONG(), tableSize, cudaMemcpyHostToDevice);
 	//The real software need to generate a initial file named 0xFF here
-	//Check Circular.cpp to see the reason
+	//Check LRU.cpp to see the reason
 }
 
 RedundancyEliminator_CUDA::~RedundancyEliminator_CUDA() {
@@ -170,8 +170,8 @@ void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue, char* chun
 //	return duplicationSize;
 //}
 
-void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned int* indices, int indicesNum, char* package,
-	CircularQueuePool &chunkHashQ) {
+void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, int indicesNum, char* package,
+	LRUQueuePool &chunkHashQ) {
 	//cout << "start\n";
 	//unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
@@ -197,27 +197,6 @@ void RedundancyEliminator_CUDA::ChunkHashingAscynWithCircularQueuePool(unsigned 
 	}
 	//cout << "end\n";
 }
-
-//void RedundancyEliminator_CUDA::ChunkHashingAscyn(unsigned int* indices, int indicesNum, char* package, 
-//	unsigned long long* chunkHashValueList, unsigned int* chunkLenList, mutex &chunkMutex) {
-//	//unsigned int duplicationSize = 0;
-//	unsigned int prevIdx = 0;
-//	char* chunk;
-//	for (int i = 0; i < indicesNum; ++i) {
-//		if (prevIdx == 0) {
-//			prevIdx = indices[i];
-//			continue;
-//		}
-//		chunkLenList[i - 1] = indices[i] - prevIdx;
-//		chunk = &(package[prevIdx]);
-//
-//		//Mind! never use sizeof(chunk) to check the chunk size
-//		chunkMutex.lock();
-//		chunkHashValueList[i - 1] = computeChunkHash(chunk, chunkLenList[i - 1]);
-//		chunkMutex.unlock();
-//		prevIdx = indices[i];
-//	}
-//}
 
 unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> indexQ, char* package) {
 	/*deque<unsigned char*> hashValues;
