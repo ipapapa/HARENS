@@ -5,7 +5,7 @@
 
 class LRUHash : public VirtualHash {
 private:
-	SelfMantainedLRUQueue circularQueue;
+	SelfMantainedLRUQueue<unsigned char*> circularQueue;
 	charPtMap map;
 
 public:

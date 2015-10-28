@@ -10,7 +10,6 @@ void LRUHash::SetupLRUHash(unsigned int _size) {
 	map = charPtMap(_size);
 }
 
-
 LRUHash::~LRUHash()
 {
 }
@@ -39,7 +38,6 @@ unsigned char* LRUHash::Add(unsigned char* hashValue, const bool isDuplicated) {
 	}
 	return toBeDel;
 }
-
 
 bool LRUHash::Find(unsigned char* hashValue) {
 	return map.find(hashValue) != map.end();

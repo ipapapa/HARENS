@@ -64,6 +64,9 @@
     <ClCompile Include="LRUHashPool.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
+    <ClCompile Include="LRUHash_CollisionTest.cpp">
+      <Filter>Hash Collision Test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Definition.h">
@@ -125,6 +128,9 @@
     </ClInclude>
     <ClInclude Include="SelfMantainedLRUQueue.h">
       <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="LRUHash_CollisionTest.h">
+      <Filter>Hash Collision Test</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

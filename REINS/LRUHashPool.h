@@ -8,7 +8,7 @@ private:
 	static const int POOL_SEGMENT_NUM = 2048;
 	std::array<charPtMap, POOL_SEGMENT_NUM> mapPool;
 	std::array<std::mutex, POOL_SEGMENT_NUM> mapPoolMutex;
-	SelfMantainedLRUQueue circularQueue;
+	SelfMantainedLRUQueue<unsigned char*> circularQueue;
 	std::mutex circularQueueMutex;
 
 public:

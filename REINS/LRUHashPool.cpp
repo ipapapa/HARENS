@@ -5,7 +5,7 @@ LRUHashPool::LRUHashPool(unsigned int _size) : VirtualHash(_size)
 {
 	for (auto& segPool : mapPool)
 		segPool = charPtMap(size / POOL_SEGMENT_NUM);
-	circularQueue = SelfMantainedLRUQueue(size);
+	circularQueue = SelfMantainedLRUQueue<unsigned char*>(size);
 }
 
 
