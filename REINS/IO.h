@@ -13,7 +13,7 @@ static class ExtraOrdinaryLargeFileException : public std::exception {
 	}
 } extraOrdinaryLargeFileException;
 
-static class IO {
+class IO {
 public:
 	static FileFormat FILE_FORMAT;
 	static const std::string METRICS[];

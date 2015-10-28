@@ -23,7 +23,6 @@
     <ClCompile Include="LRUHashPool.cpp" />
     <ClCompile Include="FixedSizedCharArray.cpp" />
     <ClCompile Include="HashCollisionTest.cpp" />
-    <ClCompile Include="LRUHash_CollisionTest.cpp" />
     <ClCompile Include="NaiveCpp.cpp" />
     <ClCompile Include="CppPipeline.cpp" />
     <ClCompile Include="CudaAcceleratedAlg.cpp" />

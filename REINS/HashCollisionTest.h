@@ -1,7 +1,7 @@
 #pragma once
 #include "IO.h"
 #include "RabinHash.h"
-#include "RedundancyEliminator_CPP.h"
+#include "RedundancyEliminator_CPP_CollisionTest.h"
 #include "PcapReader.h"
 
 /*
@@ -9,11 +9,13 @@ This class is the module of naive cpp implementation
 */
 class HashCollisionTest {
 private:
-	unsigned int file_length = 0;
-	RedundancyEliminator_CPP re;
+	bool isSha1Used;
+	bool isCollisionCheck;
+	unsigned int fileLength = 0;
+	RedundancyEliminator_CPP_CollisionTest re;
 	ifstream ifs;
 	PcapReader fileReader;
-	unsigned int cur_file_pos = 0;
+	unsigned int curFilePos = 0;
 
 	//shared data
 	bool readFirstTime = true;
@@ -21,16 +23,17 @@ private:
 	char* buffer;
 	FixedSizedCharArray charArrayBuffer;
 
-	unsigned int buffer_len = 0;
-	deque<unsigned int> chunking_result;
+	unsigned int bufferLen = 0;
+	deque<unsigned int> chunkingResult;
 	//Result
-	unsigned int total_duplication_size = 0;
+	unsigned int totalDuplicationSize = 0;
+	unsigned int totalFalseReportSize = 0;
 	//Time
-	clock_t start_read, start_chunk, start_fin;
-	float tot_read = 0, tot_chunk = 0, tot_fin = 0, tot_time = 0;
+	clock_t start_fin;
+	float totFin = 0;
 
 public:
-	HashCollisionTest();
+	HashCollisionTest(bool isSha1Used, bool isCollisionCheck);
 	~HashCollisionTest();
 
 	bool ReadFile();

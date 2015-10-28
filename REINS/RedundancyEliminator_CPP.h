@@ -13,10 +13,11 @@ protected:
 	inline void computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue);
 		
 public:
-	deque<unsigned int> chunking(char* package, unsigned int packageSize);
-	unsigned int fingerPrinting(deque<unsigned int> indexQ, char* package);
-	unsigned int eliminateRedundancy(char* package, unsigned int packageSize);
 	RedundancyEliminator_CPP();
 	void SetupRedundancyEliminator_CPP();
 	~RedundancyEliminator_CPP();
+
+	deque<unsigned int> chunking(char* package, unsigned int packageSize);
+	unsigned int fingerPrinting(deque<unsigned int> indexQ, char* package);
+	unsigned int eliminateRedundancy(char* package, unsigned int packageSize);
 };

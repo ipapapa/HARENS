@@ -2,23 +2,41 @@
 #include "CppPipeline.h"
 #include "CudaAcceleratedAlg.h"
 #include "Harens.h"
+#include "HashCollisionTest.h"
 
 enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_COMPARE, ALL };
 Method method = CUDA_Pipeline;
 
 void PrintUsage();
+void CompareHash(bool isCollisionCheck);
 void Execute(Method method, int mapperNum, int reducerNum);
 
 int main(int argc, char* argv[]) {
 	int argNum = 1;
 	int mapperNum = 11;
 	int reducerNum = 212;
+	bool compareSHA1AndRabin = false;
+	bool isCollisionCheck;
 	while (argNum < argc) {
 		try {
 			string arg = argv[argNum];
 			if (arg == "-h") {
 				PrintUsage();
 				return 0;
+			}
+			else if (arg == "-c") {
+				compareSHA1AndRabin = true;
+				string test = argv[++argNum];
+				if (test == "speed" || test == "SPEED") {
+					isCollisionCheck = false;
+				}
+				else if (test == "collision" || test == "COLLISION") {
+					isCollisionCheck = true;
+				}
+				else {
+					printf("Error: unknown test: %s\n", test);
+					return 1;
+				}
 			}
 			else if (arg == "-a") {
 				string alg = argv[++argNum];
@@ -90,18 +108,27 @@ int main(int argc, char* argv[]) {
 		PrintUsage();
 		return 1;
 	}
-	Execute(method, mapperNum, reducerNum);
+	if (compareSHA1AndRabin) {
+		CompareHash(isCollisionCheck);
+	}
+	else {
+		Execute(method, mapperNum, reducerNum);
+	}
 	return 0;
 }
 
 void PrintUsage() {
 	printf("Usage:\n\
+-c:\tcompare the performance of using Rabin hash and SHA1 as chunk hash\n\
+\tfunction\n\
+\tspeed:\t\trepot the speed of two methods\n\
+\tcollision:\treport hash collision of two methods\n\
 -a:\tthe algorithm to use, choose from \n\
 \tcpp:\t\t\tnaive C++ implementation\n\
 \tcpp_pipe:\t\tC++ multi-threaded pipeline implementation\n\
 \tcuda:\t\t\tCUDA accelerated algorithm\n\
-\tcuda_pipe (default):\tCUDA accelerated algorithm \n\
-\t\t\t\twith multi-theaded pipeline\n\
+\tcuda_pipe (default):\tCUDA accelerated algorithm with multi-theaded\n\
+\t\t\t\tpipeline and single-machine MapReduce\n\
 -m:\tmapper number (parameter for cuda_pipe)\n\
 \te.g. -m 8 (default)\n\
 -r:\treducer number (parameter for cuda_pipe)\n\
@@ -111,7 +138,15 @@ void PrintUsage() {
 -o:\toutput to console/file\n\
 \te.g. -o console (default) or -o \"file name\"\n\
 -h:\thelp\n\
-e.g. REINS.exe -f inputfile.txt -a cuda_pipe -m 8 -r 256\n");
+e.g.\tREINS.exe -f inputfile.txt -a cuda_pipe -m 8 -r 256\n\
+\tREINS.exe -f inputfile.txt -o outputfile.txt -c speed\n");
+}
+
+void CompareHash(bool isCollisionCheck) {
+	//use sha1
+	HashCollisionTest(true, isCollisionCheck).Execute();
+	//use rabin hash
+	HashCollisionTest(false, isCollisionCheck).Execute();
 }
 
 void Execute(Method method, int mapperNum, int reducerNum) {

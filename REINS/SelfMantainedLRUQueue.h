@@ -1,9 +1,21 @@
 #pragma once
 #include "Definition.h"
+#include <type_traits>
 
-template<class T>
+template<typename T>
 class SelfMantainedLRUQueue
 {
+private:
+	template <typename S>
+	void SetIllegal(S &toBeDel) {
+		toBeDel = 0;
+	}
+
+	template <typename S>
+	void SetIllegal(S *&toBeDel) {
+		toBeDel = nullptr;
+	}
+
 public:
 	T* queue;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
@@ -26,12 +38,8 @@ public:
 
 	T Add(T hashValue) {
 		T toBeDel;
-		try {
-			toBeDel = nullptr;
-		}
-		catch (int e) {
-			toBeDel = 0;
-		}
+		SetIllegal<T>(toBeDel);
+
 		if ((rear + 2) % size == front) {
 			toBeDel = queue[front];
 			front = (front + 1) % size;
@@ -49,4 +57,3 @@ public:
 		delete[] queue;*/
 	}
 };
-
