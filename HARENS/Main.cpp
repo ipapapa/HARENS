@@ -158,19 +158,19 @@ void Execute(Method method, int mapperNum, int reducerNum) {
 		CppPipeline().Execute();
 		break;
 	case CUDA_Imp:
-		CudaAccleratedAlg().Execute();
+		CudaAcceleratedAlg().Execute();
 		break;
 	case CUDA_Pipeline:
 		Harens(mapperNum, reducerNum).Execute();
 		break;
 	case CUDA_COMPARE:
-		CudaAccleratedAlg().Execute();
+		CudaAcceleratedAlg().Execute();
 		Harens(mapperNum, reducerNum).Execute();
 		break;
 	default:
 		NaiveCpp().Execute();
 		CppPipeline().Execute();
-		CudaAccleratedAlg().Execute();
+		CudaAcceleratedAlg().Execute();
 		Harens(mapperNum, reducerNum).Execute();
 	}
 }

@@ -135,4 +135,7 @@
       <Filter>CUDA Implementation</Filter>
     </CudaCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="makefile" />
+  </ItemGroup>
 </Project>

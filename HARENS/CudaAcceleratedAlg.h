@@ -6,7 +6,7 @@
 #include "PcapReader.h"
 #include "RedundancyEliminator_CUDA.h"
 
-class CudaAccleratedAlg {
+class CudaAcceleratedAlg {
 private:
 	//file
 	ifstream ifs;
@@ -41,8 +41,8 @@ private:
 	double time = 0, time_r = 0, time_t = 0, time_ck = 0, time_cp = 0, time_ch, time_cm;
 
 public:
-	CudaAccleratedAlg();
-	~CudaAccleratedAlg();
+	CudaAcceleratedAlg();
+	~CudaAcceleratedAlg();
 
 	bool ReadFile();
 	void ChunkingKernel();

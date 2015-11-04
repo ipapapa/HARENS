@@ -1,7 +1,7 @@
 #include "CudaAcceleratedAlg.h" 
 using namespace std;
 
-CudaAccleratedAlg::CudaAccleratedAlg() 
+CudaAcceleratedAlg::CudaAcceleratedAlg()
 	: charArrayBuffer(MAX_BUFFER_LEN), hash_pool(MAX_CHUNK_NUM) {
 	re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::NonMultifingerprint);
 	//initialize pagable buffer
@@ -16,7 +16,7 @@ CudaAccleratedAlg::CudaAccleratedAlg()
 	chunking_result = new unsigned int[MAX_WINDOW_NUM];
 }
 
-CudaAccleratedAlg::~CudaAccleratedAlg() {
+CudaAcceleratedAlg::~CudaAcceleratedAlg() {
 	//destruct chunking result proc
 	delete[] chunking_result;
 	//destruct chunking kernel ascychronize
@@ -29,7 +29,7 @@ CudaAccleratedAlg::~CudaAccleratedAlg() {
 	delete[] pagable_buffer;
 }
 
-int CudaAccleratedAlg::Execute() {
+int CudaAcceleratedAlg::Execute() {
 	IO::Print("\n============================ CUDA Implementation ============================\n");
 
 	bool keepReading = true;
@@ -56,7 +56,7 @@ int CudaAccleratedAlg::Execute() {
 	return 0;
 }
 
-bool CudaAccleratedAlg::ReadFile() {
+bool CudaAcceleratedAlg::ReadFile() {
 	int curWindowNum;
 	//Read the first part
 	if (readFirstTime) {
@@ -128,7 +128,7 @@ bool CudaAccleratedAlg::ReadFile() {
 	}
 }
 
-void CudaAccleratedAlg::ChunkingKernel() {
+void CudaAcceleratedAlg::ChunkingKernel() {
 	start_ck = clock();
 	fixed_buffer_len = pagable_buffer_len;
 	memcpy(fixed_buffer, pagable_buffer, fixed_buffer_len);
@@ -141,7 +141,7 @@ void CudaAccleratedAlg::ChunkingKernel() {
 	time_ck += (end_ck - start_ck) * 1000 / CLOCKS_PER_SEC;
 }
 
-void CudaAccleratedAlg::ChunkingResultProc() {
+void CudaAcceleratedAlg::ChunkingResultProc() {
 	cudaStreamSynchronize(stream);
 
 	start_cp = clock();
@@ -160,7 +160,7 @@ void CudaAccleratedAlg::ChunkingResultProc() {
 	time_cp += (end_cp - start_cp) * 1000 / CLOCKS_PER_SEC;
 }
 
-void CudaAccleratedAlg::ChunkMatch() {
+void CudaAcceleratedAlg::ChunkMatch() {
 	start_ch = clock();
 
 	total_duplication_size += re.fingerPrinting(chunking_result, chunking_result_len, pagable_buffer);

@@ -62,6 +62,9 @@
   <ItemGroup>
     <CudaCompile Include="RedundancyEliminator_CUDA.cu" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="makefile" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A48B46A2-F5D4-4CF3-9349-129211C20372}</ProjectGuid>
     <RootNamespace>REINS</RootNamespace>
