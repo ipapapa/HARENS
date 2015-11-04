@@ -7,7 +7,7 @@
 #include "FixedSizedCharArray.h"
 extern "C" {
 #include <pcap.h>
-#include <inaddr.h>
+//#include <inaddr.h>
 }
 #if defined(WIN32) || defined(WIN64)
 #include <winsock2.h>
