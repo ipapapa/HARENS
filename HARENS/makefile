@@ -3,14 +3,22 @@
 
 cp = nvcc
 cflags = -std=c++11 -O2 
-cflags += -I./WpdPack/Include -I./openssl_build_x64/include
-lflags = -L./WpdPack/Lib -L./openssl_build_x64/lib
-lflags += -llibpacket.a -llibwpcap.a -llibeay64.lib -lssleay64.lib
-objects := $(patsubst %.cpp ,%.o, $(wildcard *.cpp))
+cflags += -I/usr/local/cuda-7.5/include -I./WpdPack/Include -I./openssl_build_x64/include
+lflags = -L/usr/local/cuda-7.5/lib64 -L./WpdPack/Lib -L./openssl_build_x64/lib
+lflags += -lcudart -llibpacket.a -llibwpcap.a -llibeay64.lib -lssleay64.lib
 
-HARENS: $(objects)
-	$(cp) -M $(cflags) $(lflags) $(wildcard *.cpp) > $(objects)
-	$(cp) -o HARENS $(objects)
+#HARENS: $(objects)
+#	$(cp) -M $(cflags) $(lflags) $(wildcard *.cpp) -o $(objects)
+#	$(cp) -o HARENS $(objects)
+	
+#Tell make to make one .out file for each .cpp file found in the current directory
+HARENS: $(patsubst %.cpp, %.o, $(wildcard *.cpp))
+
+#Rule how to create arbitary .out files. 
+#First state what is needed for them e.g. additional headers, .cpp files in an include folder...
+#Then the command to create the .out file, probably you want to add further options to the g++ call.
+%.o: %.cpp Makefile
+    $(cp) -M $(cflags) $(lflags) $< -o $@ -std=c++0x
 
 .PHONY: clean
 clean:
