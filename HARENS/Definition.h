@@ -8,6 +8,7 @@
 #include <array>
 #include <list>
 #include <deque>
+#include <cstring>
 #include <string>
 #include <time.h>
 #include <algorithm>

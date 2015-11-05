@@ -26,11 +26,11 @@ extern "C" {
 #define MASK_11110000 (0xF0)
 #define WLAN_DATA (true)
 #define SNAP_EXTENSION_USED (0xAA)
-#define EMPTY (std::make_pair(empty_str, 0))
+#define EMPTY (std::make_pair(&empty_str[0], 0))
 
 class PcapReader {
 private:
-	char* empty_str = "";
+	const string empty_str = "";
 
 	pcap_t* handle;
 
