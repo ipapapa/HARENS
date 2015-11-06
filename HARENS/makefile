@@ -5,9 +5,9 @@ cp = /usr/local/cuda/bin/nvcc
 cudaflags = -gencode arch=compute_20,code=sm_20
 cudaflags += -gencode arch=compute_35,code=sm_35
 cflags = -std=c++11 -O2 
-cflags += -I/usr/local/cuda-7.5/include/ -I./WpdPack/Include/ -I./openssl_build_x64/include/ 
-lflags = -L/usr/local/cuda-7.5/lib64/ -L./WpdPack/Lib/ -L./openssl_build_x64/lib/ 
-lflags += -lcudart -lpacket -lwpcap -llibeay64.lib -lssleay64.lib 
+cflags += -I/usr/local/cuda-7.5/include/ -I/usr/include/
+lflags = -L/usr/local/cuda-7.5/lib64/
+lflags += -lcudart -lpcap -lcrypto
 
 #HARENS: $(objects)
 #	$(cp) -M $(cflags) $(lflags) $(wildcard *.cpp) -o $(objects)
@@ -32,6 +32,8 @@ install:
 	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 50
 	sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 50
 	sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-5 50
+	sudo apt-get install libpcap
+	sudo apt-get install openssl
 
 .PHONY: clean
 clean:
