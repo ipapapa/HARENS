@@ -54,11 +54,11 @@ public:
 	}
 
 	bool FindAndAdd(T hashValue, T* toBeDel){
-		std::unordered_map<T, unsigned int>::iterator it = map.find(hashValue);
+		typename std::unordered_map<T, unsigned int>::iterator it = map.find(hashValue);
 		bool isFound = it != map.end();
 		toBeDel = circularQueue.Add(hashValue);
 		if (toBeDel != 0) {
-			std::unordered_map<T, unsigned int>::iterator toBeDelIt = map.find(toBeDel);
+			typename std::unordered_map<T, unsigned int>::iterator toBeDelIt = map.find(toBeDel);
 			if (toBeDelIt->second == 1) {
 				map.erase(toBeDelIt, toBeDelIt);
 			}

@@ -87,7 +87,7 @@ unsigned int RedundancyEliminator_CPP::eliminateRedundancy(char* package, unsign
 /*
 Compute the hash value of chunk, should use sha to avoid collision,
 */
-inline void RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
+void RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
 	/*UCHAR* hashValue = new UCHAR[SHA_DIGEST_LENGTH];
 	SHA((UCHAR*)chunk, chunkSize, hashValue);
 	return hashValue;*/
