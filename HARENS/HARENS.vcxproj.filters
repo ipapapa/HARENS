@@ -28,9 +28,6 @@
     <ClCompile Include="FixedSizedCharArray.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
-    <ClCompile Include="TreeHash.cpp">
-      <Filter>Basic Functions</Filter>
-    </ClCompile>
     <ClCompile Include="VirtualHash.cpp">
       <Filter>Basic Functions</Filter>
     </ClCompile>
@@ -79,9 +76,6 @@
       <Filter>CUDA Implementation</Filter>
     </ClInclude>
     <ClInclude Include="FixedSizedCharArray.h">
-      <Filter>Basic Functions</Filter>
-    </ClInclude>
-    <ClInclude Include="TreeHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
     <ClInclude Include="VirtualHash.h">
