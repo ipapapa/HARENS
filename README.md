@@ -19,19 +19,19 @@ This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [D
   - The default setting is release-x64, you would find "HARENS.exe", the executable, in path .\x64\Release\
 - (For Linux users)
   - If apt-get is supported, type the folling command
-    - cd \path\to\Project\HARENS
-    - make clean (only when you want to re-install)
-    - make install
-    - make
+    - ```cd \path\to\Project\HARENS```
+    - ```make clean``` (only when you want to re-install)
+    - ```make install```
+    - ```make```
   - If apt-get is not supported
     - Edit makefile (I'm sure you can handle this)
-    - make install
-    - make
+    - ```make install```
+    - ```make```
   - You would find "run", the executable, in current path
 
 ###Usage
 Refer to the guide by typing:
 - (For Windows users)
-  - type HARENS.exe -h
+  - type ```HARENS.exe -h```
 - (For Linux users)
-  - type run -h
+  - type ```run -h```
