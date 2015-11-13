@@ -77,9 +77,9 @@ __global__ void Hash(const unsigned long long *TA, const unsigned long long *TB,
 
 RedundancyEliminator_CUDA::RedundancyEliminator_CUDA(Type type) {
 	if (type == NonMultifingerprint)
-		circHash = new LRUHash(MAX_CHUNK_NUM);
+		circHash = new LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
 	else
-		circHash = new LRUHashPool(MAX_CHUNK_NUM);
+		circHash = new LRUStrHashPool<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
 	hashFunc = RabinHash();
 	int tableSize = RabinHash::TABLE_ROW_NUM * BYTES_IN_ULONG;
 	cudaMalloc((void**)&kernelTA, tableSize);
@@ -96,9 +96,9 @@ RedundancyEliminator_CUDA::RedundancyEliminator_CUDA(Type type) {
 
 void RedundancyEliminator_CUDA::SetupRedundancyEliminator_CUDA(Type type) {
 	if (type == NonMultifingerprint)
-		circHash = new LRUHash(MAX_CHUNK_NUM);
+		circHash = new LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
 	else
-		circHash = new LRUHashPool(MAX_CHUNK_NUM);
+		circHash = new LRUStrHashPool<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
 	hashFunc = RabinHash();
 	int tableSize = RabinHash::TABLE_ROW_NUM * BYTES_IN_ULONG;
 	cudaMalloc((void**)&kernelTA, tableSize);
@@ -189,7 +189,7 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, int ind
 			continue;
 
 		chunk = &(package[prevIdx]);
-		computeChunkHash(chunk, chunkLen, chunkHash);
+		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		chunkHashQ.Push(chunkHash, chunkLen, (*mod));
 
 		//Mind! never use sizeof(chunk) to check the chunk size
@@ -218,7 +218,7 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> index
 
 		//Mind! never use sizeof(chunk) to check the chunk size
 		unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
-		computeChunkHash(chunk, chunkLen, chunkHash);
+		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
 			isDuplicate = true;
@@ -252,7 +252,7 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, uns
 
 		//Mind! never use sizeof(chunk) to check the chunk size
 		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
-		computeChunkHash(chunk, chunkLen, chunkHash);
+		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
 			isDuplicate = true;
@@ -372,13 +372,6 @@ unsigned int RedundancyEliminator_CUDA::eliminateRedundancy(char* package, unsig
 	cudaFreeHost(packageInput[1]);
 	//cudaFree(kernelInput);
 	return totalDuplicationSize;
-}
-
-/*
-Compute the hash value of chunk, should use sha1 to avoid collision
-*/
-inline void RedundancyEliminator_CUDA::computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
-	SHA1((unsigned char*)chunk, chunkSize, hashValue);
 }
 
 int mod(unsigned char* hashValue, int divisor) {

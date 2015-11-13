@@ -19,8 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="LRUHash.cpp" />
-    <ClCompile Include="LRUHashPool.cpp" />
     <ClCompile Include="FixedSizedCharArray.cpp" />
     <ClCompile Include="HashCollisionTest.cpp" />
     <ClCompile Include="NaiveCpp.cpp" />
@@ -33,12 +31,12 @@
     <ClCompile Include="RabinHash.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP_CollisionTest.cpp" />
-    <ClCompile Include="VirtualHash.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EncryptionHashes.h" />
+    <ClInclude Include="LRUStrHash.h" />
+    <ClInclude Include="LRUStrHashPool.h" />
     <ClInclude Include="LRUHash.h" />
-    <ClInclude Include="LRUHashPool.h" />
-    <ClInclude Include="LRUHash_CollisionTest.h" />
     <ClInclude Include="LRUQueue.h" />
     <ClInclude Include="LRUQueuePool.h" />
     <ClInclude Include="FixedSizedCharArray.h" />
@@ -55,7 +53,7 @@
     <ClInclude Include="RabinHash.h" />
     <ClInclude Include="RedundancyEliminator_CPP.h" />
     <ClInclude Include="RedundancyEliminator_CUDA.h" />
-    <ClInclude Include="VirtualHash.h" />
+    <ClInclude Include="LRUVirtualHash.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="RedundancyEliminator_CUDA.cu" />

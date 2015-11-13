@@ -1,24 +1,43 @@
-#include "LRUHash.h"
+#pragma once
+#include "LRUVirtualHash.h"
+#include "SelfMantainedLRUQueue.h"
+#include "Definition.h"
 
 template <int str_len>
-LRUHash<str_len>::LRUHash<str_len>(unsigned int _size) : VirtualHash<str_len>(_size), circularQueue(_size), map(size)
+class LRUStrHash : public LRUVirtualHash<str_len> {
+private:
+	SelfMantainedLRUQueue<unsigned char*> circularQueue;
+	charPtMap map;
+
+public:
+	LRUStrHash(): LRUVirtualHash(0) {}
+	LRUStrHash(unsigned int _size);
+	void SetupLRUStrHash(unsigned int _size);
+	~LRUStrHash();
+	unsigned char* Add(unsigned char* hashValue, const bool isDuplicated);
+	bool Find(unsigned char* hashValue);
+	bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel);
+};
+
+template <int str_len>
+LRUStrHash<str_len>::LRUStrHash<str_len>(unsigned int _size) : LRUVirtualHash<str_len>(_size), circularQueue(_size), map(size)
 {
 }
 
 template <int str_len>
-void LRUHash<str_len>::SetupLRUHash(unsigned int _size) {
-	SetupVirtualHash(_size);
+void LRUStrHash<str_len>::SetupLRUStrHash(unsigned int _size) {
+	SetupLRUVirtualHash(_size);
 	circularQueue.SetupLRUQueue(_size);
 	map = charPtMap(_size);
 }
 
 template <int str_len>
-LRUHash<str_len>::~LRUHash()
+LRUStrHash<str_len>::~LRUStrHash()
 {
 }
 
 template <int str_len>
-unsigned char* LRUHash<str_len>::Add(unsigned char* hashValue, const bool isDuplicated) {
+unsigned char* LRUStrHash<str_len>::Add(unsigned char* hashValue, const bool isDuplicated) {
 	unsigned char* toBeDel;
 	//Deal with the oldest hash value if the circular map is full
 	toBeDel = circularQueue.Add(hashValue);
@@ -44,17 +63,17 @@ unsigned char* LRUHash<str_len>::Add(unsigned char* hashValue, const bool isDupl
 }
 
 template <int str_len>
-bool LRUHash<str_len>::Find(unsigned char* hashValue) {
+bool LRUStrHash<str_len>::Find(unsigned char* hashValue) {
 	return map.find(hashValue) != map.end();
 }
 
 template <int str_len>
-bool LRUHash<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
-	charPtMap::iterator it = map.find(hashValue);
+bool LRUStrHash<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
+	typename charPtMap::iterator it = map.find(hashValue);
 	bool isFound = it != map.end();
 	toBeDel = circularQueue.Add(hashValue);
 	if (toBeDel != nullptr) {
-		charPtMap::iterator toBeDelIt = map.find(toBeDel);
+		typename charPtMap::iterator toBeDelIt = map.find(toBeDel);
 		if (toBeDelIt->second == 1) {
 			map.erase(toBeDelIt, toBeDelIt);
 		}

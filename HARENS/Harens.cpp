@@ -7,10 +7,10 @@ Harens::Harens(int mapperNum, int reducerNum)
 	this->reducerNum = reducerNum;
 	segment_threads = new thread[mapperNum];
 	chunk_match_threads = new thread[reducerNum];
-	circ_hash_pool = new LRUHash[reducerNum];
+	circ_hash_pool = new LRUStrHash<SHA_DIGEST_LENGTH>[reducerNum];
 	duplication_size = new unsigned int[reducerNum];
 	for (int i = 0; i < reducerNum; ++i) {
-		circ_hash_pool[i] = LRUHash(MAX_CHUNK_NUM / reducerNum);
+		circ_hash_pool[i] = LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM / reducerNum);
 		duplication_size[i] = 0;
 	}
 

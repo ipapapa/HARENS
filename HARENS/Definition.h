@@ -18,6 +18,7 @@
 #include <deque>
 #include <condition_variable>
 #include <openssl/sha.h>
+#include <openssl/md5.h>
 
 const unsigned int BYTES_IN_INT = sizeof(int);
 const unsigned int BYTES_IN_UINT = sizeof(unsigned int);
@@ -47,26 +48,3 @@ const unsigned int MAX_BUFFER_LEN = MAX_KERNEL_INPUT_LEN;
 const unsigned int MAX_WINDOW_NUM = MAX_BUFFER_LEN - WINDOW_SIZE + 1;
 //number of buffer to store chunking results
 const int RESULT_BUFFER_NUM = 3;
-
-struct CharArrayEqualTo {
-	bool operator()(const unsigned char* __x, const unsigned char* __y) const {
-		for (int i = 0; i < SHA_DIGEST_LENGTH; ++i) {
-			if (__x[i] != __y[i])
-				return false;
-		}
-		return true;
-	}
-};
-
-struct CharArrayHashFunc {
-	//BKDR hash algorithm
-	int operator()(unsigned char * str)const {
-		int seed = 131;/*31  131 1313 13131131313 etc*/
-		int hash = 0;
-		for (int i = 0; i < SHA_DIGEST_LENGTH; ++i) {
-			hash = (hash * seed) + str[i];
-		}
-
-		return hash & (0x7FFFFFFF);
-	}
-};

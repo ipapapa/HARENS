@@ -143,10 +143,12 @@ e.g.\tREINS.exe -f inputfile.txt -a cuda_pipe -m 8 -r 256\n\
 }
 
 void CompareHash(bool isCollisionCheck) {
-	//use sha1
-	HashCollisionTest(true, isCollisionCheck).Execute();
 	//use rabin hash
-	HashCollisionTest(false, isCollisionCheck).Execute();
+	HashCollisionTest(0, isCollisionCheck).Execute();
+	//use sha1 hash
+	HashCollisionTest(1, isCollisionCheck).Execute();
+	//use md5 hash
+	HashCollisionTest(2, isCollisionCheck).Execute();
 }
 
 void Execute(Method method, int mapperNum, int reducerNum) {

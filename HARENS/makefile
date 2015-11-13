@@ -22,7 +22,7 @@ all: run
 run: $(objects)
 	$(NVCC) Main.o NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o \
 	RedundancyEliminator_CPP_CollisionTest.o RedundancyEliminator_CPP.o RedundancyEliminator_CUDA.o \
-	RabinHash.o LRUHash.o LRUHashPool.o VirtualHash.o IO.o PcapReader.o FixedSizedCharArray.o \
+	RabinHash.o IO.o PcapReader.o FixedSizedCharArray.o \
 	$(iflags) $(lflags) -o $@
 
 #Rule how to create arbitary .out files. 
@@ -50,22 +50,13 @@ HashCollisionTest.o: HashCollisionTest.cpp IO.o RabinHash.o RedundancyEliminator
 RedundancyEliminator_CPP_CollisionTest.o: RedundancyEliminator_CPP_CollisionTest.cpp RedundancyEliminator_CPP.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
-RedundancyEliminator_CPP.o: RedundancyEliminator_CPP.cpp RabinHash.o LRUHash.o
+RedundancyEliminator_CPP.o: RedundancyEliminator_CPP.cpp RabinHash.o 
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
-RedundancyEliminator_CUDA.o: RedundancyEliminator_CUDA.cu RabinHash.o LRUHash.o LRUHashPool.o
+RedundancyEliminator_CUDA.o: RedundancyEliminator_CUDA.cu RabinHash.o
 	$(NVCC) $(cudaflags) $(cflags) $(iflags) $(lflags) $< -o $@
 
 RabinHash.o: RabinHash.cpp
-	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
-
-LRUHash.o: LRUHash.cpp VirtualHash.o 
-	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
-
-LRUHashPool.o: LRUHashPool.cpp VirtualHash.o
-	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
-
-VirtualHash.o: VirtualHash.cpp 
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 IO.o: IO.cpp
@@ -78,8 +69,9 @@ FixedSizedCharArray.o: FixedSizedCharArray.cpp
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 %.o: %.h 
-$(objects): Definition.h LRUQueue.h LRUQueuePool.h SelfMantainedLRUQueue.h makefile
-RedundancyEliminator_CPP_CollisionTest.o: LRUHash_CollisionTest.h 
+$(objects): Definition.h LRUQueue.h LRUQueuePool.h SelfMantainedLRUQueue.h LRUVirtualHash.h \
+LRUStrHash.h LRUStrHashPool.h makefile
+RedundancyEliminator_CPP_CollisionTest.o: LRUHash.h 
 
 .PHONY: intall
 install:

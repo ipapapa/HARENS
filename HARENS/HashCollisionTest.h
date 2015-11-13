@@ -9,7 +9,7 @@ This class is the module of naive cpp implementation
 */
 class HashCollisionTest {
 private:
-	bool isSha1Used;
+	int hashFuncUsed;
 	bool isCollisionCheck;
 	unsigned int fileLength = 0;
 	RedundancyEliminator_CPP_CollisionTest re;
@@ -33,7 +33,7 @@ private:
 	float totFin = 0;
 
 public:
-	HashCollisionTest(bool isSha1Used, bool isCollisionCheck);
+	HashCollisionTest(int hashFuncUsed, bool isCollisionCheck);
 	~HashCollisionTest();
 
 	bool ReadFile();

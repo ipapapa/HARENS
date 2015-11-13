@@ -1,8 +1,31 @@
-#include "LRUHashPool.h"
-using namespace std;
+#pragma once
+#include "LRUVirtualHash.h"
+#include "SelfMantainedLRUQueue.h"
+#include "Definition.h"
 
 template <int str_len>
-LRUHashPool<str_len>::LRUHashPool<str_len>(unsigned int _size) : VirtualHash<str_len>(_size)
+class LRUStrHashPool : public LRUVirtualHash<str_len>
+{
+private:
+	static const int POOL_SEGMENT_NUM = 2048;
+	std::array<charPtMap, POOL_SEGMENT_NUM> mapPool;
+	std::array<std::mutex, POOL_SEGMENT_NUM> mapPoolMutex;
+	SelfMantainedLRUQueue<unsigned char*> circularQueue;
+	std::mutex circularQueueMutex;
+
+public:
+	LRUStrHashPool(unsigned int size);
+	~LRUStrHashPool();
+
+	unsigned char* Add(unsigned char* hashValue, const bool isDuplicated);
+
+	bool Find(unsigned char* hashValue);
+
+	bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel);
+};
+
+template <int str_len>
+LRUStrHashPool<str_len>::LRUStrHashPool<str_len>(unsigned int _size) : LRUVirtualHash<str_len>(_size)
 {
 	for (auto& segPool : mapPool)
 		segPool = charPtMap(size / POOL_SEGMENT_NUM);
@@ -10,14 +33,14 @@ LRUHashPool<str_len>::LRUHashPool<str_len>(unsigned int _size) : VirtualHash<str
 }
 
 template <int str_len>
-LRUHashPool<str_len>::~LRUHashPool()
+LRUStrHashPool<str_len>::~LRUStrHashPool()
 {
 	for (auto& segPool : mapPool)
 		segPool.clear();
 }
 
 template <int str_len>
-unsigned char* LRUHashPool<str_len>::Add(unsigned char* hashValue, const bool isDuplicated) {
+unsigned char* LRUStrHashPool<str_len>::Add(unsigned char* hashValue, const bool isDuplicated) {
 	unsigned char* toBeDel;
 	int segNum = (int)((hashValue[0] << 16) + (hashValue[1] << 8) + hashValue[2]) % POOL_SEGMENT_NUM;
 
@@ -49,7 +72,7 @@ unsigned char* LRUHashPool<str_len>::Add(unsigned char* hashValue, const bool is
 }
 
 template <int str_len>
-bool LRUHashPool<str_len>::Find(unsigned char* hashValue) {
+bool LRUStrHashPool<str_len>::Find(unsigned char* hashValue) {
 	bool isFound;
 	int segNum = (int)((hashValue[0] << 16) + (hashValue[1] << 8) + hashValue[2]) % POOL_SEGMENT_NUM;
 	mapPoolMutex[segNum].lock();
@@ -59,7 +82,7 @@ bool LRUHashPool<str_len>::Find(unsigned char* hashValue) {
 }
 
 template <int str_len>
-bool LRUHashPool<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
+bool LRUStrHashPool<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
 	bool isFound;
 	int segNum = (int)((hashValue[0] << 16) + (hashValue[1] << 8) + hashValue[2]) % POOL_SEGMENT_NUM;
 

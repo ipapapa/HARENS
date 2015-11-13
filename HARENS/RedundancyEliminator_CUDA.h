@@ -3,19 +3,19 @@
 #include <cuda.h>
 #include "LRUQueuePool.h"
 #include "RabinHash.h"
-#include "LRUHash.h"
-#include "LRUHashPool.h"
+#include "LRUStrHash.h"
+#include "LRUStrHashPool.h"
 #include "Definition.h"
+#include "EncryptionHashes.h"
 
 class RedundancyEliminator_CUDA {
 private:
 	RabinHash hashFunc;
-	VirtualHash* circHash;
+	LRUVirtualHash<SHA_DIGEST_LENGTH>* circHash;
 
 	//Add a new chunk into cache, if hash value queue is full also delete the oldest chunk
 	void addNewChunk(unsigned char* hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate);
-	/*Take chunk and chunk size as input, hashValue as output*/
-	inline void computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue);
+
 public:
 	unsigned long long *kernelTA, *kernelTB, *kernelTC, *kernelTD;
 	enum Type {MultiFingerprint, NonMultifingerprint};

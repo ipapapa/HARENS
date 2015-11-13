@@ -6,7 +6,7 @@ RedundancyEliminator_CPP::RedundancyEliminator_CPP() {
 
 void RedundancyEliminator_CPP::SetupRedundancyEliminator_CPP() {
 	hashFunc = RabinHash();
-	circHash.SetupLRUHash(MAX_CHUNK_NUM);
+	circHash.SetupLRUStrHash(MAX_CHUNK_NUM);
 	//The real software need to generate a initial file named 0xFF here
 	//Check LRU.cpp to see the reason
 }
@@ -58,7 +58,7 @@ unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ
 
 		chunk = &(package[prevIdx]);
 		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
-		computeChunkHash(chunk, chunkLen, chunkHash);
+		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (circHash.Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
 			isDuplicate = true;
@@ -82,15 +82,4 @@ unsigned int RedundancyEliminator_CPP::eliminateRedundancy(char* package, unsign
 	double time = (clock() - start) * 1000 / CLOCKS_PER_SEC;
 	printf("Chunk partition time: %f ms\n", time);
 	return fingerPrinting(indexQ, package);
-}
-
-/*
-Compute the hash value of chunk, should use sha to avoid collision,
-*/
-void RedundancyEliminator_CPP::computeChunkHash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
-	/*UCHAR* hashValue = new UCHAR[SHA_DIGEST_LENGTH];
-	SHA((UCHAR*)chunk, chunkSize, hashValue);
-	return hashValue;*/
-	//return hashFunc.Hash(chunk, chunkSize);
-	SHA1((unsigned char*)chunk, chunkSize, hashValue);
 }

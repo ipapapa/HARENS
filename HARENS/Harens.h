@@ -60,7 +60,7 @@ private:
 	LRUQueuePool chunk_hash_queue_pool;
 	//chunk matching 
 	thread *chunk_match_threads;
-	LRUHash *circ_hash_pool;
+	LRUStrHash<SHA_DIGEST_LENGTH> *circ_hash_pool;
 	unsigned int *duplication_size;
 	unsigned int total_duplication_size = 0;
 	//Time

@@ -1,9 +1,9 @@
 #include "HashCollisionTest.h"
 using namespace std;
 
-HashCollisionTest::HashCollisionTest(bool isSha1Used, bool isCollisionCheck) 
+HashCollisionTest::HashCollisionTest(int hashFuncUsed, bool isCollisionCheck) 
 	: charArrayBuffer(MAX_BUFFER_LEN) {
-	this->isSha1Used = isSha1Used;
+	this->hashFuncUsed = hashFuncUsed;
 	this->isCollisionCheck = isCollisionCheck;
 	re.SetupRedundancyEliminator_CPP_CollisionTest();
 	buffer = new char[MAX_BUFFER_LEN];
@@ -17,10 +17,19 @@ HashCollisionTest::~HashCollisionTest() {
 int	HashCollisionTest::Execute()
 {
 	IO::Print("\n================= Collision Test Using C++ Implementation ==================\n");
-	if (isSha1Used)
-		IO::Print("SHA1 applied\n");
-	else
+	switch (hashFuncUsed) {
+	case 0:
 		IO::Print("Rabin hash applied\n");
+		break;
+	case 1:
+		IO::Print("SHA1 hash applied\n");
+		break;
+	case 2:
+		IO::Print("MD5 hash applied\n");
+		break;
+	default:
+		IO::Print("error: unknown hash number %d", hashFuncUsed);
+	}
 
 	bool keepReading = true;
 	do {
@@ -121,18 +130,33 @@ void HashCollisionTest::Fingerprinting() {
 	
 	if (isCollisionCheck) {
 		tuple<int, int> result;
-		if (isSha1Used)
-			result = re.SHA1FingerPrintingWithCollisionCheck(chunkingResult, buffer);
-		else
+		switch (hashFuncUsed) {
+		case 0: 
 			result = re.RabinFingerPrintingWithCollisionCheck(chunkingResult, buffer);
+			break;
+		case 1:
+			result = re.Sha1FingerPrintingWithCollisionCheck(chunkingResult, buffer);
+			break;
+		case 2:
+			result = re.Md5FingerPrintingWithCollisionCheck(chunkingResult, buffer);
+			break;
+		}
+
 		totalDuplicationSize += get<0>(result);
 		totalFalseReportSize += get<1>(result);
 	}
 	else {
-		if (isSha1Used)
-			totalDuplicationSize += re.SHA1FingerPrinting(chunkingResult, buffer);
-		else
+		switch (hashFuncUsed) {
+		case 0: 
 			totalDuplicationSize += re.RabinFingerPrinting(chunkingResult, buffer);
+			break;
+		case 1:
+			totalDuplicationSize += re.Sha1FingerPrinting(chunkingResult, buffer);
+			break;
+		case 2:
+			totalDuplicationSize += re.Md5FingerPrinting(chunkingResult, buffer);
+			break;
+		}
 	}
 
 	totFin += ((float)clock() - start_fin) * 1000 / CLOCKS_PER_SEC;
