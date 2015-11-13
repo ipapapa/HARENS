@@ -8,7 +8,7 @@ class LRUStrHashPool : public LRUVirtualHash<str_len>
 {
 private:
 	static const int POOL_SEGMENT_NUM = 2048;
-	std::array<charPtMap, POOL_SEGMENT_NUM> mapPool;
+	std::array<typename LRUStrHash<str_len>::charPtMap, POOL_SEGMENT_NUM> mapPool;
 	std::array<std::mutex, POOL_SEGMENT_NUM> mapPoolMutex;
 	SelfMantainedLRUQueue<unsigned char*> circularQueue;
 	std::mutex circularQueueMutex;
@@ -25,11 +25,11 @@ public:
 };
 
 template <int str_len>
-LRUStrHashPool<str_len>::LRUStrHashPool<str_len>(unsigned int _size) : LRUVirtualHash<str_len>(_size)
+LRUStrHashPool<str_len>::LRUStrHashPool(unsigned int _size) : LRUVirtualHash<str_len>(_size)
 {
 	for (auto& segPool : mapPool)
-		segPool = charPtMap(size / POOL_SEGMENT_NUM);
-	circularQueue = SelfMantainedLRUQueue<unsigned char*>(size);
+		segPool = typename LRUStrHash<str_len>::charPtMap(_size / POOL_SEGMENT_NUM);
+	circularQueue = SelfMantainedLRUQueue<unsigned char*>(_size);
 }
 
 template <int str_len>

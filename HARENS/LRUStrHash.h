@@ -7,10 +7,10 @@ template <int str_len>
 class LRUStrHash : public LRUVirtualHash<str_len> {
 private:
 	SelfMantainedLRUQueue<unsigned char*> circularQueue;
-	charPtMap map;
+	typename LRUVirtualHash<str_len>::charPtMap map;
 
 public:
-	LRUStrHash(): LRUVirtualHash(0) {}
+	LRUStrHash(): LRUVirtualHash<str_len>(0) {}
 	LRUStrHash(unsigned int _size);
 	void SetupLRUStrHash(unsigned int _size);
 	~LRUStrHash();
@@ -20,15 +20,16 @@ public:
 };
 
 template <int str_len>
-LRUStrHash<str_len>::LRUStrHash<str_len>(unsigned int _size) : LRUVirtualHash<str_len>(_size), circularQueue(_size), map(size)
+LRUStrHash<str_len>::LRUStrHash(unsigned int _size)
+	: LRUVirtualHash<str_len>(_size), circularQueue(_size), map(_size)
 {
 }
 
 template <int str_len>
 void LRUStrHash<str_len>::SetupLRUStrHash(unsigned int _size) {
-	SetupLRUVirtualHash(_size);
+	LRUStrHash<str_len>::SetupLRUVirtualHash(_size);
 	circularQueue.SetupLRUQueue(_size);
-	map = charPtMap(_size);
+	map = typename LRUVirtualHash<str_len>::charPtMap(_size);
 }
 
 template <int str_len>
@@ -69,11 +70,11 @@ bool LRUStrHash<str_len>::Find(unsigned char* hashValue) {
 
 template <int str_len>
 bool LRUStrHash<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
-	typename charPtMap::iterator it = map.find(hashValue);
+	typename LRUVirtualHash<str_len>::charPtMap::iterator it = map.find(hashValue);
 	bool isFound = it != map.end();
 	toBeDel = circularQueue.Add(hashValue);
 	if (toBeDel != nullptr) {
-		typename charPtMap::iterator toBeDelIt = map.find(toBeDel);
+		typename LRUVirtualHash<str_len>::charPtMap::iterator toBeDelIt = map.find(toBeDel);
 		if (toBeDelIt->second == 1) {
 			map.erase(toBeDelIt, toBeDelIt);
 		}

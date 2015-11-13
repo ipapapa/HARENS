@@ -50,7 +50,7 @@ HashCollisionTest.o: HashCollisionTest.cpp IO.o RabinHash.o RedundancyEliminator
 RedundancyEliminator_CPP_CollisionTest.o: RedundancyEliminator_CPP_CollisionTest.cpp RedundancyEliminator_CPP.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
-RedundancyEliminator_CPP.o: RedundancyEliminator_CPP.cpp RabinHash.o 
+RedundancyEliminator_CPP.o: RedundancyEliminator_CPP.cpp RabinHash.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 RedundancyEliminator_CUDA.o: RedundancyEliminator_CUDA.cu RabinHash.o
