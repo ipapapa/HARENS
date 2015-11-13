@@ -5,9 +5,8 @@ We have developed a Hardware Accelarated Redundancy Elimination in Network Syste
 This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
 
 ##Requirements
-- Windows 7/8 (Windows 10 possibly doesn't support CUDA architecture)
-- 64-bit operating system
-- NVidia GPU
+- Windows 7/8 64-bit (Windows 10 possibly doesn't support CUDA architecture) or Linux 64-bit
+- NVidia GPU, which supports cuda compute capability 3.5 or later
 - CUDA 6.5 driver or later
 - (For Windows users)
   - Visual Studio 2013 or later
