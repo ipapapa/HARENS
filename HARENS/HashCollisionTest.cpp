@@ -39,8 +39,7 @@ int	HashCollisionTest::Execute()
 	} while (keepReading);
 
 	if (isCollisionCheck) {
-		IO::Print("Found %s of false report with in %s of redundancy\
-			, which is %f %% of all reported redundancy\n"
+		IO::Print("Found %s of false report with in %s of redundancy, which is %f %% of all reported redundancy\n"
 			, IO::InterpretSize(totalFalseReportSize)
 			, IO::InterpretSize(totalDuplicationSize)
 			, (float)totalFalseReportSize / totalDuplicationSize * 100);
