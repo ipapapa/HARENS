@@ -10,8 +10,8 @@ CudaAcceleratedAlg::CudaAcceleratedAlg()
 	cudaMallocHost((void**)&fixed_buffer, MAX_BUFFER_LEN);
 	//initialize chunking kernel ascychronize
 	cudaMalloc((void**)&input_kernel, MAX_BUFFER_LEN);
-	cudaMalloc((void**)&result_kernel, MAX_WINDOW_NUM * BYTES_IN_ULONG);
-	cudaMallocHost((void**)&result_host, MAX_WINDOW_NUM * BYTES_IN_ULONG);
+	cudaMalloc((void**)&result_kernel, MAX_WINDOW_NUM * BYTES_IN_UINT);
+	cudaMallocHost((void**)&result_host, MAX_WINDOW_NUM * BYTES_IN_UINT);
 	//initialize chunking result processing
 	chunking_result = new unsigned int[MAX_WINDOW_NUM];
 }
@@ -153,7 +153,7 @@ void CudaAcceleratedAlg::ChunkingResultProc() {
 	int chunkingResultIdx = 0;
 	unsigned int resultHostLen = result_host_len;
 	for (unsigned int j = 0; j < resultHostLen; ++j) {
-		if ((result_host[j] & P_MINUS) == 0) {
+		if (result_host[j] == 0) {
 			chunking_result[chunkingResultIdx++] = j;
 		}
 	}

@@ -41,8 +41,8 @@ private:
 	RedundancyEliminator_CUDA re;
 	//chunking kernel asynchronize
 	array<char*, FIXED_BUFFER_NUM> input_kernel;
-	array<unsigned long long*, FIXED_BUFFER_NUM> result_kernel;
-	array<unsigned long long*, FIXED_BUFFER_NUM> result_host;
+	array<unsigned int*, FIXED_BUFFER_NUM> result_kernel;
+	array<unsigned int*, FIXED_BUFFER_NUM> result_host;
 	array<unsigned int, FIXED_BUFFER_NUM> result_host_len;
 	array<mutex, FIXED_BUFFER_NUM> result_host_mutex;
 	array<condition_variable, FIXED_BUFFER_NUM> result_host_cond;

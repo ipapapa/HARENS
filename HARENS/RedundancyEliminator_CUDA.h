@@ -41,8 +41,8 @@ public:
 	void RabinHashAsync(char* inputKernel, 
 						char* inputHost, 
 						unsigned int inputLen, 
-						unsigned long long* resultKernel, 
-						unsigned long long* resultHost,
+						unsigned int* resultKernel, 
+						unsigned int* resultHost,
 						cudaStream_t stream);
 
 	//unsigned int eliminateRedundancy(char* package, 
@@ -53,11 +53,11 @@ public:
 	~RedundancyEliminator_CUDA();
 };
 
-__device__ void SetResultElement(unsigned long long* subResult,
+__device__ void SetResultElement(unsigned int* subResult,
 								 const unsigned int idx,
-								 const unsigned long long resultPoint);
-__device__ unsigned long long* GetSubResult(unsigned long long* result, 
-											const unsigned int blockNum);
+								 const unsigned int resultPoint);
+__device__ unsigned int* GetSubResult(unsigned int* result, 
+									  const unsigned int blockNum);
 __device__ const char* GetSubStr(const char *str, 
 								 const unsigned int blockNum);
 __device__ unsigned int GetUIntFromStr(const char* strs, 
@@ -72,7 +72,7 @@ __global__ void Hash(const unsigned long long *TA,
 					 const unsigned long long * TD,
 					 const char *str, 
 					 const unsigned int windowsNum, 
-					 unsigned long long *result);
+					 unsigned int *result);
 
 int mod(unsigned char* hash, 
 		int divisor);

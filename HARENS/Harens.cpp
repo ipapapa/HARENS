@@ -28,8 +28,8 @@ Harens::Harens(int mapperNum, int reducerNum)
 	//initialize chunking kernel ascychronize
 	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
 		cudaMalloc((void**)&input_kernel[i], MAX_BUFFER_LEN);
-		cudaMalloc((void**)&result_kernel[i], MAX_WINDOW_NUM * BYTES_IN_ULONG);
-		cudaMallocHost((void**)&result_host[i], MAX_WINDOW_NUM * BYTES_IN_ULONG);
+		cudaMalloc((void**)&result_kernel[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
+		cudaMallocHost((void**)&result_host[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
 		result_host_obsolete[i] = true;
 		result_host_executing[i] = false;
 	}
@@ -343,7 +343,7 @@ void Harens::ChunkingResultProc() {
 		int chunkingResultIdx = 0;
 		unsigned int resultHostLen = result_host_len[resultHostIdx];
 		for (unsigned int j = 0; j < resultHostLen; ++j) {
-			if ((result_host[resultHostIdx][j] & P_MINUS) == 0) {
+			if (result_host[resultHostIdx][j] == 0) {
 				chunking_result[streamIdx][chunkingResultIdx++] = j;
 			}
 		}

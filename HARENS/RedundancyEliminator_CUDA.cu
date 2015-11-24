@@ -2,14 +2,14 @@
 
 #define CharArraySize(array) strlen(array)
 
-__device__ void SetResultElement(unsigned long long* subResult, 
+__device__ void SetResultElement(unsigned int* subResult, 
 								 const unsigned int idx, 
-								 const unsigned long long resultPoint) {
+								 const unsigned int resultPoint) {
 	subResult[idx] = resultPoint;
 }
 
-__device__ unsigned long long* GetSubResult(unsigned long long* result, 
-											const unsigned int blockNum) {
+__device__ unsigned int* GetSubResult(unsigned int* result, 
+									  const unsigned int blockNum) {
 	return &(result[blockNum * THREAD_PER_BLOCK]);
 }
 
@@ -48,13 +48,13 @@ __global__ void Hash(const unsigned long long *TA,
 					 const unsigned long long * TD,
 					 const char *str, 
 					 const unsigned int windowsNum, 
-					 unsigned long long *result) {
+					 unsigned int *result) {
 	if (blockDim.x * blockIdx.x + threadIdx.x >= windowsNum)
 		return;
 
 	unsigned int blockNum = blockIdx.x;
 	const char* subStr = GetSubStr(str, blockNum);
-	unsigned long long* subResult = GetSubResult(result, blockNum);
+	unsigned int* subResult = GetSubResult(result, blockNum);
 
 	__shared__ char s_str[THREAD_PER_BLOCK + 3];
 	__shared__ char s_str_shift[THREAD_PER_BLOCK + 7];
@@ -80,8 +80,8 @@ __global__ void Hash(const unsigned long long *TA,
 
 	unsigned long long resultPoint = GetULongFromStr(s_str_shift, threadNum);
 	resultPoint ^= TA[h] ^ TB[i] ^ TC[j] ^ TD[k];
-	
-	SetResultElement(subResult, threadNum, resultPoint);
+	unsigned int resultMod = resultPoint & P_MINUS;
+	SetResultElement(subResult, threadNum, resultMod);
 	//debug
 	/*debug[threadNum * 2] = windowStart;
 	debug[threadNum * 2 + 1] = result[windowStart];*/
@@ -289,8 +289,8 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr,
 void RedundancyEliminator_CUDA::RabinHashAsync(char* inputKernel, 
 											   char* inputHost, 
 											   unsigned int inputLen, 
-											   unsigned long long* resultKernel, 
-											   unsigned long long* resultHost, 
+											   unsigned int* resultKernel, 
+											   unsigned int* resultHost, 
 											   cudaStream_t stream) {
 	cudaMemcpyAsync(inputKernel, 
 					inputHost,	
@@ -306,7 +306,7 @@ void RedundancyEliminator_CUDA::RabinHashAsync(char* inputKernel,
 													  resultKernel);
 	cudaMemcpyAsync(resultHost, 
 					resultKernel,
-					(inputLen - WINDOW_SIZE + 1) * BYTES_IN_ULONG, 
+					(inputLen - WINDOW_SIZE + 1) * BYTES_IN_UINT, 
 					cudaMemcpyDeviceToHost, 
 					stream);
 	cudaError_t error = cudaGetLastError();

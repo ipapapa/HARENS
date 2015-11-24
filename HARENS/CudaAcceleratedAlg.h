@@ -26,8 +26,8 @@ private:
 	RedundancyEliminator_CUDA re;
 	//chunking kernel asynchronize
 	char* input_kernel;
-	unsigned long long* result_kernel;
-	unsigned long long* result_host;
+	unsigned int* result_kernel;
+	unsigned int* result_host;
 	unsigned int result_host_len;
 	//chunking result processing
 	cudaStream_t stream;
