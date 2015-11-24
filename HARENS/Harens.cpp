@@ -296,8 +296,12 @@ void Harens::ChunkingKernel() {
 		pagable_buffer_cond[pagableBufferIdx].notify_one();
 		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 
-		re.RabinHashAsync(input_kernel[fixedBufferIdx], fixed_buffer[fixedBufferIdx], fixed_buffer_len[fixedBufferIdx],
-			result_kernel[fixedBufferIdx], result_host[fixedBufferIdx], stream[streamIdx]);
+		re.RabinHashAsync(input_kernel[fixedBufferIdx], 
+						  fixed_buffer[fixedBufferIdx], 
+						  fixed_buffer_len[fixedBufferIdx],
+						  result_kernel[fixedBufferIdx], 
+						  result_host[fixedBufferIdx],
+						  stream[streamIdx]);
 
 		result_host_len[fixedBufferIdx] = fixed_buffer_len[fixedBufferIdx] - WINDOW_SIZE + 1;
 		result_host_executing[fixedBufferIdx] = true;

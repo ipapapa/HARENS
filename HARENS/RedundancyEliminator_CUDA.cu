@@ -2,23 +2,29 @@
 
 #define CharArraySize(array) strlen(array)
 
-__device__ void SetResultElement(unsigned long long* subResult, const unsigned int idx, const unsigned long long resultPoint) {
+__device__ void SetResultElement(unsigned long long* subResult, 
+								 const unsigned int idx, 
+								 const unsigned long long resultPoint) {
 	subResult[idx] = resultPoint;
 }
 
-__device__ unsigned long long* GetSubResult(unsigned long long* result, const unsigned int blockNum) {
+__device__ unsigned long long* GetSubResult(unsigned long long* result, 
+											const unsigned int blockNum) {
 	return &(result[blockNum * THREAD_PER_BLOCK]);
 }
 
-__device__ const char* GetSubStr(const char *str, const unsigned int blockNum) {
+__device__ const char* GetSubStr(const char *str, 
+								 const unsigned int blockNum) {
 	return &(str[blockNum * THREAD_PER_BLOCK]);
 }
 
-__device__ unsigned int GetUIntFromStr(const char* strs, const unsigned int idx) {
+__device__ unsigned int GetUIntFromStr(const char* strs, 
+									   const unsigned int idx) {
 	return (strs[idx] << 24) | (strs[idx + 1] << 16) | (strs[idx + 2] << 8) | (strs[idx + 3]);
 }
 
-__device__ unsigned long long GetULongFromStr(const char* strs, const unsigned int idx) {
+__device__ unsigned long long GetULongFromStr(const char* strs, 
+											  const unsigned int idx) {
 	/*unsigned long long result;
 	memcpy((void*)&result, strs, BYTES_IN_ULONG);
 	return result;
@@ -26,17 +32,23 @@ __device__ unsigned long long GetULongFromStr(const char* strs, const unsigned i
 	
 	unsigned long long result = strs[idx];
 	for (int i = 1; i < 8; ++i)
-	result = (result << 8) | strs[idx + i];
+		result = (result << 8) | strs[idx + i];
 	return result;
 	
 }
 
-__device__ char GetChar(const char* subStr, const unsigned int idx) {
+__device__ char GetChar(const char* subStr, 
+						const unsigned int idx) {
 	return subStr[idx];
 }
 
-__global__ void Hash(const unsigned long long *TA, const unsigned long long *TB, const unsigned long long *TC, const unsigned long long * TD,
-	const char *str, const unsigned int windowsNum, unsigned long long *result/*, int *debug*/) {
+__global__ void Hash(const unsigned long long *TA, 
+					 const unsigned long long *TB, 
+					 const unsigned long long *TC, 
+					 const unsigned long long * TD,
+					 const char *str, 
+					 const unsigned int windowsNum, 
+					 unsigned long long *result) {
 	if (blockDim.x * blockIdx.x + threadIdx.x >= windowsNum)
 		return;
 
@@ -125,7 +137,10 @@ RedundancyEliminator_CUDA::~RedundancyEliminator_CUDA() {
 /*
 Add a new chunck into the file system, if the hash value queue is full, also delete the oldest chunk.
 */
-void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate) {
+void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue, 
+											char* chunk, 
+											unsigned int chunkSize, 
+											bool isDuplicate) {
 	unsigned char* toBeDel = circHash->Add(hashValue, isDuplicate);
 	//Remove chunk corresponding to toBeDel from storage
 	/*fstream file(hashValue.c_str(), std::fstream::in | std::fstream::out);
@@ -170,7 +185,9 @@ void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue, char* chun
 //	return duplicationSize;
 //}
 
-void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, int indicesNum, char* package,
+void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, 
+												  int indicesNum, 
+												  char* package,
 	LRUQueuePool &chunkHashQ) {
 	//cout << "start\n";
 	//unsigned int duplicationSize = 0;
@@ -198,7 +215,8 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, int ind
 	//cout << "end\n";
 }
 
-unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> indexQ, char* package) {
+unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> indexQ, 
+													   char* package) {
 	/*deque<unsigned char*> hashValues;
 	deque<tuple<char*, unsigned int>> chunks;
 	ChunkHashing(indexQ, package, hashValues, chunks);
@@ -232,7 +250,9 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> index
 	return duplicationSize;
 }
 
-unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, unsigned int idxArrLen, char* package) {
+unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, 
+													   unsigned int idxArrLen, 
+													   char* package) {
 	unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
 	char* chunk;
@@ -266,113 +286,133 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, uns
 	return duplicationSize;
 }
 
-void RedundancyEliminator_CUDA::RabinHashAsync(char* inputKernel, char* inputHost, unsigned int inputLen, unsigned long long* resultKernel, unsigned long long* resultHost, cudaStream_t stream) {
-	cudaMemcpyAsync(inputKernel, inputHost,	inputLen, cudaMemcpyHostToDevice, stream);
-	Hash << <BLOCK_NUM, THREAD_PER_BLOCK, 0, stream>> > (kernelTA, kernelTB, kernelTC, kernelTD,
-		inputKernel, (inputLen - WINDOW_SIZE + 1), resultKernel/*, debugDevice*/);
-	cudaMemcpyAsync(resultHost, resultKernel,
-		(inputLen - WINDOW_SIZE + 1) * BYTES_IN_ULONG, cudaMemcpyDeviceToHost, stream);
+void RedundancyEliminator_CUDA::RabinHashAsync(char* inputKernel, 
+											   char* inputHost, 
+											   unsigned int inputLen, 
+											   unsigned long long* resultKernel, 
+											   unsigned long long* resultHost, 
+											   cudaStream_t stream) {
+	cudaMemcpyAsync(inputKernel, 
+					inputHost,	
+					inputLen, 
+					cudaMemcpyHostToDevice, 
+					stream);
+	Hash<<<BLOCK_NUM, THREAD_PER_BLOCK, 0, stream>>> (kernelTA, 
+													  kernelTB, 
+													  kernelTC, 
+													  kernelTD,
+													  inputKernel, 
+													  (inputLen - WINDOW_SIZE + 1), 
+													  resultKernel);
+	cudaMemcpyAsync(resultHost, 
+					resultKernel,
+					(inputLen - WINDOW_SIZE + 1) * BYTES_IN_ULONG, 
+					cudaMemcpyDeviceToHost, 
+					stream);
 	cudaError_t error = cudaGetLastError();
 	if (error != cudaSuccess) {
-		fprintf(stderr, "ERROR1: %s \n", cudaGetErrorString(error));
+		fprintf(stderr, 
+				"ERROR1: %s \n", 
+				cudaGetErrorString(error));
 	}
 }
 
 //take a kernel global memory address and the size as input
-unsigned int RedundancyEliminator_CUDA::eliminateRedundancy(char* package, unsigned int packageSize) {
-	/*char *kernelInput;
-	cudaMalloc((void**)&kernelInput, MAX_KERNEL_INPUT_LEN);*/
-	unsigned int totalDuplicationSize = 0;
-	deque<unsigned int> indexQ;
-	char* packageInput[2];
-	char* kernelInput[2];
-	unsigned long long* resultHost[2];
-	unsigned long long *kernelResult[2];
-	clock_t start;
-	clock_t end;
-	double time = 0;
-
-	const unsigned int MAX_WINDOW_NUM = MAX_KERNEL_INPUT_LEN - WINDOW_SIZE + 1;
-	cudaMallocHost((void**)&packageInput[0], MAX_KERNEL_INPUT_LEN);
-	cudaMallocHost((void**)&packageInput[1], MAX_KERNEL_INPUT_LEN);
-	cudaMallocHost((void**)&resultHost[0], MAX_WINDOW_NUM * BYTES_IN_ULONG);
-	cudaMallocHost((void**)&resultHost[1], MAX_WINDOW_NUM * BYTES_IN_ULONG);
-
-	cudaMalloc((void**)&kernelInput[0], MAX_KERNEL_INPUT_LEN);
-	cudaMalloc((void**)&kernelInput[1], MAX_KERNEL_INPUT_LEN);
-	cudaMalloc((void**)&kernelResult[0], MAX_WINDOW_NUM * BYTES_IN_ULONG);
-	cudaMalloc((void**)&kernelResult[1], MAX_WINDOW_NUM * BYTES_IN_ULONG);
-
-	cudaStream_t* streams = new cudaStream_t[2];
-	for (int i = 0; i < 2; ++i)
-		cudaStreamCreate(&(streams[i]));
-
-	int bufferIdx = 0;
-	unsigned int curInputLen = MAX_KERNEL_INPUT_LEN, curWindowNum, curFilePos = 0;
-	int iterator;
-	for (iterator = 0; curInputLen == MAX_KERNEL_INPUT_LEN; ++iterator) {
-		curInputLen = min(MAX_KERNEL_INPUT_LEN, packageSize - curFilePos);
-		curWindowNum = curInputLen - WINDOW_SIZE + 1;
-		memcpy(packageInput[bufferIdx], &(package[curFilePos]), curInputLen);
-
-		start = clock();
-		cudaStreamSynchronize(streams[bufferIdx]);
-		
-		//Because of unblock cuda process, deal with the 2 iteration eariler cuda output here
-		if (iterator > 1) {
-			for (unsigned int j = 0; j < MAX_WINDOW_NUM; ++j) {
-				if ((resultHost[bufferIdx][j] & P_MINUS) == 0) { // marker found
-					indexQ.push_back(j);
-				}
-			}
-			end = clock();
-			time += (end - start) * 1000 / CLOCKS_PER_SEC;
-			totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - (MAX_WINDOW_NUM << 1)]));
-			indexQ.clear();
-		}
-
-		RabinHashAsync(kernelInput[bufferIdx], packageInput[bufferIdx], curInputLen, kernelResult[bufferIdx], resultHost[bufferIdx], streams[bufferIdx]);
-
-		bufferIdx ^= 1;
-		curFilePos += curWindowNum;
-	}
-
-	if (iterator > 1) {
-		start = clock();
-		cudaDeviceSynchronize();
-		for (unsigned int j = 0; j < MAX_WINDOW_NUM; ++j) {
-			if ((resultHost[bufferIdx][j] & P_MINUS) == 0) { // marker found
-				indexQ.push_back(j);
-			}
-		}
-		end = clock();
-		time += (end - start) * 1000 / CLOCKS_PER_SEC;
-		totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - MAX_WINDOW_NUM - curWindowNum]));
-		indexQ.clear();
-	}
-
-	start = clock();
-	for (unsigned int j = 0; j < curWindowNum; ++j) {
-		if ((resultHost[bufferIdx ^ 1][j] & P_MINUS) == 0) { // marker found
-			indexQ.push_back(j);
-		}
-	}
-	end = clock();
-	time += (end - start) * 1000 / CLOCKS_PER_SEC;
-	totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - curWindowNum]));
-
-	printf("chunking time: %f ms\n", time);
-	cudaFree(kernelResult[0]);
-	cudaFreeHost(resultHost[0]);
-	cudaFree(kernelInput[0]);
-	cudaFreeHost(packageInput[0]);
-	cudaFree(kernelResult[1]);
-	cudaFreeHost(resultHost[1]);
-	cudaFree(kernelInput[1]);
-	cudaFreeHost(packageInput[1]);
-	//cudaFree(kernelInput);
-	return totalDuplicationSize;
-}
+//unsigned int RedundancyEliminator_CUDA::eliminateRedundancy(char* package, 
+//															unsigned int packageSize) {
+//	/*char *kernelInput;
+//	cudaMalloc((void**)&kernelInput, MAX_KERNEL_INPUT_LEN);*/
+//	unsigned int totalDuplicationSize = 0;
+//	deque<unsigned int> indexQ;
+//	char* packageInput[2];
+//	char* kernelInput[2];
+//	unsigned long long* resultHost[2];
+//	unsigned long long *kernelResult[2];
+//	clock_t start;
+//	clock_t end;
+//	double time = 0;
+//
+//	const unsigned int MAX_WINDOW_NUM = MAX_KERNEL_INPUT_LEN - WINDOW_SIZE + 1;
+//	cudaMallocHost((void**)&packageInput[0], MAX_KERNEL_INPUT_LEN);
+//	cudaMallocHost((void**)&packageInput[1], MAX_KERNEL_INPUT_LEN);
+//	cudaMallocHost((void**)&resultHost[0], MAX_WINDOW_NUM * BYTES_IN_ULONG);
+//	cudaMallocHost((void**)&resultHost[1], MAX_WINDOW_NUM * BYTES_IN_ULONG);
+//
+//	cudaMalloc((void**)&kernelInput[0], MAX_KERNEL_INPUT_LEN);
+//	cudaMalloc((void**)&kernelInput[1], MAX_KERNEL_INPUT_LEN);
+//	cudaMalloc((void**)&kernelResult[0], MAX_WINDOW_NUM * BYTES_IN_ULONG);
+//	cudaMalloc((void**)&kernelResult[1], MAX_WINDOW_NUM * BYTES_IN_ULONG);
+//
+//	cudaStream_t* streams = new cudaStream_t[2];
+//	for (int i = 0; i < 2; ++i)
+//		cudaStreamCreate(&(streams[i]));
+//
+//	int bufferIdx = 0;
+//	unsigned int curInputLen = MAX_KERNEL_INPUT_LEN, curWindowNum, curFilePos = 0;
+//	int iterator;
+//	for (iterator = 0; curInputLen == MAX_KERNEL_INPUT_LEN; ++iterator) {
+//		curInputLen = min(MAX_KERNEL_INPUT_LEN, packageSize - curFilePos);
+//		curWindowNum = curInputLen - WINDOW_SIZE + 1;
+//		memcpy(packageInput[bufferIdx], &(package[curFilePos]), curInputLen);
+//
+//		start = clock();
+//		cudaStreamSynchronize(streams[bufferIdx]);
+//		
+//		//Because of unblock cuda process, deal with the 2 iteration eariler cuda output here
+//		if (iterator > 1) {
+//			for (unsigned int j = 0; j < MAX_WINDOW_NUM; ++j) {
+//				if ((resultHost[bufferIdx][j] & P_MINUS) == 0) { // marker found
+//					indexQ.push_back(j);
+//				}
+//			}
+//			end = clock();
+//			time += (end - start) * 1000 / CLOCKS_PER_SEC;
+//			totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - (MAX_WINDOW_NUM << 1)]));
+//			indexQ.clear();
+//		}
+//
+//		RabinHashAsync(kernelInput[bufferIdx], packageInput[bufferIdx], curInputLen, kernelResult[bufferIdx], resultHost[bufferIdx], streams[bufferIdx]);
+//
+//		bufferIdx ^= 1;
+//		curFilePos += curWindowNum;
+//	}
+//
+//	if (iterator > 1) {
+//		start = clock();
+//		cudaDeviceSynchronize();
+//		for (unsigned int j = 0; j < MAX_WINDOW_NUM; ++j) {
+//			if ((resultHost[bufferIdx][j] & P_MINUS) == 0) { // marker found
+//				indexQ.push_back(j);
+//			}
+//		}
+//		end = clock();
+//		time += (end - start) * 1000 / CLOCKS_PER_SEC;
+//		totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - MAX_WINDOW_NUM - curWindowNum]));
+//		indexQ.clear();
+//	}
+//
+//	start = clock();
+//	for (unsigned int j = 0; j < curWindowNum; ++j) {
+//		if ((resultHost[bufferIdx ^ 1][j] & P_MINUS) == 0) { // marker found
+//			indexQ.push_back(j);
+//		}
+//	}
+//	end = clock();
+//	time += (end - start) * 1000 / CLOCKS_PER_SEC;
+//	totalDuplicationSize += fingerPrinting(indexQ, &(package[curFilePos - curWindowNum]));
+//
+//	printf("chunking time: %f ms\n", time);
+//	cudaFree(kernelResult[0]);
+//	cudaFreeHost(resultHost[0]);
+//	cudaFree(kernelInput[0]);
+//	cudaFreeHost(packageInput[0]);
+//	cudaFree(kernelResult[1]);
+//	cudaFreeHost(resultHost[1]);
+//	cudaFree(kernelInput[1]);
+//	cudaFreeHost(packageInput[1]);
+//	//cudaFree(kernelInput);
+//	return totalDuplicationSize;
+//}
 
 int mod(unsigned char* hashValue, int divisor) {
 	unsigned int hashValueInt;

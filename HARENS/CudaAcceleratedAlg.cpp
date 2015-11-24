@@ -133,8 +133,12 @@ void CudaAcceleratedAlg::ChunkingKernel() {
 	fixed_buffer_len = pagable_buffer_len;
 	memcpy(fixed_buffer, pagable_buffer, fixed_buffer_len);
 
-	re.RabinHashAsync(input_kernel, fixed_buffer, fixed_buffer_len,
-		result_kernel, result_host, stream);
+	re.RabinHashAsync(input_kernel, 
+					  fixed_buffer, 
+					  fixed_buffer_len,
+					  result_kernel, 
+					  result_host,
+					  stream);
 
 	result_host_len = fixed_buffer_len - WINDOW_SIZE + 1;
 	end_ck = clock();
