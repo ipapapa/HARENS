@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HARENS", "HARENS\HARENS.vcxproj", "{A48B46A2-F5D4-4CF3-9349-129211C20372}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HARENS", "src\HARENS.vcxproj", "{A48B46A2-F5D4-4CF3-9349-129211C20372}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
