@@ -12,9 +12,21 @@ lflags = -L/usr/local/cuda-7.5/lib64
 lflags += -lcudart -lpcap -lcrypto
 objects := $(patsubst %.cpp,%.o,$(wildcard *.cpp)) $(patsubst %.cu,%.o,$(wildcard *.cu))
 
-#HARENS: $(objects)
-#	$(cp) -M $(cflags) $(iflags) $(lflags) $(wildcard *.cpp) -o $(objects)
-#	$(cp) -o HARENS $(objects)
+.PHONY: intall
+install:
+	sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+	sudo apt-get update
+	sudo apt-get install build-essential
+	sudo apt-get install gcc-4.9 g++-4.9 cpp-4.9
+	sudo apt-get install gcc-5 g++-5 cpp-5
+	sudo apt-get install cuda
+	sudo apt-get upgrade cuda
+	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 100
+	sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 100
+	sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-4.9 100
+	sudo apt-get install libpcap-dev
+	sudo apt-get install openssl
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-7.5/lib64
 
 all: run
 
@@ -72,22 +84,6 @@ FixedSizedCharArray.o: FixedSizedCharArray.cpp
 $(objects): Definition.h LRUQueue.h LRUQueuePool.h SelfMantainedLRUQueue.h LRUVirtualHash.h \
 LRUStrHash.h LRUStrHashPool.h makefile
 RedundancyEliminator_CPP_CollisionTest.o: LRUHash.h 
-
-.PHONY: intall
-install:
-	sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-	sudo apt-get update
-	sudo apt-get install build-essential
-	sudo apt-get install gcc-4.9 g++-4.9 cpp-4.9
-	sudo apt-get install gcc-5 g++-5 cpp-5
-	sudo apt-get install cuda
-	sudo apt-get upgrade cuda
-	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 100
-	sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 100
-	sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-4.9 100
-	sudo apt-get install libpcap-dev
-	sudo apt-get install openssl
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-7.5/lib64
 
 .PHONY: clean
 clean:
