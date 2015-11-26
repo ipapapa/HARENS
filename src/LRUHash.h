@@ -1,6 +1,6 @@
 #pragma once
 #include "LRUVirtualHash.h"
-#include "SelfMantainedLRUQueue.h"
+#include "LRUQueue.h"
 #include "Definition.h"
 
 //Generic class, T can be any basic types (no pointers or collections)
@@ -9,7 +9,7 @@ class LRUHash
 {
 private:
 	unsigned int size;
-	SelfMantainedLRUQueue<T> circularQueue;
+	LRUQueue<T> circularQueue;
 	std::unordered_map<T, unsigned int> map;
 public:
 	LRUHash() {};

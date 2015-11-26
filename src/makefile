@@ -81,7 +81,7 @@ FixedSizedCharArray.o: FixedSizedCharArray.cpp
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 %.o: %.h 
-$(objects): Definition.h LRUQueue.h LRUQueuePool.h SelfMantainedLRUQueue.h LRUVirtualHash.h \
+$(objects): Definition.h CircularQueuePool.h LRUQueue.h LRUVirtualHash.h \
 LRUStrHash.h LRUStrHashPool.h makefile
 RedundancyEliminator_CPP_CollisionTest.o: LRUHash.h 
 

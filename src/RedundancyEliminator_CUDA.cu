@@ -188,7 +188,8 @@ void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue,
 void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, 
 												  int indicesNum, 
 												  char* package,
-	LRUQueuePool &chunkHashQ) {
+												  CircularQueuePool &chunkHashQ) 
+{
 	//cout << "start\n";
 	//unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
@@ -216,7 +217,8 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 }
 
 unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> indexQ, 
-													   char* package) {
+													   char* package) 
+{
 	/*deque<unsigned char*> hashValues;
 	deque<tuple<char*, unsigned int>> chunks;
 	ChunkHashing(indexQ, package, hashValues, chunks);

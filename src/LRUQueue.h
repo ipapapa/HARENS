@@ -1,84 +1,69 @@
 #pragma once
 #include "Definition.h"
-using namespace std;
+#include <type_traits>
 
-/*
-We have 2 threads accessing an object of this class simultaneously
-one for push, the other for pop
-*/
-template <class T>
+template<typename T>
 class LRUQueue
 {
+private:
+	template <typename S>
+	void SetIllegal(S &toBeDel) {
+		toBeDel = 0;
+	}
+
+	template <typename S>
+	void SetIllegal(S *&toBeDel) {
+		toBeDel = nullptr;
+	}
+
+	template <typename S>
+	void Free(S &toFree) {
+		//Do nothing
+	}
+
+	template <typename S>
+	void Free(S *&toFree) {
+		delete[] toFree;
+	}
+
 public:
 	T* queue;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
 	unsigned int size;
-	mutex contentMutex;
-	condition_variable contentCond;
 
-	LRUQueue() {
-		size = TEST_MAX_KERNEL_INPUT_LEN;
-		queue = new T[size];
-		front = 0;
-		rear = size - 1;
-		//The full situation is front == (rear + 2) % size
-	}
+	LRUQueue() {}
 
 	LRUQueue(int _size) {
+		SetupLRUQueue(_size);
+	}
+
+	void SetupLRUQueue(int _size) {
 		size = _size;
 		queue = new T[size];
+		/*for (int i = 0; i < size; ++i)
+			queue[i] = nullptr;*/
 		front = 0;
 		rear = size - 1;
-		//The full situation is front == (rear + 2) % size
 	}
 
-	/*LRUUintQueue& operator=(LRUUintQueue obj) {
-		this->queue = obj.queue;
-		this->front = obj.front;
-		this->rear = obj.rear;
-		this->size = obj.size;
-		return *this;
-	}*/
+	T Add(T hashValue) {
+		T toBeDel;
+		SetIllegal<T>(toBeDel);
 
-	void Push(T hashValue) {
-		//Make sure that the queue is not full
-		unique_lock<mutex> contentLock(contentMutex);
 		if ((rear + 2) % size == front) {
-			contentCond.wait(contentLock);
+			toBeDel = queue[front];
+			front = (front + 1) % size;
 		}
-		contentLock.unlock();
-
 		rear = (rear + 1) % size;
 		queue[rear] = hashValue;
-		//notify pop that one entry is added into queue
-		contentCond.notify_one();
-	}
-
-	T Pop() {
-		//Make sure that the queue is not empty
-		unique_lock<mutex> contentLock(contentMutex);
-		if ((rear + 1) % size == front) {
-			contentCond.wait(contentLock);
-		}
-		contentLock.unlock();
-
-		T ret = queue[front];
-		front = (front + 1) % size;
-		contentCond.notify_one();
-		return ret;
-	}
-
-	bool IsEmpty() {
-		bool isEmpty;
-		unique_lock<mutex> contentLock(contentMutex);
-		isEmpty = ((rear + 1) % size == front);
-		contentLock.unlock();
-		contentCond.notify_one();
-		return isEmpty;
+		return toBeDel;
 	}
 
 	~LRUQueue() {
-		delete[] queue;
+		/*while ((rear + 1) % size == front) {
+			Free(queue[front]);
+			front = (front + 1) % size;
+		}
+		delete[] queue;*/
 	}
 };
-

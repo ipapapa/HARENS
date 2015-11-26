@@ -37,14 +37,13 @@
     <ClInclude Include="LRUStrHash.h" />
     <ClInclude Include="LRUStrHashPool.h" />
     <ClInclude Include="LRUHash.h" />
-    <ClInclude Include="LRUQueue.h" />
-    <ClInclude Include="LRUQueuePool.h" />
+    <ClInclude Include="CircularQueuePool.h" />
     <ClInclude Include="FixedSizedCharArray.h" />
     <ClInclude Include="HashCollisionTest.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="PcapReader.h" />
     <ClInclude Include="RedundancyEliminator_CPP_CollisionTest.h" />
-    <ClInclude Include="SelfMantainedLRUQueue.h" />
+    <ClInclude Include="LRUQueue.h" />
     <ClInclude Include="NaiveCpp.h" />
     <ClInclude Include="CppPipeline.h" />
     <ClInclude Include="CudaAcceleratedAlg.h" />

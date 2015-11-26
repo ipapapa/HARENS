@@ -6,7 +6,7 @@ using namespace std;
 We have 2 threads accessing an object of this class simultaneously
 one for push, the other for pop
 */
-class LRUQueuePool
+class CircularQueuePool
 {
 public:
 	unsigned char*** chunkHashQueuePool;
@@ -19,11 +19,12 @@ public:
 	mutex *curQueueSizeMutex;
 	condition_variable *emptyCond, *fullCond;
 
-	LRUQueuePool(int _poolSize) : queueSize(TEST_MAX_KERNEL_INPUT_LEN) {
+	/*50000 is a number that is big enough to keep it non-blocking*/
+	CircularQueuePool(int _poolSize) : queueSize(50000) {
 		Initiate(_poolSize);
 	}
 
-	LRUQueuePool(int _poolSize, int _size) : queueSize(_size) {
+	CircularQueuePool(int _poolSize, int _size) : queueSize(_size) {
 		Initiate(_poolSize);
 	}
 
@@ -105,7 +106,7 @@ public:
 		return isEmpty;
 	}
 
-	~LRUQueuePool() {
+	~CircularQueuePool() {
 		for (int i = 0; i < poolSize; ++i) {
 			for (int j = 0; j < queueSize; ++j)
 				delete[] chunkHashQueuePool[i][j];

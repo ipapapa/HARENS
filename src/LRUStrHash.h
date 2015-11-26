@@ -1,12 +1,12 @@
 #pragma once
 #include "LRUVirtualHash.h"
-#include "SelfMantainedLRUQueue.h"
+#include "LRUQueue.h"
 #include "Definition.h"
 
 template <int str_len>
 class LRUStrHash : public LRUVirtualHash<str_len> {
 private:
-	SelfMantainedLRUQueue<unsigned char*> circularQueue;
+	LRUQueue<unsigned char*> circularQueue;
 	typename LRUVirtualHash<str_len>::charPtMap map;
 
 public:
