@@ -51,6 +51,21 @@ int CppPipeline::Execute()
 	return 0;
 }
 
+void CppPipeline::Test(double &rate, double &time) {
+	thread tReadFile(std::mem_fn(&CppPipeline::ReadFile), this);
+	tReadFile.join();
+	clock_t start = clock();
+	thread tChunking(std::mem_fn(&CppPipeline::Chunking), this);
+	thread tFingerprinting(std::mem_fn(&CppPipeline::Fingerprinting), this);
+
+	tChunking.join();
+	tFingerprinting.join();
+	clock_t end = clock();
+
+	rate = (float)total_duplication_size / file_length * 100;
+	time = ((float)end - start) * 1000 / CLOCKS_PER_SEC;
+}
+
 void CppPipeline::ReadFile() {
 	int bufferIdx = 0;
 	unsigned int curFilePos = 0;

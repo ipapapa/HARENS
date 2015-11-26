@@ -84,7 +84,6 @@ Harens::~Harens() {
 int Harens::Execute() {
 	IO::Print("\n======= CUDA Implementation With Pipeline and Single Machine MapReduce ======\n");
 	
-
 	//Create threads
 	thread tReadFile(std::mem_fn(&Harens::ReadFile), this);
 	tReadFile.join();
@@ -105,14 +104,14 @@ int Harens::Execute() {
 	//tRoundQuery.join();
 
 	end = clock();
-	time = (end - start) * 1000 / CLOCKS_PER_SEC;
+	time_tot = (end - start) * 1000 / CLOCKS_PER_SEC;
 	IO::Print("Read file time: %f ms\n", time_r);
 	//printf("Transfer time: %f ms\n", time_t);
 	IO::Print("Chunking kernel time: %f ms\n", time_ck);
 	IO::Print("Chunking processing time: %f ms\n", time_cp);
 	IO::Print("Map (Chunk hashing) time: %f ms\n", time_ch);
 	IO::Print("Reduce (Chunk matching) time %f ms\n", time_cm);
-	IO::Print("Total time: %f ms\n", time);
+	IO::Print("Total time: %f ms\n", time_tot);
 	for (int i = 0; i < reducerNum; ++i)
 		total_duplication_size += duplication_size[i];
 	IO::Print("Found %s of redundancy, which is %f %% of file\n"
@@ -120,6 +119,32 @@ int Harens::Execute() {
 		, total_duplication_size * 100.0 / file_length);
 
 	return 0;
+}
+
+void Harens::Test(double &rate, double &time) {
+	//Create threads
+	thread tReadFile(std::mem_fn(&Harens::ReadFile), this);
+	tReadFile.join();
+	start = clock();
+	//thread tTransfer(Transfer);
+	thread tChunkingKernel(std::mem_fn(&Harens::ChunkingKernel), this);
+	thread tChunkingResultProc(std::mem_fn(&Harens::ChunkingResultProc), this);
+	thread tChunkHashing(std::mem_fn(&Harens::ChunkHashing), this);
+	for (int i = 0; i < reducerNum; ++i)
+		chunk_match_threads[i] = thread(std::mem_fn(&Harens::ChunkMatch), this, i);
+
+	//tTransfer.join();
+	tChunkingKernel.join();
+	tChunkingResultProc.join();
+	tChunkHashing.join();
+	for (int i = 0; i < reducerNum; ++i)
+		chunk_match_threads[i].join();
+	//tRoundQuery.join();
+
+	end = clock();
+
+	rate = total_duplication_size * 100.0 / file_length;
+	time = (end - start) * 1000 / CLOCKS_PER_SEC;
 }
 
 void Harens::ReadFile() {

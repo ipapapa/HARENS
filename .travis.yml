@@ -1,0 +1,14 @@
+language: cpp
+compiler: gcc
+sudo: required
+dist: trusty
+env:
+	- BUILD_TYPE=Debug FIREPONY_GPU_ARCHITECTURE=sm35
+	- BUILD_TYPE=Release FIREPONY_GPU_ARCHITECTURE=sm35
+install:
+	- sudo make install
+	- sudo make
+script: make test
+branches:
+  only:
+    - master
