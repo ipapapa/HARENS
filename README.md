@@ -1,7 +1,7 @@
 # Hardware Accelarated Redundancy Elimination in Network Systems
 
-We have developed a Hardware Accelarated Redundancy Elimination emulation framework for Network Systems. Our goal is to optimize the performance of Data Redundancy Elimination (DRE) systems that such they can be applied in higher bandwidth network links. We named our systems HARENS. HARENS significantly improves the performance of redundancy elimination algorithms, through 
-- the use of Graphics Processing Unit (GPU) acceleration,  
+With the tremendous growth in the amount of information stored on remote locations and cloud systems, many service providers are seeking ways to reduce the amount of redundant information sent across networks by using data de-duplication techniques. Data de-duplication can reduce network traffic without loss of information, and therefore increase available network bandwidth. However, due to heavy computations, de-duplication itself can become a bottleneck in high capacity links. Here, we propose a method named Hardware Accelerated Redundancy Elimination in Network Systems (HARENS). HARENS can significantly improve the performance of the redundancy elimination in network system by leveraging:
+- the use of General Purpose Graphics Processing Unit (GPGPU) acceleration,  
 - hierarchical multi-threaded pipeline, 
 - single machine map-reduce, 
 - and other memory efficiency techniques.
