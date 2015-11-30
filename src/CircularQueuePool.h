@@ -3,8 +3,8 @@
 using namespace std;
 
 /*
-We have 2 threads accessing an object of this class simultaneously
-one for push, the other for pop
+* We have 2 threads accessing an object of this class simultaneously
+* one for push, the other for pop
 */
 class CircularQueuePool
 {

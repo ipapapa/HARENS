@@ -17,9 +17,6 @@ public:
 	Compute the hash value of chunk using md5
 	*/
 	static void computeMd5Hash(char* chunk, unsigned int chunkSize, unsigned char *hashValue) {
-		/*UCHAR* hashValue = new UCHAR[SHA_DIGEST_LENGTH];
-		SHA((UCHAR*)chunk, chunkSize, hashValue);
-		return hashValue;*/
 		MD5((unsigned char*)chunk, chunkSize, hashValue);
 	}
 };

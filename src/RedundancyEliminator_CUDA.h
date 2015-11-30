@@ -23,12 +23,6 @@ public:
 	unsigned long long *kernelTA, *kernelTB, *kernelTC, *kernelTD;
 	enum Type {MultiFingerprint, NonMultifingerprint};
 
-	//deque<unsigned int> chunking(char* kernelInput, unsigned int inputLen, unsigned long long *resultHost);
-	//void ChunkHashing(unsigned int* indices, int indicesNum, char* package,
-	//	char** chunkList, unsigned long long* chunkHashValueList, unsigned int* chunkLenList);
-	//unsigned int ChunkMatching(deque<unsigned long long> &hashValues, deque<tuple<char*, unsigned int>> &chunks);
-	/*deque<tuple<unsigned char*, unsigned int>> is for simulation, deque<unsigned char*> for real case*/
-
 	void ChunkHashingAsync(unsigned int* indices, 
 						   int indicesNum, 
 						   char* package,
@@ -45,8 +39,6 @@ public:
 						unsigned int* resultHost,
 						cudaStream_t stream);
 
-	//unsigned int eliminateRedundancy(char* package, 
-	//								 unsigned int packageSize);
 	RedundancyEliminator_CUDA() {}
 	RedundancyEliminator_CUDA(Type type);
 	void SetupRedundancyEliminator_CUDA(Type type);

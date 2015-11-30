@@ -1,11 +1,15 @@
 #pragma once
 #include "Definition.h"
+
+/*
+* A fixed sized buffer for strings
+*/
 class FixedSizedCharArray
 {
 private:
 	char* arr;
-	unsigned int arrSize;		//size of char array
-	unsigned int contentSize;	//size of char array content
+	unsigned int arrSize;			//size of char array
+	unsigned int contentSize;		//size of char array content
 
 	//Store the extra len that cannot fit in arr
 	char* buffer;
