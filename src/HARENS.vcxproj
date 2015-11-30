@@ -37,14 +37,13 @@
     <ClInclude Include="LRUStrHash.h" />
     <ClInclude Include="LRUStrHashPool.h" />
     <ClInclude Include="LRUHash.h" />
-    <ClInclude Include="LRUQueue.h" />
-    <ClInclude Include="LRUQueuePool.h" />
+    <ClInclude Include="CircularQueuePool.h" />
     <ClInclude Include="FixedSizedCharArray.h" />
     <ClInclude Include="HashCollisionTest.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="PcapReader.h" />
     <ClInclude Include="RedundancyEliminator_CPP_CollisionTest.h" />
-    <ClInclude Include="SelfMantainedLRUQueue.h" />
+    <ClInclude Include="LRUQueue.h" />
     <ClInclude Include="NaiveCpp.h" />
     <ClInclude Include="CppPipeline.h" />
     <ClInclude Include="CudaAcceleratedAlg.h" />
@@ -190,7 +189,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\$(ProjectName)\WpdPack\Include;$(SolutionDir)$(ProjectName)\openssl_build_x64\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\WpdPack\Include;$(SolutionDir)src\openssl_build_x64\include;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -198,7 +197,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
       <AdditionalDependencies>ws2_32.lib;Packet.lib;wpcap.lib;libeay64.lib;ssleay64.lib;cudart.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)\$(ProjectName)\WpdPack\Lib\x64;$(SolutionDir)\$(ProjectName)\openssl_build_x64\lib;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)src\WpdPack\Lib\x64;$(SolutionDir)src\openssl_build_x64\lib;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>echo copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"

@@ -13,9 +13,9 @@ NaiveCpp::~NaiveCpp() {
 
 int	NaiveCpp::Execute()
 {
-	clock_t start, end;
-
 	IO::Print("\n============================ C++ Implementation =============================\n");
+	
+	clock_t start, end;
 
 	bool keepReading = true;
 	do {
@@ -38,6 +38,23 @@ int	NaiveCpp::Execute()
 	IO::Print("=============================================================================\n");
 
 	return 0;
+}
+
+void NaiveCpp::Test(double &rate, double &time) {
+	clock_t start, end;
+
+	bool keepReading = true;
+	do {
+		keepReading = ReadFile();
+		start = clock();
+		Chunking();
+		Fingerprinting();
+		end = clock();
+		tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
+	} while (keepReading);
+
+	rate = (float)total_duplication_size / file_length * 100;
+	time = tot_time;
 }
 
 bool NaiveCpp::ReadFile() {

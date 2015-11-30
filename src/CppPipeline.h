@@ -41,4 +41,5 @@ public:
 	void Fingerprinting();
 
 	int Execute();
+	void Test(double &rate, double &time);
 };

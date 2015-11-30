@@ -40,7 +40,7 @@ int CudaAcceleratedAlg::Execute() {
 		ChunkingResultProc();
 		ChunkMatch();
 		end = clock();
-		time += (end - start) * 1000 / CLOCKS_PER_SEC;
+		time_tot += (end - start) * 1000 / CLOCKS_PER_SEC;
 	} while (keepReading);
 
 	IO::Print("Read file time: %f ms\n", time_r);
@@ -48,12 +48,28 @@ int CudaAcceleratedAlg::Execute() {
 	IO::Print("Chunking kernel time: %f ms\n", time_ck);
 	IO::Print("Chunking processing time: %f ms\n", time_cp);
 	IO::Print("Chunk hashing time: %f ms\n", time_ch);
-	IO::Print("Total time: %f ms\n", time);
+	IO::Print("Total time: %f ms\n", time_tot);
 	IO::Print("Found %s of redundancy, which is %f %% of file\n"
 		, IO::InterpretSize(total_duplication_size)
 		, total_duplication_size * 100.0 / file_length);
 
 	return 0;
+}
+
+void CudaAcceleratedAlg::Test(double &rate, double &time) {
+	bool keepReading = true;
+	do {
+		keepReading = ReadFile();
+		start = clock();
+		ChunkingKernel();
+		ChunkingResultProc();
+		ChunkMatch();
+		end = clock();
+		time_tot += (end - start) * 1000 / CLOCKS_PER_SEC;
+	} while (keepReading);
+
+	rate = total_duplication_size * 100.0 / file_length;
+	time = time_tot;
 }
 
 bool CudaAcceleratedAlg::ReadFile() {

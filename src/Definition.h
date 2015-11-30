@@ -20,15 +20,17 @@
 #include <openssl/sha.h>
 #include <openssl/md5.h>
 
+//The number of bytes in C++ built-in types
 const unsigned int BYTES_IN_INT = sizeof(int);
 const unsigned int BYTES_IN_UINT = sizeof(unsigned int);
 const unsigned int BYTES_IN_ULONG = sizeof(unsigned long long);
-const unsigned int MAX_CHUNK_NUM = 8388608;		//2^23
+//Length of sliding window in objects/packets chunking step (in bytes)
 const int WINDOW_SIZE = 12;
-const int TEST_MAX_KERNEL_INPUT_LEN = 4096 * 128;	//For testing
 //while P = 2^k, fingerprint % P means fingerprint & P_MINUS (P - 1). We set P = 32 here
 const int P_MINUS = 0x1F;	
 const int MIN_CHUNK_LEN = 32;
+//The maximum chunk number that can store in cache
+const unsigned int MAX_CHUNK_NUM = 8388608;		//2^23
 
 //The maximum block number in the server GPU
 const int BLOCK_NUM = 4096;

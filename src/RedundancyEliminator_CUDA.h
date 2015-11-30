@@ -1,7 +1,7 @@
 #pragma once
 #include <cuda_runtime_api.h>
 #include <cuda.h>
-#include "LRUQueuePool.h"
+#include "CircularQueuePool.h"
 #include "RabinHash.h"
 #include "LRUStrHash.h"
 #include "LRUStrHashPool.h"
@@ -32,7 +32,7 @@ public:
 	void ChunkHashingAsync(unsigned int* indices, 
 						   int indicesNum, 
 						   char* package,
-						   LRUQueuePool &chunkHashQ);
+						   CircularQueuePool &chunkHashQ);
 	unsigned int fingerPrinting(deque<unsigned int> indexQ, 
 								char* package);
 	unsigned int fingerPrinting(unsigned int* idxArr, 

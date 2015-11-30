@@ -39,9 +39,6 @@
 
 #if defined(WIN32)
   #include <pcap-stdinc.h>
-#elif defined(WIN64)
-  #include <pcap-stdinc.h>
-  #pragma message ("In file \"pcap.h\". This condition fork created by Kelu. It could cause problems.")
 #elif defined(MSDOS)
   #include <sys/types.h>
   #include <sys/socket.h>  /* u_int, u_char etc. */

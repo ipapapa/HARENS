@@ -93,15 +93,6 @@
     <ClInclude Include="RedundancyEliminator_CPP_CollisionTest.h">
       <Filter>Hash Collision Test</Filter>
     </ClInclude>
-    <ClInclude Include="LRUQueue.h">
-      <Filter>Basic Functions</Filter>
-    </ClInclude>
-    <ClInclude Include="LRUQueuePool.h">
-      <Filter>Basic Functions</Filter>
-    </ClInclude>
-    <ClInclude Include="SelfMantainedLRUQueue.h">
-      <Filter>Basic Functions</Filter>
-    </ClInclude>
     <ClInclude Include="LRUStrHash.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
@@ -115,6 +106,12 @@
       <Filter>Basic Functions</Filter>
     </ClInclude>
     <ClInclude Include="EncryptionHashes.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="CircularQueuePool.h">
+      <Filter>Basic Functions</Filter>
+    </ClInclude>
+    <ClInclude Include="LRUQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
   </ItemGroup>

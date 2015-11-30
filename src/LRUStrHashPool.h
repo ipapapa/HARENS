@@ -1,6 +1,6 @@
 #pragma once
 #include "LRUVirtualHash.h"
-#include "SelfMantainedLRUQueue.h"
+#include "LRUQueue.h"
 #include "Definition.h"
 
 template <int str_len>
@@ -10,7 +10,7 @@ private:
 	static const int POOL_SEGMENT_NUM = 2048;
 	std::array<typename LRUStrHash<str_len>::charPtMap, POOL_SEGMENT_NUM> mapPool;
 	std::array<std::mutex, POOL_SEGMENT_NUM> mapPoolMutex;
-	SelfMantainedLRUQueue<unsigned char*> circularQueue;
+	LRUQueue<unsigned char*> circularQueue;
 	std::mutex circularQueueMutex;
 
 public:
@@ -29,7 +29,7 @@ LRUStrHashPool<str_len>::LRUStrHashPool(unsigned int _size) : LRUVirtualHash<str
 {
 	for (auto& segPool : mapPool)
 		segPool = typename LRUStrHash<str_len>::charPtMap(_size / POOL_SEGMENT_NUM);
-	circularQueue = SelfMantainedLRUQueue<unsigned char*>(_size);
+	circularQueue = LRUQueue<unsigned char*>(_size);
 }
 
 template <int str_len>
