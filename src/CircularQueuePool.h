@@ -9,17 +9,22 @@ using namespace std;
 class CircularQueuePool
 {
 public:
+	//Pool of data
 	unsigned char*** chunkHashQueuePool;
 	unsigned int** chunkLenQueuePool;
-	int poolSize;
-	int *front, *rear;	//rear point to the last used entry, there's an empty entry after rear
-	const unsigned int queueSize;
-	//Size control
+	int poolSize;					//Number of queues in the pool
+	int *front, *rear;				/*Rear point to the last used entry, 
+									there's an empty entry after rear*/
+	const unsigned int queueSize;	//Number of entries in a queue
+	//Access control - prevent reading/writing when empty/full
 	unsigned int *curQueueSize;
 	mutex *curQueueSizeMutex;
 	condition_variable *emptyCond, *fullCond;
 
-	/*50000 is a number that is big enough to keep it non-blocking*/
+	/*
+	* Initiaze the queue pool.
+	* 50000 is a number that is big enough to keep it non-blocking.
+	*/
 	CircularQueuePool(int _poolSize) : queueSize(50000) {
 		Initiate(_poolSize);
 	}
@@ -43,6 +48,7 @@ public:
 		for (int i = 0; i < poolSize; ++i) {
 			chunkHashQueuePool[i] = new unsigned char*[queueSize];
 			for (int j = 0; j < queueSize; ++j) {
+				//Allocate memory for the queue pool
 				chunkHashQueuePool[i][j] = new unsigned char[SHA_DIGEST_LENGTH];
 			}
 			chunkLenQueuePool[i] = new unsigned int[queueSize];
@@ -53,6 +59,10 @@ public:
 		//The full situation is front == (rear + 2) % size
 	}
 
+	/*
+	* Push a hash value into the hash pool.
+	* Pause and wait for notification if the corresponding queue is full.
+	*/
 	void Push(unsigned char* hashValue, unsigned int chunkLen, int(*mod)(unsigned char*, int)) {
 		//Make sure that the queue is not full
 		int poolAnchor = mod(hashValue, poolSize);
@@ -60,15 +70,11 @@ public:
 		while (curQueueSize[poolAnchor] >= queueSize) {
 			fullCond[poolAnchor].wait(sizeLock);
 		}
-		//sizeLock.unlock();
-
-		//rearMutex[poolAnchor].lock();
+		//Do push
 		rear[poolAnchor] = (rear[poolAnchor] + 1) % queueSize;
 		memcpy(chunkHashQueuePool[poolAnchor][rear[poolAnchor]], hashValue, SHA_DIGEST_LENGTH);
 		chunkLenQueuePool[poolAnchor][rear[poolAnchor]] = chunkLen;
-		//rearMutex[poolAnchor].unlock();
 
-		//sizeLock.lock();
 		++curQueueSize[poolAnchor];
 		sizeLock.unlock();
 
@@ -76,22 +82,23 @@ public:
 		emptyCond[poolAnchor].notify_one();
 	}
 
+	/*
+	* Pop the oldest hash value out of a queue the hash pool.
+	* The queue is defined by its index in the pool.
+	* Pause and wait for notification if the corresponding queue is empty.
+	*/
 	tuple<unsigned char*, unsigned int> Pop(int poolAnchor) {
 		//Make sure that the queue is not empty
 		unique_lock<mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
 		while (curQueueSize[poolAnchor] <= 0) {
 			emptyCond[poolAnchor].wait(sizeLock);
 		}
-		//sizeLock.unlock();
-
-		//frontMutex[poolAnchor].lock();
+		//Do pop
 		tuple<unsigned char*, unsigned int> ret = make_tuple(
 			chunkHashQueuePool[poolAnchor][front[poolAnchor]],
 			chunkLenQueuePool[poolAnchor][front[poolAnchor]]);
 		front[poolAnchor] = (front[poolAnchor] + 1) % queueSize;
-		//frontMutex[poolAnchor].unlock();
 
-		//sizeLock.lock();
 		--curQueueSize[poolAnchor];
 		sizeLock.unlock();
 
@@ -99,6 +106,9 @@ public:
 		return ret;
 	}
 
+	/*
+	* Check if a queue defined by its index in the pool is empty.
+	*/
 	bool IsEmpty(int poolAnchor) {
 		unique_lock<mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
 		bool isEmpty = (curQueueSize[poolAnchor] <= 0);
@@ -123,4 +133,3 @@ public:
 		delete[] fullCond;
 	}
 };
-

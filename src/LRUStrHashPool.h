@@ -3,11 +3,18 @@
 #include "LRUQueue.h"
 #include "Definition.h"
 
+/*
+* Class for a LRU hash that only deals with strings.
+* The LRU hash is divided into segments - the pool.
+* It is designed for faster access of large hash map.
+* It consists of a pool of hash maps and LRU queues for LRU replacement.
+* All the strings in LRUStrHashPool should be with the same length that defined in template.
+*/
 template <int str_len>
 class LRUStrHashPool : public LRUVirtualHash<str_len>
 {
 private:
-	static const int POOL_SEGMENT_NUM = 2048;
+	static const int POOL_SEGMENT_NUM = 2048;	//Number of segments that the LRU hash is divided into
 	std::array<typename LRUStrHash<str_len>::charPtMap, POOL_SEGMENT_NUM> mapPool;
 	std::array<std::mutex, POOL_SEGMENT_NUM> mapPoolMutex;
 	LRUQueue<unsigned char*> circularQueue;
@@ -16,11 +23,25 @@ private:
 public:
 	LRUStrHashPool(unsigned int size);
 	~LRUStrHashPool();
-
+	
+	/*
+	* Add a hash value knowing whether it is duplicated or not.
+	* Return the obselete hash based on the LRU replacement policy,
+	* if the LRU queue is full.
+	*/
 	unsigned char* Add(unsigned char* hashValue, const bool isDuplicated);
 
+	/*
+	* Find out if a hash value exists in the hash map.
+	*/
 	bool Find(unsigned char* hashValue);
 
+	/*
+	* Add a hash value without knowing whether it is duplicated or not.
+	* Return the obselete hash as a reference based on the LRU replacement
+	* policy, if the LRU queue is full.
+	* Return if the hash value exists in the hash map or not.
+	*/
 	bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel);
 };
 
@@ -39,6 +60,11 @@ LRUStrHashPool<str_len>::~LRUStrHashPool()
 		segPool.clear();
 }
 
+/*
+* Add a hash value knowing whether it is duplicated or not.
+* Return the obselete hash based on the LRU replacement policy,
+* if the LRU queue is full.
+*/
 template <int str_len>
 unsigned char* LRUStrHashPool<str_len>::Add(unsigned char* hashValue, const bool isDuplicated) {
 	unsigned char* toBeDel;
@@ -71,6 +97,9 @@ unsigned char* LRUStrHashPool<str_len>::Add(unsigned char* hashValue, const bool
 	return toBeDel;
 }
 
+/*
+* Find out if a hash value exists in the hash map.
+*/
 template <int str_len>
 bool LRUStrHashPool<str_len>::Find(unsigned char* hashValue) {
 	bool isFound;
@@ -81,6 +110,12 @@ bool LRUStrHashPool<str_len>::Find(unsigned char* hashValue) {
 	return isFound;
 }
 
+/*
+* Add a hash value without knowing whether it is duplicated or not.
+* Return the obselete hash as a reference based on the LRU replacement
+* policy, if the LRU queue is full.
+* Return if the hash value exists in the hash map or not.
+*/
 template <int str_len>
 bool LRUStrHashPool<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
 	bool isFound;

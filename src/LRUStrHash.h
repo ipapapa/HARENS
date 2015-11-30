@@ -3,10 +3,15 @@
 #include "LRUQueue.h"
 #include "Definition.h"
 
+/*
+* Class for LRU hash that only deals with strings.
+* It consists of a hash map and a LRU queue for LRU replacement.
+* All the strings in LRUStrHash should be with the same length that defined in template.
+*/
 template <int str_len>
 class LRUStrHash : public LRUVirtualHash<str_len> {
 private:
-	LRUQueue<unsigned char*> circularQueue;
+	LRUQueue<unsigned char*> circularQueue;	//The LRU queue
 	typename LRUVirtualHash<str_len>::charPtMap map;
 
 public:
@@ -14,8 +19,25 @@ public:
 	LRUStrHash(unsigned int _size);
 	void SetupLRUStrHash(unsigned int _size);
 	~LRUStrHash();
+	
+	/*
+	* Add a hash value knowing whether it is duplicated or not.
+	* Return the obselete hash based on the LRU replacement policy,
+	* if the LRU queue is full.
+	*/
 	unsigned char* Add(unsigned char* hashValue, const bool isDuplicated);
+
+	/*
+	* Find out if a hash value exists in the hash map.
+	*/
 	bool Find(unsigned char* hashValue);
+
+	/*
+	* Add a hash value without knowing whether it is duplicated or not.
+	* Return the obselete hash as a reference based on the LRU replacement
+	* policy, if the LRU queue is full.
+	* Return if the hash value exists in the hash map or not.
+	*/
 	bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel);
 };
 
@@ -37,6 +59,11 @@ LRUStrHash<str_len>::~LRUStrHash()
 {
 }
 
+/*
+* Add a hash value knowing whether it is duplicated or not.
+* Return the obselete hash based on the LRU replacement policy,
+* if the LRU queue is full.
+*/
 template <int str_len>
 unsigned char* LRUStrHash<str_len>::Add(unsigned char* hashValue, const bool isDuplicated) {
 	unsigned char* toBeDel;
@@ -58,16 +85,24 @@ unsigned char* LRUStrHash<str_len>::Add(unsigned char* hashValue, const bool isD
 	}
 	else {
 		map[hashValue] = 1;
-		//map.insert({ hashValue, 1 });
 	}
 	return toBeDel;
 }
 
+/*
+* Find out if a hash value exists in the hash map.
+*/
 template <int str_len>
 bool LRUStrHash<str_len>::Find(unsigned char* hashValue) {
 	return map.find(hashValue) != map.end();
 }
 
+/*
+* Add a hash value without knowing whether it is duplicated or not.
+* Return the obselete hash as a reference based on the LRU replacement
+* policy, if the LRU queue is full.
+* Return if the hash value exists in the hash map or not.
+*/
 template <int str_len>
 bool LRUStrHash<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) {
 	typename LRUVirtualHash<str_len>::charPtMap::iterator it = map.find(hashValue);
@@ -89,8 +124,7 @@ bool LRUStrHash<str_len>::FindAndAdd(unsigned char* hashValue, unsigned char* to
 		map[hashValue] = occurence + 1;
 	}
 	else {
-		//map[hashValue] = 1;
-		map.insert({ hashValue, 1 });
+		map[hashValue] = 1;
 	}
 	return isFound;
 }

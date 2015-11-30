@@ -11,16 +11,13 @@ template <class T>
 class LRUHash
 {
 private:
-	unsigned int size;			//The maximum number of entries in LRU queue and hash
 	LRUQueue<T> circularQueue;	//The LRU queue
 	std::unordered_map<T, unsigned int> map;
 public:
 	LRUHash() {};
 
 	LRUHash(unsigned int _size)
-		: circularQueue(_size), map(size) {
-		size = _size;
-	}
+		: circularQueue(_size), map(_size) {}
 
 	void SetupLRUHash(unsigned int _size);
 
@@ -49,7 +46,6 @@ public:
 
 template <class T>
 void LRUHash<T>::SetupLRUHash(unsigned int _size) {
-	size = _size;
 	circularQueue.SetupLRUQueue(_size);
 	map = std::unordered_map<T, unsigned int>(_size);
 }
