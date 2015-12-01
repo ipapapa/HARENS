@@ -18,7 +18,10 @@ RedundancyEliminator_CPP::~RedundancyEliminator_CPP() {
 /*
 Add a new chunck into the file system, if the hash value queue is full, also delete the oldest chunk.
 */
-void RedundancyEliminator_CPP::addNewChunk(unsigned char* hashValue, char* chunk, unsigned int chunkSize, bool isDuplicate) {
+void RedundancyEliminator_CPP::addNewChunk(unsigned char* hashValue, 
+										   char* chunk, 
+										   unsigned int chunkSize, 
+										   bool isDuplicate) {
 	unsigned char* toBeDel = circHash.Add(hashValue, isDuplicate);
 	//Remove chunk corresponding to toBeDel from storage
 	//fstream file(hashValue.c_str(), std::fstream::in|std::fstream::out);

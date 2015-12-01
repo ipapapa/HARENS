@@ -37,8 +37,27 @@ private:
 	LRUStrHash<SHA_DIGEST_LENGTH> hash_pool;
 	unsigned int total_duplication_size = 0;
 	//Time
-	clock_t start, end, start_r, end_r, start_t, end_t, start_ck, end_ck, start_cp, end_cp, start_ch, end_ch, start_cm, end_cm;
-	double time_tot = 0, time_r = 0, time_t = 0, time_ck = 0, time_cp = 0, time_ch, time_cm;
+	clock_t start, 
+			end, 
+			start_r, 
+			end_r, 
+			start_t, 
+			end_t, 
+			start_ck, 
+			end_ck, 
+			start_cp, 
+			end_cp, 
+			start_ch, 
+			end_ch, 
+			start_cm, 
+			end_cm;
+	double time_tot = 0, 
+		   time_r = 0, 
+		   time_t = 0, 
+		   time_ck = 0, 
+		   time_cp = 0, 
+		   time_ch, 
+		   time_cm;
 
 public:
 	CudaAcceleratedAlg();

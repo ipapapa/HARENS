@@ -5,15 +5,15 @@ using namespace std;
 class RabinHash {
 private:
     //Tables to store 2 << n where n -66 to 88 computations
-    unsigned int* TA;
-	unsigned int* TB;
-	unsigned int* TC;
-	unsigned int* TD;
+    unsigned int* TA,
+				  TB,
+				  TC,
+				  TD;
 	//Tables that combines two integers into a long number
-	unsigned long long* TALONG;
-	unsigned long long* TBLONG;
-	unsigned long long* TCLONG;
-	unsigned long long* TDLONG;
+	unsigned long long* TALONG,
+						TBLONG,
+						TCLONG,
+						TDLONG;
     //Irreducible polynomial used in the finger printing algorithm
     unsigned long long pt;
 

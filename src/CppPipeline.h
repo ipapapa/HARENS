@@ -18,7 +18,8 @@ private:
 	array<bool, RESULT_BUFFER_NUM> chunking_result_obsolete;			//states of chunking_result
 	bool read_file_end = false;
 	bool chunking_end = false;
-	mutex read_file_end_mutex, chunking_end_mutex;
+	mutex read_file_end_mutex, 
+		  chunking_end_mutex;
 	//shared data
 	char overlap[WINDOW_SIZE - 1];
 	char** buffer;
@@ -29,8 +30,12 @@ private:
 	//Result
 	unsigned int total_duplication_size = 0;
 	//Time
-	clock_t start_read, start_chunk, start_fin;
-	float tot_read = 0, tot_chunk = 0, tot_fin = 0;
+	clock_t start_read, 
+			start_chunk, 
+			start_fin;
+	float tot_read = 0, 
+		  tot_chunk = 0, 
+		  tot_fin = 0;
 
 public:
 	CppPipeline();

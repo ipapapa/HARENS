@@ -26,8 +26,13 @@ private:
 	//Result
 	unsigned int total_duplication_size = 0;
 	//Time
-	clock_t start_read, start_chunk, start_fin;
-	float tot_read = 0, tot_chunk = 0, tot_fin = 0, tot_time = 0;
+	clock_t start_read, 
+			start_chunk, 
+			start_fin;
+	float tot_read = 0, 
+		  tot_chunk = 0, 
+		  tot_fin = 0, 
+		  tot_time = 0;
 
 public:
 	NaiveCpp();
