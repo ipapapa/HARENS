@@ -6,7 +6,7 @@ With the tremendous growth in the amount of information stored on remote locatio
 - single machine map-reduce, 
 - and other memory efficiency techniques.
 
-Our results indicate that HARENS can increase the throughput of other CUDA Redundancy Elimination Systems by x7 up to speeds of 2.5Gbps.
+Our results indicate that HARENS can increase the throughput of other CUDA Redundancy Elimination Systems by x7 up to speeds of 2.7Gbps.
 
 ![throughput](https://cloud.githubusercontent.com/assets/4562887/11403658/e47858c8-9352-11e5-80c4-af876147ea8b.png)
 
