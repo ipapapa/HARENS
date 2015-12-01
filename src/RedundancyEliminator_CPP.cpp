@@ -27,6 +27,9 @@ void RedundancyEliminator_CPP::addNewChunk(unsigned char* hashValue, char* chunk
 	//file.close();
 }
 
+/*
+* Partition a stream into chunks
+*/
 deque<unsigned int> RedundancyEliminator_CPP::chunking(char* package, unsigned int packageSize) {
 	deque<unsigned int> indexQ = deque<unsigned int>();
 	char* chunk = new char[WINDOW_SIZE];
@@ -41,6 +44,9 @@ deque<unsigned int> RedundancyEliminator_CPP::chunking(char* package, unsigned i
 	return indexQ;
 }
 
+/*
+* Compute hash value for each chunk and find out the duplicate chunks
+*/
 unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ, char* package) {
 	unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
@@ -76,6 +82,9 @@ unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ
 	return duplicationSize;
 }
 
+/*
+* Read in a stream, partition it into chunks, and find out the duplicate chunks
+*/
 unsigned int RedundancyEliminator_CPP::eliminateRedundancy(char* package, unsigned int packageSize) {
 	clock_t start = clock();
 	deque<unsigned int> indexQ = chunking(package, packageSize);

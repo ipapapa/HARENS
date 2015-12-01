@@ -2,30 +2,48 @@
 
 #define CharArraySize(array) strlen(array)
 
+//The cuda kernel functions
+/*
+* Put the computed resultPoint of each thread to subResult
+*/
 __device__ void SetResultElement(unsigned int* subResult, 
 								 const unsigned int idx, 
 								 const unsigned int resultPoint) {
 	subResult[idx] = resultPoint;
 }
 
+/*
+* Get the memory address of the result for each block of threads
+*/
 __device__ unsigned int* GetSubResult(unsigned int* result, 
 									  const unsigned int blockNum) {
 	return &(result[blockNum * THREAD_PER_BLOCK]);
 }
 
+/*
+* Get the input required by each block of threads
+*/
 __device__ const char* GetSubStr(const char *str, 
 								 const unsigned int blockNum) {
 	return &(str[blockNum * THREAD_PER_BLOCK]);
 }
 
+/*
+* Transform four consecutive bytes into unsigned integer
+*/
 __device__ unsigned int GetUIntFromStr(const char* strs, 
 									   const unsigned int idx) {
 	return (strs[idx] << 24) | (strs[idx + 1] << 16) | (strs[idx + 2] << 8) | (strs[idx + 3]);
 }
 
+/*
+* Transform eight consecutive bytes into unsigned long long
+*/
 __device__ unsigned long long GetULongFromStr(const char* strs, 
 											  const unsigned int idx) {
-	/*unsigned long long result;
+	//memcpy doesn't work in kernel, keeping it here for record
+	/*
+	unsigned long long result;
 	memcpy((void*)&result, strs, BYTES_IN_ULONG);
 	return result;
 	*/
@@ -37,11 +55,18 @@ __device__ unsigned long long GetULongFromStr(const char* strs,
 	
 }
 
+/*
+* Get the character required by each thread
+*/
 __device__ char GetChar(const char* subStr, 
 						const unsigned int idx) {
 	return subStr[idx];
 }
 
+/*
+* Compute Rabin hash value of every single consecutive $WINDOW_SIZE$ bytes (see Definition.h)
+* Called by cuda kernel.
+*/
 __global__ void Hash(const unsigned long long *TA, 
 					 const unsigned long long *TB, 
 					 const unsigned long long *TC, 
@@ -135,7 +160,8 @@ RedundancyEliminator_CUDA::~RedundancyEliminator_CUDA() {
 }
 
 /*
-Add a new chunck into the file system, if the hash value queue is full, also delete the oldest chunk.
+* Add a new chunck into the file system, if the hash value queue is full, 
+* also delete the oldest chunk.
 */
 void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue, 
 											char* chunk, 
@@ -148,13 +174,16 @@ void RedundancyEliminator_CUDA::addNewChunk(unsigned char* hashValue,
 	file.close();*/
 }
 
+/*
+* Compute the hash value of each chunk.
+* The hash values are pushed into &chunkHashQ whenever it's computed,
+* and another thread would process the hash values simultaneously
+*/
 void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, 
 												  int indicesNum, 
 												  char* package,
 												  CircularQueuePool &chunkHashQ) 
 {
-	//cout << "start\n";
-	//unsigned int duplicationSize = 0;
 	unsigned int prevIdx = 0;
 	char* chunk;
 	unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
@@ -179,6 +208,10 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 	//cout << "end\n";
 }
 
+/*
+* Compute hash value for each chunk and find out the duplicate chunks.
+* Take a queue as input
+*/
 unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> indexQ, 
 													   char* package) 
 {
@@ -215,6 +248,10 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> index
 	return duplicationSize;
 }
 
+/*
+* Compute hash value for each chunk and find out the duplicate chunks.
+* Take a index array as input
+*/
 unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr, 
 													   unsigned int idxArrLen, 
 													   char* package) {
@@ -251,6 +288,10 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr,
 	return duplicationSize;
 }
 
+/*
+* Compute Rabin hash value of every single consecutive $WINDOW_SIZE$ bytes (see Definition.h)
+* Kernel function and data transfer between host and kernel would be processed simultaneously.
+*/
 void RedundancyEliminator_CUDA::RabinHashAsync(char* inputKernel, 
 											   char* inputHost, 
 											   unsigned int inputLen, 
@@ -282,6 +323,10 @@ void RedundancyEliminator_CUDA::RabinHashAsync(char* inputKernel,
 	}
 }
 
+/*
+* Take the first $sizeof(unsigned int)$ bytes of hashValue as divident,
+* and compute the result of divident modulo divisor.
+*/
 int mod(unsigned char* hashValue, int divisor) {
 	unsigned int hashValueInt;
 	memcpy(&hashValueInt, hashValue, sizeof(unsigned int));

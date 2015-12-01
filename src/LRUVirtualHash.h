@@ -1,6 +1,9 @@
 #pragma once
 #include "Definition.h"
 
+/*
+* The equal to function for char array hash map
+*/
 template <int str_len>
 struct CharArrayEqualTo {
 	bool operator()(const unsigned char* __x, const unsigned char* __y) const {
@@ -12,6 +15,9 @@ struct CharArrayEqualTo {
 	}
 };
 
+/*
+* The hash function for char array hash map
+*/
 template <int str_len>
 struct CharArrayHashFunc {
 	//BKDR hash algorithm
@@ -26,6 +32,9 @@ struct CharArrayHashFunc {
 	}
 };
 
+/*
+* Base class for all the LRU hashes
+*/
 template <int str_len>
 class LRUVirtualHash
 {
@@ -43,9 +52,23 @@ public:
 	void SetupLRUVirtualHash(unsigned int _size) { size = _size; }
 	~LRUVirtualHash() {}
 
+	/*
+	* Add a hash value knowing whether it is duplicated or not.
+	* Return the obselete hash based on the LRU replacement policy,
+	* if the LRU queue is full.
+	*/
 	virtual unsigned char* Add(unsigned char* hashValue, const bool isDuplicated) = 0;
 
+	/*
+	* Find out if a hash value exists in the hash map.
+	*/
 	virtual bool Find(unsigned char* hashValue) = 0;
 
+	/*
+	* Add a hash value without knowing whether it is duplicated or not.
+	* Return the obselete hash as a reference based on the LRU replacement
+	* policy, if the LRU queue is full.
+	* Return if the hash value exists in the hash map or not.
+	*/
 	virtual bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) = 0;
 };

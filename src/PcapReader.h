@@ -33,17 +33,30 @@ class PcapReader {
 private:
 	pcap_t* handle;
 
+	/*
+	* Remove the frame of data to get the load-offs
+	*/
 	std::pair<char*, int> Deframe(const unsigned char* packet, int frameLen);
 	
-	/*Return true when remaining length > 0, otherwise return false*/
+	/*
+	* Return true when remaining length > 0, otherwise return false
+	*/
 	bool proceed(unsigned char* &ptr, int &remainingLen, int proceedLen);
 
 public:
-	//Read the whole pcap file into memory
+	/*
+	* Read the whole pcap file into memory by packets
+	*/
 	std::string ReadPcapFile(char* fileName);
 
-	//Read pacp file part by part
+	/*
+	* Open pcap file and set a handle
+	*/
 	void SetupPcapHandle(char* fileName);
 	
+	/*
+	* Read the whole pcap file into memory by packets until it reaches the limit.
+	* Returns true when it reads something
+	*/
 	void ReadPcapFileChunk(FixedSizedCharArray &charArray, unsigned int readLen);
 };

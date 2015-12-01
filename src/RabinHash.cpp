@@ -2,7 +2,7 @@
 
 
 /*
- * Initialize the tables to zero
+* Initialize the tables to zero
 */
 void RabinHash::initialize(unsigned int* T) {
     for(int i = 0; i < TABLE_ROW_NUM; i++) {
@@ -13,7 +13,7 @@ void RabinHash::initialize(unsigned int* T) {
 }
 
 /*
- * Function that fills the polynomial tables
+* Function that fills the polynomial tables
 */
 void RabinHash::initializePolynomial(unsigned int* T, unsigned long long* TLONG, int shiftbit) {
 	for (int i = 0; i < TABLE_ROW_NUM; i++) {
@@ -25,7 +25,7 @@ void RabinHash::initializePolynomial(unsigned int* T, unsigned long long* TLONG,
 }
 
 /*
- * constructor initializes all tables to zero
+* constructor initializes all tables to zero
 */
 RabinHash::RabinHash() {
 	TA = new unsigned int[TABLE_ROW_NUM * TABLE_COL_NUM];
@@ -60,8 +60,11 @@ void RabinHash::print() {
     }
 }
 
-/* strLen must be a multiple of 4 */
+/*
+* The Rabin hash function. argument "strLen" must be a multiple of 4 
+*/
 unsigned long long RabinHash::Hash(const char* str, unsigned int strLen) {
+	//The general hash function
 	/*unsigned long long rabinHash = str[4];
 	for (int i = 5; i < 12; ++i)
 		rabinHash = (rabinHash << 8) | str[i];
@@ -74,6 +77,8 @@ unsigned long long RabinHash::Hash(const char* str, unsigned int strLen) {
 
 	rabinHash ^= TALONG[h] ^ TBLONG[i] ^ TCLONG[j] ^ TDLONG[k];
 	return rabinHash;*/
+
+	//The hash function for the case where strLen is small
 	unsigned int iter = 0;
 	unsigned int w1 = (str[iter] << 24) | (str[iter + 1] << 16) | (str[iter + 2] << 8) | (str[iter + 3]);
 	iter += 4;
@@ -105,18 +110,18 @@ unsigned long long RabinHash::Hash(const char* str, unsigned int strLen) {
 }
 
 /*
- * Destructor
+* Destructor
 */
 RabinHash::~RabinHash() {
 }
 
+
+//Polynomial generation function definitions in the following
+
 /*
- * polynomial Generation function definitions from Kelu
-*/
-/*
-According to "Probabilistic algorithms in finite fields" by Michael Rabin,
-the probability of a random selected degree-n polynoial to be irreducible is 1/n,
-so the expected number of polynomials we need to pick before finding the correct one is n.
+* According to "Probabilistic algorithms in finite fields" by Michael Rabin,
+* the probability of a random selected degree-n polynoial to be irreducible is 1/n,
+* so the expected number of polynomials we need to pick before finding the correct one is n.
 */
 unsigned long long RabinHash::genIrreduciblePoly() {
 	srand ((unsigned int)time(NULL));
@@ -131,23 +136,26 @@ unsigned long long RabinHash::genIrreduciblePoly() {
 }
 
 /*
-Reference: "Tests and Constructions of Irreducible Polynomials over Finite Fileds" by Shuhong Gao and Daniel Panario.
-The pseudo-code of this function is the following ("^" means "to the power of"):
-for j := 1 to k do
-	n_j = n / p_j (distinct prime divisor of n)
-for i := 1 to k do
-	g := gcd(polynomial, x^(q^n_i)) - x mod polynomial)
-	if g != 1, then f is reducible
-end for
-g := x^(q^n) - x mod polynomial
-if g = 0, then f is irreducible
-else, f is reducible
+* Reference: "Tests and Constructions of Irreducible Polynomials over Finite Fileds" 
+* by Shuhong Gao and Daniel Panario.
+* The pseudo-code of this function is the following ("^" means "to the power of"):
+***************************************************************************************
+* for j := 1 to k do
+* 	n_j = n / p_j (distinct prime divisor of n)
+* for i := 1 to k do
+* 	g := gcd(polynomial, x^(q^n_i)) - x mod polynomial)
+* 	if g != 1, then f is reducible
+* end for
+* g := x^(q^n) - x mod polynomial
+* if g = 0, then f is irreducible
+* else, f is reducible
+****************************************************************************************
 */
 bool RabinHash::isIrreducible(unsigned long long polynomial) {
 	//x^2 - x (mod polynomial)
-	unsigned long long rightNum = 2;                               //set rightNum = x
-	rightNum = squareAndModManyTimes(rightNum, polynomial, 1);    //x square
-	rightNum ^= 2;                                                 //set rightNum = x^2 - x
+	unsigned long long rightNum = 2;								//set rightNum = x
+	rightNum = squareAndModManyTimes(rightNum, polynomial, 1);		//x square
+	rightNum ^= 2;													//set rightNum = x^2 - x
 	unsigned long long g = gcd(polynomial, rightNum);
 	if(g != 1)
 		return false;
@@ -164,11 +172,11 @@ bool RabinHash::isIrreducible(unsigned long long polynomial) {
 }
 
 /*
-This function compute the square of a polynomial and mod a polynomial a specific times
-it's done by the following steps:
-    1. suppose poly = sumof(a_i 2^i), a_i = 0 or 1
-	2. so poly*poly mod module = sumof(a_i * shiftleftAndMod(poly, i, module))
-	3. repeat 1 and 2 a specific times, because poly_times = poly_(times - 1)^2; poly_(times - 1) = poly_(times - 2)^2; ...
+* This function compute the square of a polynomial and mod a polynomial a specific times.
+* It's done by the following steps:
+*	1. suppose poly = sumof(a_i 2^i), a_i = 0 or 1
+* 	2. so poly*poly mod module = sumof(a_i * shiftleftAndMod(poly, i, module))
+* 	3. repeat 1 and 2 a specific times, because poly_times = poly_(times - 1)^2; poly_(times - 1) = poly_(times - 2)^2; ...
 */
 unsigned long long RabinHash::squareAndModManyTimes(unsigned long long poly, unsigned long long module, int times) {
     unsigned long long poly_plusonetime = poly;
@@ -184,7 +192,10 @@ unsigned long long RabinHash::squareAndModManyTimes(unsigned long long poly, uns
     return poly_plusonetime;
 }
 
-//This is based on the fact that both polynomials and mod are 63 degree polynomails, represented by 64-bit numbers (the first bit is 1).
+/*
+* This function is based on the fact that both polynomials and mod are 63 degree polynomails,
+* represented by 64-bit numbers (the first bit is 1).
+*/
 unsigned long long RabinHash::shiftLeftAndMod(unsigned long long number, int shiftBit, unsigned long long mod) {
 	do {
 		while((number >> 63) != 1 && shiftBit > 0) {
@@ -199,7 +210,7 @@ unsigned long long RabinHash::shiftLeftAndMod(unsigned long long number, int shi
 }
 
 /*
-Compute the greatest common divisor of two polynomials represented by two unsigned long long number
+* Compute the greatest common divisor of two polynomials represented by two unsigned long long number
 */
 unsigned long long RabinHash::gcd(unsigned long long num1, unsigned long long num2) {
 	unsigned long long nums[2];
@@ -223,7 +234,7 @@ unsigned long long RabinHash::gcd(unsigned long long num1, unsigned long long nu
 }
 
 /*
-Count the number of bits from the first 1 to the end
+* Count the number of bits from the first 1 to the end
 */
 inline int RabinHash::bitsCount(unsigned long long num) {
 	int count = 0;
@@ -234,7 +245,7 @@ inline int RabinHash::bitsCount(unsigned long long num) {
 	return count;
 }
 
-/*The following are for CUDA Implementation*/
+//The following functions are for CUDA Implementation
 unsigned long long* RabinHash::GetTALONG() const {
 	return TALONG;
 }

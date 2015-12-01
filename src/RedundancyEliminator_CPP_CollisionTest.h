@@ -2,13 +2,21 @@
 #include "RedundancyEliminator_CPP.h"
 #include "LRUHash.h"
 
+/*
+* The redundancy elimination module for hash collision tests
+*/
 class RedundancyEliminator_CPP_CollisionTest: public RedundancyEliminator_CPP
 {
 private:
+	//The LRU hashes for three kind of hash functions
 	LRUHash<unsigned long long> rabinLRUHash;
 	LRUStrHash<SHA_DIGEST_LENGTH> sha1LRUHash;
 	LRUStrHash<MD5_DIGEST_LENGTH> md5LRUHash;
 
+	/*
+	The hash maps that store all the duplications detected 
+	by using three kind of hash functions
+	*/
 	unordered_map<unsigned long long, 
 				  tuple<char*, int>> 
 				  rabinMap;
@@ -23,6 +31,10 @@ private:
 				  CharArrayEqualTo<MD5_DIGEST_LENGTH>>
 				  md5Map;
 
+	/*
+	The addNewChunk function implemented for the algorithm using 
+	three kind of hash functions repectively
+	*/
 	inline void addNewChunkRabin(unsigned long long hashValue, 
 								 char* chunk, 
 								 unsigned int chunkSize, 

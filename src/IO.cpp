@@ -5,6 +5,10 @@ const std::string IO::METRICS[]{ "Bytes", "KB", "MB", "GB", "TB" };
 char* IO::input_file_name = nullptr;
 char* IO::output_file_name = nullptr;
 
+/*
+* Print contents into console or file according to the setting of output_file_name.
+* Accept parameters in the form of printf("format", ...)
+*/
 void IO::Print(const char* format, ...) {
 	va_list args;
 	va_start(args, format);
@@ -17,7 +21,10 @@ void IO::Print(const char* format, ...) {
 	}
 	va_end(args);
 }
- 
+
+/*
+* Interpret size in bytes into the metrics easy to read
+*/
 std::string IO::InterpretSize(int file_len) {
 	for (int i = 0; i < 5; ++i) {
 		if (file_len < 1000) {

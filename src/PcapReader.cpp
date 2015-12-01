@@ -1,5 +1,8 @@
 #include "PcapReader.h"
 
+/*
+* Remove the frame of data to get the load-offs
+*/
 std::pair<char*, int> PcapReader::Deframe(const unsigned char* packet, int frameLen) {
 	unsigned int sizeIp;
 	unsigned int sizeTcpUdp;
@@ -104,7 +107,9 @@ std::pair<char*, int> PcapReader::Deframe(const unsigned char* packet, int frame
 	return std::make_pair((char *)pkgPtr, frameLen);
 }
 
-/*Return true when remaining length > 0, otherwise return false*/
+/*
+* Return true when remaining length > 0, otherwise return false
+*/
 bool PcapReader::proceed(unsigned char* &ptr, int &remainingLen, int proceedLen) {
 	ptr += proceedLen;
 	remainingLen -= proceedLen;
@@ -116,6 +121,9 @@ bool PcapReader::proceed(unsigned char* &ptr, int &remainingLen, int proceedLen)
 	}
 }
 
+/*
+* Read the whole pcap file into memory by packets
+*/
 std::string PcapReader::ReadPcapFile(char* fileName) {
 	//temporary packet buffers 
 	struct pcap_pkthdr *header; // The header that pcap gives us 
@@ -148,6 +156,9 @@ std::string PcapReader::ReadPcapFile(char* fileName) {
 	return fileContent;
 }
 
+/*
+* Open pcap file and set a handle
+*/
 void PcapReader::SetupPcapHandle(char* fileName) {
 	//open the pcap file 
 	char errbuf[PCAP_ERRBUF_SIZE]; //not sure what to do with this, oh well 
@@ -159,7 +170,10 @@ void PcapReader::SetupPcapHandle(char* fileName) {
 	}
 }
 
-//Return true when read something
+/*
+* Read the whole pcap file into memory by packets until it reaches the limit.
+* Returns true when it reads something
+*/
 void PcapReader::ReadPcapFileChunk(FixedSizedCharArray &charArray, unsigned int readLenLimit) {
 	//temporary packet buffers 
 	struct pcap_pkthdr *header; // The header that pcap gives us 
