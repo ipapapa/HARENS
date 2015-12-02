@@ -1,5 +1,4 @@
 # Hardware Accelarated Redundancy Elimination in Network Systems
-=====
 
 [![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
 
@@ -46,3 +45,11 @@ Refer to the guide by typing:
   - type ```HARENS.exe -h```
 - (For Linux users)
   - type ```run -h```
+
+Bug Reporting
+-------------
+* For reporting bugs please use the [HARENS/issues](https://github.com/ipapapa/HARENS/issues) page.
+
+License
+-------
+© Contributors, 2015. Licensed under an [Apache-2.0](https://github.com/ipapapa/HARENS/blob/master/License) license.
