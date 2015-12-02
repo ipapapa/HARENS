@@ -14,7 +14,9 @@ Our results indicate that HARENS can increase the throughput of other CUDA Redun
 
 This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
 
-##Requirements
+Requirements
+-------------
+
 - Windows 7/8 64-bit (Windows 10 possibly doesn't support CUDA architecture) or Linux 64-bit
 - NVidia GPU, which supports cuda compute capability 3.5 or later
 - CUDA 6.5 driver or later
@@ -22,7 +24,9 @@ This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [D
   - Visual Studio 2013 or later
   - C++ 11
 
-##User Guide
+User Guide
+-------------
+
 ###Installation
 - (For Windows users)
   - Open HARENS.sln with Visual Studio and compile
