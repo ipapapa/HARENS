@@ -19,9 +19,6 @@ We used Intel Core i7-5930K 3.5GHz 12 cores CPU, 16GB DDR4 RAM, and Nvidia Tesla
 ![throughput](https://cloud.githubusercontent.com/assets/4562887/11403658/e47858c8-9352-11e5-80c4-af876147ea8b.png)
 
 
-
-This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
-
 Algorithm Overview
 -------------------
 
@@ -83,3 +80,5 @@ Bug Reporting
 License
 -------
 © Contributors, 2015. Licensed under an [Apache-2.0](https://github.com/ipapapa/HARENS/blob/master/License) license.
+This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
+
