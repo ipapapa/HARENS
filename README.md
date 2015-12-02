@@ -76,9 +76,10 @@ Refer to the guide by typing:
 Bug Reporting
 -------------
 * For reporting bugs please use the [HARENS/issues](https://github.com/ipapapa/HARENS/issues) page.
+* We are looking forward to pull requests from everybody through [HARENS/pulls](https://github.com/ipapapa/HARENS/pulls).
 
 License
 -------
 © Contributors, 2015. Licensed under an [Apache-2.0](https://github.com/ipapapa/HARENS/blob/master/License) license.
-This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
+This project was initially developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
 
