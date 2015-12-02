@@ -1,4 +1,7 @@
 # Hardware Accelarated Redundancy Elimination in Network Systems
+=====
+
+[![GitHub license](http://dmlc.github.io/img/apache2.svg)](./LICENSE)
 
 With the tremendous growth in the amount of information stored on remote locations and cloud systems, many service providers are seeking ways to reduce the amount of redundant information sent across networks by using data de-duplication techniques. Data de-duplication can reduce network traffic without loss of information, and therefore increase available network bandwidth. However, due to heavy computations, de-duplication itself can become a bottleneck in high capacity links. Here, we propose a method named Hardware Accelerated Redundancy Elimination in Network Systems (HARENS). HARENS can significantly improve the performance of the redundancy elimination in network system by leveraging:
 - the use of General Purpose Graphics Processing Unit (GPGPU) acceleration,  
@@ -20,8 +23,8 @@ This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [D
   - Visual Studio 2013 or later
   - C++ 11
 
-##Usage Guide
-###Installations
+##User Guide
+###Installation
 - (For Windows users)
   - Open HARENS.sln with Visual Studio and compile
   - The default setting is release-x64, you would find "HARENS.exe", the executable, in path .\x64\Release\
