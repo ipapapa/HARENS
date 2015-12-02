@@ -23,7 +23,7 @@ We used Intel Core i7-5930K 3.5GHz 12 cores CPU, 16GB DDR4 RAM, and Nvidia Tesla
 This project has been developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
 
 Algorithm Overview
--------i-----
+-------------------
 
 - Packet/Object chunking: a sliding window to scan through the whole input stream, and marks the beginning of a window as a fingerprint based on MODP Rabin Fingerprint
 - Compute a SHA-1 for chunk. We chose SHA-1 because it is light-weighted and has low has collisions.
