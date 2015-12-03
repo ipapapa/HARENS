@@ -81,5 +81,5 @@ Bug Reporting
 License
 -------
 © Contributors, 2015. Licensed under an [Apache-2.0](https://github.com/ipapapa/HARENS/blob/master/License) license.
-This project was initially developed by [Kelu Diao](mailto:keludiao@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
+This project was initially developed by [Kelu Diao](mailto:diaokelu@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
 
