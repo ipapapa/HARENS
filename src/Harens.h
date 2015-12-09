@@ -91,13 +91,45 @@ public:
 	Harens(int mapperNum, int reducerNum);
 	~Harens();
 
+	/*
+	* Read data from a plain text or pcap file into memory.
+	* Transfer is done in this step now.
+	*/
 	void ReadFile();
-	void Transfer();
+
+	/*
+	* Transfer data from pagable buffer to pinned buffer.
+	* Because memory transfer between GPU device memory and 
+	* pinned buffer is way faster than between pagable buffer.
+	*/
+	//void Transfer();
+
+	/*
+	* Call the GPU kernel function to compute the Rabin hash value
+	* of each sliding window
+	*/
 	void ChunkingKernel();
+	
+	/*
+	* Mark the beginning of a window as a fingerprint based on the MODP rule.
+	* The fingerprints divide the stream into chunks.
+	*/
 	void ChunkingResultProc();
+
+	/*
+	* Compute a non-collision hash (SHA-1) value for each chunk
+	* Chunks are divided into segments and processed by function ChunkSegmentHashing.
+	*/
 	void ChunkHashing();
+
+	/*
+	* Match the chunks by their hash values
+	*/
 	void ChunkMatch(int hashPoolIdx);
 
+	/*
+	* Compute a non-collision hash (SHA-1) value for each chunk in the segment
+	*/
 	void ChunkSegmentHashing(int pagableBufferIdx, 
 							 int chunkingResultIdx, 
 							 int segmentNum);

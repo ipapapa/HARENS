@@ -147,6 +147,10 @@ void Harens::Test(double &rate, double &time) {
 	time = (end - start) * 1000 / CLOCKS_PER_SEC;
 }
 
+/*
+* Read data from a plain text or pcap file into memory.
+* Transfer is done in this step now.
+*/
 void Harens::ReadFile() {
 	int pagableBufferIdx = 0;
 	unsigned int curFilePos = 0;
@@ -251,6 +255,11 @@ void Harens::ReadFile() {
 
 }
 
+/*
+* Transfer data from pagable buffer to pinned buffer.
+* Because memory transfer between GPU device memory and
+* pinned buffer is way faster than between pagable buffer.
+*/
 //void Transfer() {
 //	int pagableBufferIdx = 0;
 //	int fixedBufferIdx = 0;
@@ -288,6 +297,10 @@ void Harens::ReadFile() {
 //	}
 //}
 
+/*
+* Call the GPU kernel function to compute the Rabin hash value
+* of each sliding window
+*/
 void Harens::ChunkingKernel() {
 	int pagableBufferIdx = 0;
 	int fixedBufferIdx = 0;
@@ -339,6 +352,10 @@ void Harens::ChunkingKernel() {
 	}
 }
 
+/*
+* Mark the beginning of a window as a fingerprint based on the MODP rule.
+* The fingerprints divide the stream into chunks.
+*/
 void Harens::ChunkingResultProc() {
 	int resultHostIdx = 0;
 	int streamIdx = 0;
@@ -389,6 +406,10 @@ void Harens::ChunkingResultProc() {
 	}
 }
 
+/*
+* Compute a non-collision hash (SHA-1) value for each chunk
+* Chunks are divided into segments and processed by function ChunkSegmentHashing.
+*/
 void Harens::ChunkHashing() {
 	int pagableBufferIdx = 0;
 	int chunkingResultIdx = 0;
@@ -442,6 +463,9 @@ void Harens::ChunkHashing() {
 	}
 }
 
+/*
+* Compute a non-collision hash (SHA-1) value for each chunk in the segment
+*/
 void Harens::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum) {
 	int listSize = chunking_result_len[chunkingResultIdx];
 	unsigned int* chunkingResultSeg = &chunking_result[chunkingResultIdx][segmentNum * listSize / mapperNum];
@@ -460,6 +484,9 @@ void Harens::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, in
 	} while (get<1>(chunkInfo) != -1);*/
 }
 
+/*
+* Match the chunks by their hash values
+*/
 void Harens::ChunkMatch(int hashPoolIdx) {
 	unsigned char* toBeDel = nullptr;
 	while (true) {
