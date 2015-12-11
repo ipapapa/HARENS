@@ -8,7 +8,6 @@ class CppPipeline {
 private:
 	unsigned int file_length = 0;
 	RedundancyEliminator_CPP re;
-	ifstream ifs;
 	//syncronize
 	array<mutex, PAGABLE_BUFFER_NUM> buffer_mutex;						//lock for buffer
 	array<condition_variable, PAGABLE_BUFFER_NUM> buffer_cond;

@@ -9,11 +9,9 @@ This class is the module of naive cpp implementation
 */
 class NaiveCpp {
 private:
+	int count = 0;
 	unsigned int file_length = 0;
 	RedundancyEliminator_CPP re;
-	ifstream ifs;
-	PcapReader fileReader;
-	unsigned int cur_file_pos = 0;
 
 	//shared data
 	bool readFirstTime = true;

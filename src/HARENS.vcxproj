@@ -28,6 +28,7 @@
     <ClCompile Include="IO.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="PcapReader.cpp" />
+    <ClCompile Include="PlainFileReader.cpp" />
     <ClCompile Include="RabinHash.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP.cpp" />
     <ClCompile Include="RedundancyEliminator_CPP_CollisionTest.cpp" />
@@ -42,6 +43,7 @@
     <ClInclude Include="HashCollisionTest.h" />
     <ClInclude Include="IO.h" />
     <ClInclude Include="PcapReader.h" />
+    <ClInclude Include="PlainFileReader.h" />
     <ClInclude Include="RedundancyEliminator_CPP_CollisionTest.h" />
     <ClInclude Include="LRUQueue.h" />
     <ClInclude Include="NaiveCpp.h" />
@@ -53,6 +55,7 @@
     <ClInclude Include="RedundancyEliminator_CPP.h" />
     <ClInclude Include="RedundancyEliminator_CUDA.h" />
     <ClInclude Include="LRUVirtualHash.h" />
+    <ClInclude Include="VritualReader.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="RedundancyEliminator_CUDA.cu" />

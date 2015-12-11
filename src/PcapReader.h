@@ -1,24 +1,13 @@
 #pragma once
-/* Ethernet addresses are 6 bytes */
-#define ETHER_ADDR_LEN	6
+#include "VritualReader.h"
 
-#include <utility>
-#include "Definition.h"
-#include "FixedSizedCharArray.h"
-extern "C" {
-#include <pcap.h>
-//#include <inaddr.h>
-}
-#if defined(WIN32) || defined(WIN64)
-#include <winsock2.h>
-#else	//UN*X system
-#include <netinet/ip.h>
-#include <arpa/inet.h>
-#endif
+// Ethernet addresses are 6 bytes
+#define ETHER_ADDR_LEN	6
 //defines for the packet type code in an ETHERNET header
 #define ETHER_TYPE_IP (0x0800)
 #define ETHER_TYPE_8021Q (0x8100)
 #define WLAN_HEADER_LEN (24)	//No Address 4 in 802.11 header in our track
+//The masks of bytes
 #define MASK_00000011 (0x03)
 #define MASK_00001111 (0x0F)
 #define MASK_00001100 (0x0C)
@@ -29,7 +18,13 @@ extern "C" {
 const std::string EMPTY_STR = "";
 #define EMPTY (std::make_pair((char*)(&EMPTY_STR[0]), 0))
 
-class PcapReader {
+/*
+* A reader of pcap file.
+* A pcap file is a capture file saved in the format that libpcap and WinPcap use 
+* can be read by applications that understand that format, such as tcpdump, Wireshark,
+* CA NetMaster, or Microsoft Network Monitor 3.x. (wikipedia: pcap)
+*/
+class PcapReader: public VirtualReader {
 private:
 	pcap_t* handle;
 
@@ -45,18 +40,17 @@ private:
 
 public:
 	/*
-	* Read the whole pcap file into memory by packets
-	*/
-	std::string ReadPcapFile(char* fileName);
-
-	/*
 	* Open pcap file and set a handle
 	*/
-	void SetupPcapHandle(char* fileName);
+	void SetupReader(char* fileName) override;
 	
 	/*
 	* Read the whole pcap file into memory by packets until it reaches the limit.
-	* Returns true when it reads something
 	*/
-	void ReadPcapFileChunk(FixedSizedCharArray &charArray, unsigned int readLen);
+	void ReadChunk(FixedSizedCharArray &charArray, unsigned int readLen) override;
+
+	/*
+	* Read the whole pcap file into memory by packets
+	*/
+	char* ReadAll(char* fileName) override;
 };

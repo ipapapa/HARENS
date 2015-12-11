@@ -1,7 +1,7 @@
 #pragma once
-#include "LRUVirtualHash.h"
-#include "LRUQueue.h"
 #include "Definition.h"
+#include "LRUQueue.h"
+#include "LRUVirtualHash.h"
 
 /*
 * Generic class for LRU hash, T can be any basic types (no pointers or collections).

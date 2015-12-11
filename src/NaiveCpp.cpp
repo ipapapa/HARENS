@@ -63,69 +63,29 @@ bool NaiveCpp::ReadFile() {
 	if (readFirstTime) {
 		readFirstTime = false;
 		start_read = clock();
-		if (IO::FILE_FORMAT == PlainText) {
-			ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
-			if (!ifs.is_open()) {
-				printf("Can not open file %s\n", IO::input_file_name);
-				return false;
-			}
 
-			file_length = ifs.tellg();
-			ifs.seekg(0, ifs.beg);
-			IO::Print("File Length: %s \n", IO::InterpretSize(file_length));
-			buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos);
-			curWindowNum = buffer_len - WINDOW_SIZE + 1;
-			ifs.read(buffer, buffer_len);
-			cur_file_pos += curWindowNum;
-
-			return buffer_len == MAX_BUFFER_LEN;
-		}
-		else if (IO::FILE_FORMAT == Pcap) {
-			fileReader.SetupPcapHandle(IO::input_file_name);
-			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
-			buffer_len = charArrayBuffer.GetLen();
-			memcpy(buffer, charArrayBuffer.GetArr(), buffer_len);
-			file_length += buffer_len;
-
-			return buffer_len == MAX_BUFFER_LEN;
-		}
-		else
-			fprintf(stderr, "Unknown file format\n");
+		IO::fileReader->SetupReader(IO::input_file_name[0]);
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
+		buffer_len = charArrayBuffer.GetLen();
+		memcpy(buffer, charArrayBuffer.GetArr(), buffer_len);
+		file_length += buffer_len;
+		return buffer_len == MAX_BUFFER_LEN;
 
 		memcpy(overlap, &buffer[buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 	}
 	else { //Read the rest
-		if (IO::FILE_FORMAT == PlainText) {
-			start_read = clock();
-			buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos + WINDOW_SIZE - 1);
-			curWindowNum = buffer_len - WINDOW_SIZE + 1;
-			memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			ifs.read(&buffer[WINDOW_SIZE - 1], curWindowNum);
-			memcpy(overlap, &buffer[curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-			cur_file_pos += curWindowNum;
-			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
-
-			if (buffer_len != MAX_BUFFER_LEN)
-				ifs.close();
-			return buffer_len == MAX_BUFFER_LEN;
-		}
-		else if (IO::FILE_FORMAT == Pcap) {
-			start_read = clock();
-			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
-			memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
-			buffer_len = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-			file_length += charArrayBuffer.GetLen();
-			memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
-			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
-
-			if (buffer_len != MAX_BUFFER_LEN)
-				IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-			return buffer_len == MAX_BUFFER_LEN;
-		}
-		else
-			fprintf(stderr, "Unknown file format\n");
+		start_read = clock();
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+		memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+		memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+		buffer_len = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		file_length += charArrayBuffer.GetLen();
+		memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+		if (buffer_len != MAX_BUFFER_LEN)
+			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
+		return buffer_len == MAX_BUFFER_LEN;
 	}
 }
 

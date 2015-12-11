@@ -1,24 +1,40 @@
 #pragma once
-#include <time.h>
-#include <stdlib.h>
-#include <set>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <chrono>
+#include <condition_variable>
+#include <cstdarg> 
+#include <cstring>
+#include <deque>
+#include <fstream>
+#include <iostream>
+#include <list>
 #include <map>
+#include <mutex>
+#include <openssl/md5.h>
+#include <openssl/sha.h>
+#include <set>
+#include <sstream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string>
+#include <thread>
+#include <time.h>
 #include <unordered_map>
 #include <unordered_set>
-#include <array>
-#include <list>
-#include <deque>
-#include <cstring>
-#include <string>
-#include <time.h>
-#include <algorithm>
-#include <mutex>
-#include <thread>
-#include <chrono>
-#include <deque>
-#include <condition_variable>
-#include <openssl/sha.h>
-#include <openssl/md5.h>
+#include <utility>
+#include <vector>
+
+extern "C" {
+#include <pcap.h>
+}
+#if defined(WIN32) || defined(WIN64)
+#include <winsock2.h>
+#else	//UN*X system
+#include <netinet/ip.h>
+#include <arpa/inet.h>
+#endif
 
 //The number of bytes in C++ built-in types
 const unsigned int BYTES_IN_INT = sizeof(int);

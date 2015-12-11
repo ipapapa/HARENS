@@ -159,29 +159,11 @@ void Harens::ReadFile() {
 	//Read the first part
 	unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
 	start_r = clock();
-	if (IO::FILE_FORMAT == PlainText) {
-		ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
-		if (!ifs.is_open()) {
-			printf("Can not open file %s\n", IO::input_file_name);
-			return;
-		}
-		file_length = ifs.tellg();
-		ifs.seekg(0, ifs.beg);
-		IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-		pagable_buffer_len[pagableBufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
-		curWindowNum = pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1;
-		ifs.read(pagable_buffer[pagableBufferIdx], pagable_buffer_len[pagableBufferIdx]);
-		curFilePos += curWindowNum;
-	}
-	else if (IO::FILE_FORMAT == Pcap) {
-		fileReader.SetupPcapHandle(IO::input_file_name);
-		fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
-		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
-		memcpy(pagable_buffer[pagableBufferIdx], charArrayBuffer.GetArr(), pagable_buffer_len[pagableBufferIdx]);
-		file_length += pagable_buffer_len[pagableBufferIdx];
-	}
-	else
-		fprintf(stderr, "Unknown file format\n");
+	IO::fileReader->SetupReader(IO::input_file_name[0]);
+	IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
+	pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
+	memcpy(pagable_buffer[pagableBufferIdx], charArrayBuffer.GetArr(), pagable_buffer_len[pagableBufferIdx]);
+	file_length += pagable_buffer_len[pagableBufferIdx];
 	++count;
 
 	memcpy(overlap, &pagable_buffer[pagableBufferIdx][pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
@@ -192,61 +174,34 @@ void Harens::ReadFile() {
 	end_r = clock();
 	time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 	//Read the rest
-	if (IO::FILE_FORMAT == PlainText) {
-		//curWindowNum will be less than MAX_BUFFER_LEN - WINDOW_SIZE + 1 when reading the last part
-		while (curWindowNum == MAX_WINDOW_NUM) {
-			unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
-			while (pagable_buffer_obsolete[pagableBufferIdx] == false) {
-				pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
-			}
-			++count;
-			start_r = clock();
-			pagable_buffer_len[pagableBufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
-			curWindowNum = pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1;
-			memcpy(pagable_buffer[pagableBufferIdx], overlap, WINDOW_SIZE - 1);		//copy the overlap into current part
-			ifs.read(&pagable_buffer[pagableBufferIdx][WINDOW_SIZE - 1], curWindowNum);
-			memcpy(overlap, &pagable_buffer[pagableBufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-			pagable_buffer_obsolete[pagableBufferIdx] = false;
-			readFileIterLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].notify_one();
-			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-			curFilePos += curWindowNum;
-			end_r = clock();
-			time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
+	while (true) {
+		unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
+		while (pagable_buffer_obsolete[pagableBufferIdx] == false) {
+			pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
 		}
-		ifs.close();
-	}
-	else if (IO::FILE_FORMAT == Pcap) {
-		while (true) {
-			unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
-			while (pagable_buffer_obsolete[pagableBufferIdx] == false) {
-				pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
-			}
-			start_r = clock();
-			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+		start_r = clock();
 
-			if (charArrayBuffer.GetLen() == 0) {
-				readFileIterLock.unlock();
-				pagable_buffer_cond[pagableBufferIdx].notify_all();
-				break;	//Read nothing
-			}
-			++count;
-			memcpy(pagable_buffer[pagableBufferIdx], overlap, WINDOW_SIZE - 1);		//copy the overlap into current part
-			memcpy(&pagable_buffer[pagableBufferIdx][WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
-			pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-			file_length += charArrayBuffer.GetLen();
-			pagable_buffer_obsolete[pagableBufferIdx] = false;
-			memcpy(overlap, &pagable_buffer[pagableBufferIdx][charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+
+		if (charArrayBuffer.GetLen() == 0) {
 			readFileIterLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].notify_one();
-			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-			end_r = clock();
-			time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
+			pagable_buffer_cond[pagableBufferIdx].notify_all();
+			break;	//Read nothing
 		}
-		IO::Print("File size: %s\n", IO::InterpretSize(file_length));
+		++count;
+		memcpy(pagable_buffer[pagableBufferIdx], overlap, WINDOW_SIZE - 1);		//copy the overlap into current part
+		memcpy(&pagable_buffer[pagableBufferIdx][WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		file_length += charArrayBuffer.GetLen();
+		pagable_buffer_obsolete[pagableBufferIdx] = false;
+		memcpy(overlap, &pagable_buffer[pagableBufferIdx][charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		readFileIterLock.unlock();
+		pagable_buffer_cond[pagableBufferIdx].notify_one();
+		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+		end_r = clock();
+		time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 	}
-	else
-		fprintf(stderr, "Unknown file format\n");
+	IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 	unique_lock<mutex> readFileEndLock(read_file_end_mutex);
 	IO::Print("Need %d pagable buffers\n", count);
 	read_file_end = true;

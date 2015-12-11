@@ -9,11 +9,8 @@
 class CudaAcceleratedAlg {
 private:
 	//file
-	ifstream ifs;
-	PcapReader fileReader;
 	bool readFirstTime = true;
 	unsigned int file_length;
-	unsigned int cur_file_pos = 0;
 	FixedSizedCharArray charArrayBuffer;
 	char overlap[WINDOW_SIZE - 1];
 	//pagable buffer

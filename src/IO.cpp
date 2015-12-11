@@ -1,8 +1,9 @@
 #include "IO.h"
 
-FileFormat IO::FILE_FORMAT = PlainText;
+FileFormat IO::fileFormat = PlainText;
+VirtualReader* IO::fileReader = new PlainFileReader();
 const std::string IO::METRICS[]{ "Bytes", "KB", "MB", "GB", "TB" };
-char* IO::input_file_name = nullptr;
+std::vector<char*> IO::input_file_name;
 char* IO::output_file_name = nullptr;
 
 /*

@@ -56,7 +56,13 @@ bool HashCollisionTest::ReadFile() {
 	//Read the first part
 	if (readFirstTime) {
 		readFirstTime = false;
-		if (IO::FILE_FORMAT == PlainText) {
+		IO::fileReader->SetupReader(IO::input_file_name[0]);
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
+		bufferLen = charArrayBuffer.GetLen();
+		memcpy(buffer, charArrayBuffer.GetArr(), bufferLen);
+		fileLength += bufferLen;
+		return bufferLen == MAX_BUFFER_LEN;
+		/*if (IO::FILE_FORMAT == PlainText) {
 			ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
 			if (!ifs.is_open()) {
 				printf("Can not open file %s\n", IO::input_file_name);
@@ -83,37 +89,47 @@ bool HashCollisionTest::ReadFile() {
 			return bufferLen == MAX_BUFFER_LEN;
 		}
 		else
-			fprintf(stderr, "Unknown file format\n");
+			fprintf(stderr, "Unknown file format\n");*/
 
 		memcpy(overlap, &buffer[bufferLen - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap	
 	}
 	else { //Read the rest
-		if (IO::FILE_FORMAT == PlainText) {
-			bufferLen = min(MAX_BUFFER_LEN, fileLength - curFilePos + WINDOW_SIZE - 1);
-			curWindowNum = bufferLen - WINDOW_SIZE + 1;
-			memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			ifs.read(&buffer[WINDOW_SIZE - 1], curWindowNum);
-			memcpy(overlap, &buffer[curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-			curFilePos += curWindowNum;
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE);
+		memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+		memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+		bufferLen = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		fileLength += charArrayBuffer.GetLen();
+		memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		
+		if (bufferLen != MAX_BUFFER_LEN)
+			IO::Print("File size: %s\n", IO::InterpretSize(fileLength));
+		return bufferLen == MAX_BUFFER_LEN;
+		//if (IO::FILE_FORMAT == PlainText) {
+		//	bufferLen = min(MAX_BUFFER_LEN, fileLength - curFilePos + WINDOW_SIZE - 1);
+		//	curWindowNum = bufferLen - WINDOW_SIZE + 1;
+		//	memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+		//	ifs.read(&buffer[WINDOW_SIZE - 1], curWindowNum);
+		//	memcpy(overlap, &buffer[curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
+		//	curFilePos += curWindowNum;
 
-			if (bufferLen != MAX_BUFFER_LEN)
-				ifs.close();
-			return bufferLen == MAX_BUFFER_LEN;
-		}
-		else if (IO::FILE_FORMAT == Pcap) {
-			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
-			memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
-			bufferLen = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-			fileLength += charArrayBuffer.GetLen();
-			memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
-			
-			if (bufferLen != MAX_BUFFER_LEN)
-				IO::Print("File size: %s\n", IO::InterpretSize(fileLength));
-			return bufferLen == MAX_BUFFER_LEN;
-		}
-		else
-			fprintf(stderr, "Unknown file format\n");
+		//	if (bufferLen != MAX_BUFFER_LEN)
+		//		ifs.close();
+		//	return bufferLen == MAX_BUFFER_LEN;
+		//}
+		//else if (IO::FILE_FORMAT == Pcap) {
+		//	fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+		//	memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+		//	memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+		//	bufferLen = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		//	fileLength += charArrayBuffer.GetLen();
+		//	memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		//	
+		//	if (bufferLen != MAX_BUFFER_LEN)
+		//		IO::Print("File size: %s\n", IO::InterpretSize(fileLength));
+		//	return bufferLen == MAX_BUFFER_LEN;
+		//}
+		//else
+		//	fprintf(stderr, "Unknown file format\n");
 	}
 }
 

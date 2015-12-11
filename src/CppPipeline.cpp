@@ -74,30 +74,11 @@ void CppPipeline::ReadFile() {
 	//Read the first part
 	unique_lock<mutex> readFileInitLock(buffer_mutex[bufferIdx]);
 	start_read = clock();
-	if (IO::FILE_FORMAT == PlainText) {
-		ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
-		if (!ifs.is_open()) {
-			printf("Can not open file %s\n", IO::input_file_name);
-			return;
-		}
-
-		file_length = ifs.tellg();
-		ifs.seekg(0, ifs.beg);
-		IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-		buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos);
-		curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
-		ifs.read(buffer[bufferIdx], buffer_len[bufferIdx]);
-		curFilePos += curWindowNum;
-	}
-	else if (IO::FILE_FORMAT == Pcap) {
-		fileReader.SetupPcapHandle(IO::input_file_name);
-		fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
-		buffer_len[bufferIdx] = charArrayBuffer.GetLen();
-		memcpy(buffer[bufferIdx], charArrayBuffer.GetArr(), buffer_len[bufferIdx]);
-		file_length += buffer_len[bufferIdx];
-	}
-	else
-		fprintf(stderr, "Unknown file format\n");
+	IO::fileReader->SetupReader(IO::input_file_name[0]);
+	IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
+	buffer_len[bufferIdx] = charArrayBuffer.GetLen();
+	memcpy(buffer[bufferIdx], charArrayBuffer.GetArr(), buffer_len[bufferIdx]);
+	file_length += buffer_len[bufferIdx];
 		
 	memcpy(overlap, &buffer[bufferIdx][buffer_len[bufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 	buffer_obsolete[bufferIdx] = false;
@@ -106,56 +87,32 @@ void CppPipeline::ReadFile() {
 	bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
 	tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 	//Read the rest
-	if (IO::FILE_FORMAT == PlainText) {
-		while (curWindowNum == MAX_WINDOW_NUM) {
-			unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
-			while (buffer_obsolete[bufferIdx] == false) {
-				buffer_cond[bufferIdx].wait(readFileIterLock);
-			}
-			start_read = clock();
-			buffer_len[bufferIdx] = min(MAX_BUFFER_LEN, file_length - curFilePos + WINDOW_SIZE - 1);
-			curWindowNum = buffer_len[bufferIdx] - WINDOW_SIZE + 1;
-			memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			ifs.read(&buffer[bufferIdx][WINDOW_SIZE - 1], curWindowNum);
-			memcpy(overlap, &buffer[bufferIdx][curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-			buffer_obsolete[bufferIdx] = false;
-			readFileIterLock.unlock();
-			buffer_cond[bufferIdx].notify_one();
-			bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
-			curFilePos += curWindowNum;
-			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+	while (true) {
+		unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
+		while (buffer_obsolete[bufferIdx] == false) {
+			buffer_cond[bufferIdx].wait(readFileIterLock);
 		}
-		ifs.close();
-	}
-	else if (IO::FILE_FORMAT == Pcap) {
-		while (true) {
-			unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
-			while (buffer_obsolete[bufferIdx] == false) {
-				buffer_cond[bufferIdx].wait(readFileIterLock);
-			}
-			start_read = clock();
-			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
-				
-			if (charArrayBuffer.GetLen() == 0) {
-				readFileIterLock.unlock();
-				buffer_cond[bufferIdx].notify_all();
-				break;	//Read nothing
-			}
-			memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			memcpy(&buffer[bufferIdx][WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
-			buffer_len[bufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-			file_length += charArrayBuffer.GetLen();
-			buffer_obsolete[bufferIdx] = false;
-			memcpy(overlap, &buffer[bufferIdx][charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		start_read = clock();
+
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+
+		if (charArrayBuffer.GetLen() == 0) {
 			readFileIterLock.unlock();
-			buffer_cond[bufferIdx].notify_one();
-			bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
-			tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+			buffer_cond[bufferIdx].notify_all();
+			break;	//Read nothing
 		}
-		IO::Print("File size: %s\n", IO::InterpretSize(file_length));
+		memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+		memcpy(&buffer[bufferIdx][WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+		buffer_len[bufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		file_length += charArrayBuffer.GetLen();
+		buffer_obsolete[bufferIdx] = false;
+		memcpy(overlap, &buffer[bufferIdx][charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		readFileIterLock.unlock();
+		buffer_cond[bufferIdx].notify_one();
+		bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
+		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 	}
-	else
-		fprintf(stderr, "Unknown file format\n");
+	IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 	unique_lock<mutex> readFileEndLock(read_file_end_mutex);
 	read_file_end = true;
 	//In case the other threads stuck in waiting for condition variable

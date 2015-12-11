@@ -29,12 +29,12 @@ public:
 	* Return the obselete hash based on the LRU replacement policy,
 	* if the LRU queue is full.
 	*/
-	unsigned char* Add(unsigned char* hashValue, const bool isDuplicated);
+	unsigned char* Add(unsigned char* hashValue, const bool isDuplicated) override;
 
 	/*
 	* Find out if a hash value exists in the hash map.
 	*/
-	bool Find(unsigned char* hashValue);
+	bool Find(unsigned char* hashValue) override;
 
 	/*
 	* Add a hash value without knowing whether it is duplicated or not.
@@ -42,7 +42,7 @@ public:
 	* policy, if the LRU queue is full.
 	* Return if the hash value exists in the hash map or not.
 	*/
-	bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel);
+	bool FindAndAdd(unsigned char* hashValue, unsigned char* toBeDel) override;
 };
 
 template <int str_len>

@@ -1,9 +1,7 @@
 #pragma once
-#include <stdio.h>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <cstdarg> 
+#include "Definition.h"
+#include "PlainFileReader.h"
+#include "PcapReader.h"
 
 /*
 * Files with plaintext format can be read in directly,
@@ -21,11 +19,23 @@ static class ExtraOrdinaryLargeFileException : public std::exception {
 * IO-related parameters and functions
 */
 class IO {
+private:
+	static FileFormat fileFormat;	//Only allow access through Set/Get function
+
 public:
-	static FileFormat FILE_FORMAT;
+	static VirtualReader* fileReader;
 	static const std::string METRICS[];
-	static char* input_file_name;
+	static std::vector<char*> input_file_name;
 	static char* output_file_name;
+
+	static FileFormat GetFileFormat() { return fileFormat; }
+	static void SetFileFormat(FileFormat _fileFormat) {
+		fileFormat = _fileFormat;
+		if (fileFormat == PlainText)
+			fileReader = new PlainFileReader();
+		else
+			fileReader = new PcapReader();
+	}
 
 	/*
 	* Print contents into console or file according to the setting of output_file_name.

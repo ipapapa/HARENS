@@ -122,9 +122,48 @@ bool PcapReader::proceed(unsigned char* &ptr, int &remainingLen, int proceedLen)
 }
 
 /*
+* Open pcap file and set a handle
+*/
+void PcapReader::SetupReader(char* fileName) {
+	//open the pcap file 
+	char errbuf[PCAP_ERRBUF_SIZE]; //not sure what to do with this, oh well 
+	handle = pcap_open_offline(fileName, errbuf);   //call pcap library function 
+
+	if (handle == NULL) {
+		fprintf(stderr, "Couldn't open pcap file %s: %s\n", fileName, errbuf);
+		throw;
+	}
+}
+
+/*
+* Read the whole pcap file into memory by packets until it reaches the limit.
+*/
+void PcapReader::ReadChunk(FixedSizedCharArray &charArray, unsigned int readLenLimit) {
+	//temporary packet buffers 
+	struct pcap_pkthdr *header; // The header that pcap gives us 
+	const u_char *packet; // The actual packet 
+	std::string fileContent;
+	int res;
+	charArray.ClearArr(readLenLimit);
+
+	//begin processing the packets in this particular file, one at a time 
+	while (res = pcap_next_ex(handle, &header, &packet) >= 0) {
+		if (res == 0)	//the timeout set with pcap_open_live() has elapsed
+			continue;
+
+		std::pair<char*, int> str_len_pair = Deframe(packet, header->caplen);
+		if (str_len_pair.second > 0) {
+			if (!charArray.Append(str_len_pair.first, str_len_pair.second, readLenLimit))
+				break;
+		}
+
+	} //end internal loop for reading packets (all in one file) 
+}
+
+/*
 * Read the whole pcap file into memory by packets
 */
-std::string PcapReader::ReadPcapFile(char* fileName) {
+char* PcapReader::ReadAll(char* fileName) {
 	//temporary packet buffers 
 	struct pcap_pkthdr *header; // The header that pcap gives us 
 	const u_char *packet; // The actual packet 
@@ -153,45 +192,5 @@ std::string PcapReader::ReadPcapFile(char* fileName) {
 
 	pcap_close(handle);  //close the pcap file 
 
-	return fileContent;
-}
-
-/*
-* Open pcap file and set a handle
-*/
-void PcapReader::SetupPcapHandle(char* fileName) {
-	//open the pcap file 
-	char errbuf[PCAP_ERRBUF_SIZE]; //not sure what to do with this, oh well 
-	handle = pcap_open_offline(fileName, errbuf);   //call pcap library function 
-
-	if (handle == NULL) {
-		fprintf(stderr, "Couldn't open pcap file %s: %s\n", fileName, errbuf);
-		throw;
-	}
-}
-
-/*
-* Read the whole pcap file into memory by packets until it reaches the limit.
-* Returns true when it reads something
-*/
-void PcapReader::ReadPcapFileChunk(FixedSizedCharArray &charArray, unsigned int readLenLimit) {
-	//temporary packet buffers 
-	struct pcap_pkthdr *header; // The header that pcap gives us 
-	const u_char *packet; // The actual packet 
-	std::string fileContent;
-	int res;
-	charArray.ClearArr(readLenLimit);
-
-	//begin processing the packets in this particular file, one at a time 
-	while (res = pcap_next_ex(handle, &header, &packet) >= 0) {
-		if (res == 0)	//the timeout set with pcap_open_live() has elapsed
-			continue;
-
-		std::pair<char*, int> str_len_pair = Deframe(packet, header->caplen);
-		if (str_len_pair.second > 0) {
-			if (!charArray.Append(str_len_pair.first, str_len_pair.second, readLenLimit))
-				break;
-		}
-
-	} //end internal loop for reading packets (all in one file) 
+	return &fileContent[0];
 }

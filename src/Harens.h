@@ -1,12 +1,11 @@
 #pragma once
 #include <cuda_runtime_api.h> 
 #include <cuda.h>
-#include "IO.h"
 #include "CircularQueuePool.h"
-#include "RabinHash.h"
+#include "IO.h"
 #include "PcapReader.h"
+#include "RabinHash.h"
 #include "RedundancyEliminator_CUDA.h"
-#include <cassert>
 
 class Harens {
 private:
@@ -24,7 +23,6 @@ private:
 		  chunking_proc_end_mutex, 
 		  chunk_hashing_end_mutex;
 	//file
-	ifstream ifs;
 	unsigned int file_length;
 	FixedSizedCharArray charArrayBuffer;
 	char overlap[WINDOW_SIZE - 1];

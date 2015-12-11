@@ -78,69 +78,31 @@ bool CudaAcceleratedAlg::ReadFile() {
 	if (readFirstTime) {
 		readFirstTime = false;
 		start_r = clock();
-		if (IO::FILE_FORMAT == PlainText) {
-			ifs = ifstream(IO::input_file_name, ios::in | ios::binary | ios::ate);
-			if (!ifs.is_open()) {
-				printf("Can not open file %s\n", IO::input_file_name);
-				return false;
-			}
 
-			file_length = ifs.tellg();
-			ifs.seekg(0, ifs.beg);
-			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-			pagable_buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos);
-			curWindowNum = pagable_buffer_len - WINDOW_SIZE + 1;
-			ifs.read(pagable_buffer, pagable_buffer_len);
-			cur_file_pos += curWindowNum;
+		IO::fileReader->SetupReader(IO::input_file_name[0]);
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
+		pagable_buffer_len = charArrayBuffer.GetLen();
+		memcpy(pagable_buffer, charArrayBuffer.GetArr(), pagable_buffer_len);
+		file_length += pagable_buffer_len;
 
-			return pagable_buffer_len == MAX_BUFFER_LEN;
-		}
-		else if (IO::FILE_FORMAT == Pcap) {
-			fileReader.SetupPcapHandle(IO::input_file_name);
-			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN);
-			pagable_buffer_len = charArrayBuffer.GetLen();
-			memcpy(pagable_buffer, charArrayBuffer.GetArr(), pagable_buffer_len);
-			file_length += pagable_buffer_len;
-
-			return pagable_buffer_len == MAX_BUFFER_LEN;
-		}
-		else
-			fprintf(stderr, "Unknown file format\n");
+		return pagable_buffer_len == MAX_BUFFER_LEN;
 
 		memcpy(overlap, &pagable_buffer[pagable_buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
 		time_r += ((float)clock() - start_r) * 1000 / CLOCKS_PER_SEC;
 	}
 	else { //Read the rest
-		if (IO::FILE_FORMAT == PlainText) {
-			start_r = clock();
-			pagable_buffer_len = min(MAX_BUFFER_LEN, file_length - cur_file_pos + WINDOW_SIZE - 1);
-			curWindowNum = pagable_buffer_len - WINDOW_SIZE + 1;
-			memcpy(pagable_buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			ifs.read(&pagable_buffer[WINDOW_SIZE - 1], curWindowNum);
-			memcpy(overlap, &pagable_buffer[curWindowNum], WINDOW_SIZE - 1);	//copy the last window into overlap
-			cur_file_pos += curWindowNum;
-			time_r += ((float)clock() - start_r) * 1000 / CLOCKS_PER_SEC;
+		start_r = clock();
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+		memcpy(pagable_buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
+		memcpy(&pagable_buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
+		pagable_buffer_len = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		file_length += charArrayBuffer.GetLen();
+		memcpy(overlap, &pagable_buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		time_r += ((float)clock() - start_r) * 1000 / CLOCKS_PER_SEC;
 
-			if (pagable_buffer_len != MAX_BUFFER_LEN)
-				ifs.close();
-			return pagable_buffer_len == MAX_BUFFER_LEN;
-		}
-		else if (IO::FILE_FORMAT == Pcap) {
-			start_r = clock();
-			fileReader.ReadPcapFileChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
-			memcpy(pagable_buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
-			memcpy(&pagable_buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
-			pagable_buffer_len = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-			file_length += charArrayBuffer.GetLen();
-			memcpy(overlap, &pagable_buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
-			time_r += ((float)clock() - start_r) * 1000 / CLOCKS_PER_SEC;
-
-			if (pagable_buffer_len != MAX_BUFFER_LEN)
-				IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-			return pagable_buffer_len == MAX_BUFFER_LEN;
-		}
-		else
-			fprintf(stderr, "Unknown file format\n");
+		if (pagable_buffer_len != MAX_BUFFER_LEN)
+			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
+		return pagable_buffer_len == MAX_BUFFER_LEN;
 	}
 }
 

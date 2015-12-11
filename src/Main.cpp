@@ -66,22 +66,25 @@ int main(int argc, char* argv[]) {
 				reducerNum = std::stoi(argv[argNum], nullptr, 10);
 			}
 			else if (arg == "-f") {
-				++argNum;
-				size_t size = 0;
-				while (argv[argNum][size] != '\0') {
+				while (argNum + 1 < argc && argv[argNum + 1][0] != '-') {
+					++argNum;
+					size_t size = 0;
+					while (argv[argNum][size] != '\0') {
+						++size;
+					}
 					++size;
+					char* file_name = new char[size];
+					memcpy(file_name, argv[argNum], size);
+					IO::input_file_name.push_back(file_name);
 				}
-				++size;
-				IO::input_file_name = new char[size];
-				memcpy(IO::input_file_name, argv[argNum], size);
 			}
 			else if (arg == "-i") {
 				string format = argv[++argNum];
 				if (format == "pcap" || format == "PCAP") {
-					IO::FILE_FORMAT = FileFormat::Pcap;
+					IO::SetFileFormat(FileFormat::Pcap);
 				}
 				else if (format == "plain" || format == "PLAIN") {
-					IO::FILE_FORMAT = FileFormat::PlainText;
+					IO::SetFileFormat(FileFormat::PlainText);
 				}
 				else {
 					printf("Error: unknown format: %s\n", format);
@@ -104,7 +107,7 @@ int main(int argc, char* argv[]) {
 			return 1;
 		}
 	}
-	if (IO::input_file_name == nullptr) {
+	if (IO::input_file_name.empty()) {
 		PrintUsage();
 		return 1;
 	}
