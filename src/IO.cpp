@@ -4,6 +4,7 @@ FileFormat IO::fileFormat = PlainText;
 VirtualReader* IO::fileReader = new PlainFileReader();
 const std::string IO::METRICS[]{ "Bytes", "KB", "MB", "GB", "TB" };
 std::vector<char*> IO::input_file_name;
+int IO::fileIdx = 0;
 char* IO::output_file_name = nullptr;
 
 /*
@@ -26,7 +27,7 @@ void IO::Print(const char* format, ...) {
 /*
 * Interpret size in bytes into the metrics easy to read
 */
-std::string IO::InterpretSize(int file_len) {
+std::string IO::InterpretSize(unsigned long long file_len) {
 	for (int i = 0; i < 5; ++i) {
 		if (file_len < 1000) {
 			return std::to_string(file_len) + " " + METRICS[i];

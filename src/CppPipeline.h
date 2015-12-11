@@ -1,12 +1,12 @@
 #pragma once
 #include "IO.h"
+#include "PcapReader.h"
 #include "RabinHash.h"
 #include "RedundancyEliminator_CPP.h"
-#include "PcapReader.h"
 
 class CppPipeline {
 private:
-	unsigned int file_length = 0;
+	unsigned long long file_length = 0;
 	RedundancyEliminator_CPP re;
 	//syncronize
 	array<mutex, PAGABLE_BUFFER_NUM> buffer_mutex;						//lock for buffer
@@ -27,7 +27,7 @@ private:
 	array<unsigned int, PAGABLE_BUFFER_NUM> buffer_len;
 	array<deque<unsigned int>, RESULT_BUFFER_NUM> chunking_result;
 	//Result
-	unsigned int total_duplication_size = 0;
+	unsigned long long total_duplication_size = 0;
 	//Time
 	clock_t start_read, 
 			start_chunk, 

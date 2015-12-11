@@ -26,6 +26,7 @@ public:
 	static VirtualReader* fileReader;
 	static const std::string METRICS[];
 	static std::vector<char*> input_file_name;
+	static int fileIdx;
 	static char* output_file_name;
 
 	static FileFormat GetFileFormat() { return fileFormat; }
@@ -46,6 +47,6 @@ public:
 	/*
 	* Interpret size in bytes into the metrics easy to read
 	*/
-	static std::string InterpretSize(int file_len);
+	static std::string InterpretSize(unsigned long long file_len);
 };
 

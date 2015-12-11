@@ -45,8 +45,9 @@ const int WINDOW_SIZE = 12;
 //while P = 2^k, fingerprint % P means fingerprint & P_MINUS (P - 1). We set P = 32 here
 const int P_MINUS = 0x1F;	
 const int MIN_CHUNK_LEN = 32;
-//The maximum chunk number that can store in cache
-const unsigned int MAX_CHUNK_NUM = 8388608;		//2^23
+/*The maximum chunk number that can store in cache
+Make it 2^27, so that the cache would be about 4 GB*/
+const unsigned long long MAX_CHUNK_NUM = 134217728;		//2^27
 
 //The maximum block number in the server GPU
 const int BLOCK_NUM = 4096;
@@ -57,7 +58,7 @@ const int THREAD_PER_BLOCK = 512;
 const unsigned int MAX_KERNEL_INPUT_LEN = BLOCK_NUM * THREAD_PER_BLOCK + WINDOW_SIZE - 1;
 
 //The number of pagable buffer needed to read all the data into memory
-const int PAGABLE_BUFFER_NUM = 1000;
+const int PAGABLE_BUFFER_NUM = 5000;
 //The number of fixed buffer needed to transfer data between pagable buffer to kernel memory (for CUDA)
 const int FIXED_BUFFER_NUM = 3;
 //Size of buffer

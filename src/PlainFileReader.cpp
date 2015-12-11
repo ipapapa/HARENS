@@ -1,12 +1,12 @@
 #include "PlainFileReader.h"
 
 /*
-* Open pcap file and set a handle
+* Set up a file stream for plain file.
 */
-void PlainFileReader::SetupReader(char* fileName) {
-	ifs = std::ifstream(fileName, std::ios::in | std::ios::binary | std::ios::ate);
+void PlainFileReader::SetupFile(char* filename) {
+	ifs = std::ifstream(filename, std::ios::in | std::ios::binary | std::ios::ate);
 	if (!ifs.is_open()) {
-		fprintf(stderr, "Cannot open file %s\n", fileName);
+		fprintf(stderr, "Cannot open file %s\n", filename);
 		exit(EXIT_FAILURE);
 	}
 	fileLen = ifs.tellg();
@@ -15,24 +15,56 @@ void PlainFileReader::SetupReader(char* fileName) {
 }
 
 /*
-* Read the whole pcap file into memory by packets until it reaches the limit.
+* Set up the reader for a file List, and set up the first file
+* Make sure the filenameList is not empty.
 */
-void PlainFileReader::ReadChunk(FixedSizedCharArray &charArray, unsigned int readLen) {
-	//Fit the read length if there's not this much content
-	if (fileLen - curFilePos < readLen) {
-		readLen = fileLen - curFilePos;
-	}
-	curFilePos += readLen;
-	charArray.ClearArr(readLen);
-
-	ifs.read(buffer, readLen);
-	charArray.Append(buffer, readLen, readLen);
+void PlainFileReader::SetupReader(std::vector<char*> _filenameList) {
+	filenameList = _filenameList;
+	fileNum = filenameList.size();
+	fileIdx = 0;
+	SetupFile(filenameList[fileIdx]);
 }
 
 /*
-* Read the whole pcap file into memory by packets
+* Read the whole file into memory until it reaches the limit.
 */
-char* PlainFileReader::ReadAll(char* fileName) {
+void PlainFileReader::ReadChunk(FixedSizedCharArray &charArray, unsigned int readLen) {
+	//Clear char array
+	charArray.ClearArr(readLen);
+	unsigned int lenLimit = readLen;
+	//Fit the read length if there's not this much content
+	while (fileLen - curFilePos < readLen) {
+		if (fileIdx == fileNum - 1) { //No more files
+			readLen = fileLen - curFilePos;
+			break;
+		}
+		else {						  //Read current file and move on the the next one
+			//Read current file
+			ifs.read(buffer, fileLen - curFilePos);
+			charArray.Append(buffer, fileLen - curFilePos, fileLen - curFilePos);
+			readLen -= fileLen - curFilePos;
+			//Set up for next file
+			SetupFile(filenameList[++fileIdx]);
+		}
+	}
+	curFilePos += readLen;
+	
+	ifs.read(buffer, readLen);
+	charArray.Append(buffer, readLen, lenLimit);
+}
+
+/*
+* Read the whole file into memory
+*/
+char* PlainFileReader::ReadAll(char* filename) {
+	ifs = std::ifstream(filename, std::ios::in | std::ios::binary | std::ios::ate);
+	if (!ifs.is_open()) {
+		fprintf(stderr, "Cannot open file %s\n", filename);
+		exit(EXIT_FAILURE);
+	}
+	fileLen = ifs.tellg();
+	ifs.seekg(0, ifs.beg);
+	curFilePos = 0;
 	char* fileContent = new char[fileLen];
 	ifs.read(fileContent, fileLen);
 	return fileContent;

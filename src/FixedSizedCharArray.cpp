@@ -21,7 +21,7 @@ FixedSizedCharArray::~FixedSizedCharArray()
 * Return true when buffer is empty, otherwise return false.
 * Make sure arrLenLimit is no larger than arrSize
 */
-bool FixedSizedCharArray::Append(char* other, int otherSize, unsigned int arrLenLimit) {
+bool FixedSizedCharArray::Append(char* other, unsigned int otherSize, unsigned int arrLenLimit) {
 	if (bufferContentSize != 0) {
 		if (!CpyBufferToArr(arrLenLimit))
 			return false;
@@ -70,6 +70,7 @@ unsigned int FixedSizedCharArray::GetLen() {
 */
 bool FixedSizedCharArray::ClearArr(unsigned int arrLenLimit) {
 	contentSize = 0;
+	//The program only enters this block when called by pcap reader
 	if (bufferContentSize != 0) {
 		return CpyBufferToArr(arrLenLimit);
 	}

@@ -74,7 +74,7 @@ void CppPipeline::ReadFile() {
 	//Read the first part
 	unique_lock<mutex> readFileInitLock(buffer_mutex[bufferIdx]);
 	start_read = clock();
-	IO::fileReader->SetupReader(IO::input_file_name[0]);
+	IO::fileReader->SetupReader(IO::input_file_name);
 	IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
 	buffer_len[bufferIdx] = charArrayBuffer.GetLen();
 	memcpy(buffer[bufferIdx], charArrayBuffer.GetArr(), buffer_len[bufferIdx]);

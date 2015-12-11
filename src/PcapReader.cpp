@@ -122,17 +122,28 @@ bool PcapReader::proceed(unsigned char* &ptr, int &remainingLen, int proceedLen)
 }
 
 /*
-* Open pcap file and set a handle
+* Set up a pcap handle for pcap file.
 */
-void PcapReader::SetupReader(char* fileName) {
-	//open the pcap file 
+void PcapReader::SetupFile(char* filename) {
 	char errbuf[PCAP_ERRBUF_SIZE]; //not sure what to do with this, oh well 
-	handle = pcap_open_offline(fileName, errbuf);   //call pcap library function 
+	handle = pcap_open_offline(filename, errbuf);   //call pcap library function 
 
 	if (handle == NULL) {
-		fprintf(stderr, "Couldn't open pcap file %s: %s\n", fileName, errbuf);
+		fprintf(stderr, "Couldn't open pcap file %s: %s\n", filename, errbuf);
 		throw;
 	}
+}
+
+/*
+* Open pcap file and set a handle.
+* Make sure the filenameList is not empty.
+*/
+void PcapReader::SetupReader(std::vector<char*> _filenameList) {
+	filenameList = _filenameList;
+	fileNum = filenameList.size();
+	fileIdx = 0;
+	//open the first pcap file 
+	SetupFile(filenameList[fileIdx]);
 }
 
 /*
@@ -144,10 +155,25 @@ void PcapReader::ReadChunk(FixedSizedCharArray &charArray, unsigned int readLenL
 	const u_char *packet; // The actual packet 
 	std::string fileContent;
 	int res;
+	//Clear char array and put data (no more than readLenLimit) from arr buffer into arr 
 	charArray.ClearArr(readLenLimit);
 
 	//begin processing the packets in this particular file, one at a time 
-	while (res = pcap_next_ex(handle, &header, &packet) >= 0) {
+	while (true) {
+		res = pcap_next_ex(handle, &header, &packet);
+		
+		//Read to the end of file
+		if (res < 0) {
+			if (fileIdx < fileNum - 1) {
+				//Move on to the next file
+				SetupFile(filenameList[++fileIdx]);
+				continue;
+			}
+			else {		//No more files
+				break;
+			}
+		}
+
 		if (res == 0)	//the timeout set with pcap_open_live() has elapsed
 			continue;
 

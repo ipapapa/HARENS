@@ -1,16 +1,14 @@
 #pragma once
-#include <cuda_runtime_api.h> 
-#include <cuda.h>
 #include "IO.h"
-#include "RabinHash.h"
 #include "PcapReader.h"
+#include "RabinHash.h"
 #include "RedundancyEliminator_CUDA.h"
 
 class CudaAcceleratedAlg {
 private:
 	//file
 	bool readFirstTime = true;
-	unsigned int file_length;
+	unsigned long long file_length;
 	FixedSizedCharArray charArrayBuffer;
 	char overlap[WINDOW_SIZE - 1];
 	//pagable buffer
@@ -32,7 +30,7 @@ private:
 	unsigned int chunking_result_len;
 	//chunk matching 
 	LRUStrHash<SHA_DIGEST_LENGTH> hash_pool;
-	unsigned int total_duplication_size = 0;
+	unsigned long long total_duplication_size = 0;
 	//Time
 	clock_t start, 
 			end, 

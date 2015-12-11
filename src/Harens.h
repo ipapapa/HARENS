@@ -1,6 +1,4 @@
 #pragma once
-#include <cuda_runtime_api.h> 
-#include <cuda.h>
 #include "CircularQueuePool.h"
 #include "IO.h"
 #include "PcapReader.h"
@@ -10,8 +8,8 @@
 class Harens {
 private:
 	//constants
-	int mapperNum = 8;
-	int reducerNum = 256;	//Better be power of 2, it would make the module operation faster
+	int mapperNum;
+	int reducerNum;	//Better be power of 2, it would make the module operation faster
 	//determin if one thread is end
 	bool read_file_end = false;
 	/*bool transfer_end = false;*/
@@ -23,7 +21,7 @@ private:
 		  chunking_proc_end_mutex, 
 		  chunk_hashing_end_mutex;
 	//file
-	unsigned int file_length;
+	unsigned long long file_length;
 	FixedSizedCharArray charArrayBuffer;
 	char overlap[WINDOW_SIZE - 1];
 	//pagable buffer
@@ -62,8 +60,8 @@ private:
 	//chunk matching 
 	thread *chunk_match_threads;
 	LRUStrHash<SHA_DIGEST_LENGTH> *circ_hash_pool;
-	unsigned int *duplication_size;
-	unsigned int total_duplication_size = 0;
+	unsigned long long *duplication_size;
+	unsigned long long total_duplication_size = 0;
 	//Time
 	clock_t start, 
 			end, 

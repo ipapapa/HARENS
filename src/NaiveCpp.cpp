@@ -64,14 +64,15 @@ bool NaiveCpp::ReadFile() {
 		readFirstTime = false;
 		start_read = clock();
 
-		IO::fileReader->SetupReader(IO::input_file_name[0]);
+		IO::fileReader->SetupReader(IO::input_file_name);
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
 		buffer_len = charArrayBuffer.GetLen();
 		memcpy(buffer, charArrayBuffer.GetArr(), buffer_len);
 		file_length += buffer_len;
 		return buffer_len == MAX_BUFFER_LEN;
 
-		memcpy(overlap, &buffer[buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
+		//copy the last window into overlap
+		memcpy(overlap, &buffer[buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);
 		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 	}
 	else { //Read the rest
@@ -81,7 +82,8 @@ bool NaiveCpp::ReadFile() {
 		memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
 		buffer_len = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
 		file_length += charArrayBuffer.GetLen();
-		memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
+		//copy the last window into overlap
+		memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	
 		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
 		if (buffer_len != MAX_BUFFER_LEN)
 			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
@@ -98,7 +100,8 @@ void NaiveCpp::Chunking() {
 }
 
 void NaiveCpp::Fingerprinting() {
-	//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
+	/*When the whole process starts, all chunking results are obsolete, 
+	* that's the reason fingerprinting part need to check buffer state*/
 	start_fin = clock();
 
 	total_duplication_size += re.fingerPrinting(chunking_result, buffer);

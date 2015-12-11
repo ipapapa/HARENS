@@ -79,7 +79,7 @@ bool CudaAcceleratedAlg::ReadFile() {
 		readFirstTime = false;
 		start_r = clock();
 
-		IO::fileReader->SetupReader(IO::input_file_name[0]);
+		IO::fileReader->SetupReader(IO::input_file_name);
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
 		pagable_buffer_len = charArrayBuffer.GetLen();
 		memcpy(pagable_buffer, charArrayBuffer.GetArr(), pagable_buffer_len);

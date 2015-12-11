@@ -8,7 +8,7 @@ Harens::Harens(int mapperNum, int reducerNum)
 	segment_threads = new thread[mapperNum];
 	chunk_match_threads = new thread[reducerNum];
 	circ_hash_pool = new LRUStrHash<SHA_DIGEST_LENGTH>[reducerNum];
-	duplication_size = new unsigned int[reducerNum];
+	duplication_size = new unsigned long long[reducerNum];
 	for (int i = 0; i < reducerNum; ++i) {
 		circ_hash_pool[i] = LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM / reducerNum);
 		duplication_size[i] = 0;
@@ -159,7 +159,7 @@ void Harens::ReadFile() {
 	//Read the first part
 	unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
 	start_r = clock();
-	IO::fileReader->SetupReader(IO::input_file_name[0]);
+	IO::fileReader->SetupReader(IO::input_file_name);
 	IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
 	pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
 	memcpy(pagable_buffer[pagableBufferIdx], charArrayBuffer.GetArr(), pagable_buffer_len[pagableBufferIdx]);

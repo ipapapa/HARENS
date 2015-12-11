@@ -38,11 +38,18 @@ private:
 	*/
 	bool proceed(unsigned char* &ptr, int &remainingLen, int proceedLen);
 
+protected:
+	/*
+	* Set up a pcap handle for pcap file.
+	*/
+	void SetupFile(char* filename) override;
+
 public:
 	/*
-	* Open pcap file and set a handle
+	* Set up the reader for a file List, and set up the first file.
+	* Make sure the filenameList is not empty.
 	*/
-	void SetupReader(char* fileName) override;
+	void SetupReader(std::vector<char*> filenameList) override;
 	
 	/*
 	* Read the whole pcap file into memory by packets until it reaches the limit.

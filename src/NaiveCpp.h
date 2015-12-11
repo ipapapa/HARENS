@@ -1,8 +1,8 @@
 #pragma once
 #include "IO.h"
+#include "PcapReader.h"
 #include "RabinHash.h"
 #include "RedundancyEliminator_CPP.h"
-#include "PcapReader.h"
 
 /*
 This class is the module of naive cpp implementation
@@ -10,7 +10,7 @@ This class is the module of naive cpp implementation
 class NaiveCpp {
 private:
 	int count = 0;
-	unsigned int file_length = 0;
+	unsigned long long file_length = 0;
 	RedundancyEliminator_CPP re;
 
 	//shared data
@@ -22,7 +22,7 @@ private:
 	unsigned int buffer_len = 0;
 	deque<unsigned int> chunking_result;
 	//Result
-	unsigned int total_duplication_size = 0;
+	unsigned long long total_duplication_size = 0;
 	//Time
 	clock_t start_read, 
 			start_chunk, 
