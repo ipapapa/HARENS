@@ -23,9 +23,9 @@ public:
 
 	/*
 	* Initiaze the queue pool.
-	* 50000 is a number that is big enough to keep it non-blocking.
+	* 80000 is a number that is big enough to keep it non-blocking.
 	*/
-	CircularQueuePool(int _poolSize) : queueSize(50000) {
+	CircularQueuePool(int _poolSize) : queueSize(800000) {
 		Initiate(_poolSize);
 	}
 

@@ -8,13 +8,13 @@ With the tremendous growth in the amount of information stored on remote locatio
 - single machine map-reduce, 
 - and other memory efficiency techniques.
 
-Our results indicate that HARENS can increase the throughput of other CUDA Redundancy Elimination Systems by x7 up to speeds of 2.7Gbps. We compared our implementation with
+Our results indicate that HARENS can increase the throughput of other CUDA Redundancy Elimination Systems by a factor of 9 up to speeds of 3.0 Gbps. We compared our implementation with
 - A naive C++ implementation of Rabin fingerprint DRE;		
 - A multi-threaded accelarated algorithm;		
 - A CUDA accelarated algorithm;		
 - HARENS.
 
-We used Intel Core i7-5930K 3.5GHz 12 cores CPU, 16GB DDR4 RAM, and Nvidia Tesla K40c. We used experimental data based on Youtube traces collected by Zink and publically available at the [UMass trace repository](http://traces.cs.umass.edu/index.php/Network/Network).
+We used Intel Core i7-5930K 3.5GHz 12 cores CPU, 32GB DDR4 RAM, and Nvidia Tesla K40c. We used experimental data based on Youtube traces collected by Zink and publically available at the [UMass trace repository](http://traces.cs.umass.edu/index.php/Network/Network).
 
 ![throughput](https://cloud.githubusercontent.com/assets/4562887/11403658/e47858c8-9352-11e5-80c4-af876147ea8b.png)
 
