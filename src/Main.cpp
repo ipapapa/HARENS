@@ -120,6 +120,9 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
+/*
+* Print the help page
+*/
 void PrintUsage() {
 	printf("Usage:\n\
 -c:\tcompare the performance of using Rabin hash and SHA1 as chunk hash\n\
