@@ -155,7 +155,6 @@ void Harens::ReadFile() {
 	int pagableBufferIdx = 0;
 	unsigned int curFilePos = 0;
 	int curWindowNum;
-	PcapReader fileReader;
 	//Read the first part
 	unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
 	start_r = clock();
