@@ -70,7 +70,6 @@ void CppPipeline::ReadFile() {
 	int bufferIdx = 0;
 	unsigned int curFilePos = 0;
 	int curWindowNum;
-	PcapReader fileReader;
 	//Read the first part
 	unique_lock<mutex> readFileInitLock(buffer_mutex[bufferIdx]);
 	start_read = clock();
