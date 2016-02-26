@@ -55,12 +55,20 @@ User Guide
   - Open HARENS.sln with Visual Studio and compile
   - The default setting is release-x64, you would find "HARENS.exe", the executable, in path .\x64\Release\
 - (For Linux users)
-  - If apt-get is supported, type the folling command
+  - If using Debian, type the folling command
     - ```cd \path\to\Project\HARENS```
     - ```make clean``` (only when you want to re-install)
     - ```make install```
     - ```make```
-  - If apt-get is not supported
+  - If using Ubuntu
+    - open the file \path\to\Project\HARENS\src\makefile with your favorite editor
+    - uncommand the lines after *##commands for ubuntu*
+    - command the lines after *##commands for debian*
+    - ```cd \path\to\Project\HARENS```
+    - ```make clean``` (only when you want to re-install)
+    - ```make install```
+    - ```make```
+  - If other system
     - Edit makefile (I'm sure you can handle this)
     - ```make install```
     - ```make```

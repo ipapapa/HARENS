@@ -14,18 +14,30 @@ objects := $(patsubst %.cpp,%.o,$(wildcard *.cpp)) $(patsubst %.cu,%.o,$(wildcar
 
 .PHONY: intall
 install:
-	sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-	sudo apt-get update
-	sudo apt-get install build-essential
-	sudo apt-get install gcc-4.9 g++-4.9 cpp-4.9
-	sudo apt-get install gcc-5 g++-5 cpp-5
-	sudo apt-get install cuda
-	sudo apt-get upgrade cuda
-	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 100
-	sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 100
-	sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-4.9 100
-	sudo apt-get install libpcap-dev
-	sudo apt-get install openssl
+	##commands for ubuntu
+	#sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+	#sudo apt-get update
+	#sudo apt-get install build-essential
+	#sudo apt-get install gcc-4.9 g++-4.9 cpp-4.9
+	#sudo apt-get install gcc-5 g++-5 cpp-5
+	#sudo apt-get install cuda
+	#sudo apt-get upgrade cuda
+	#sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 100
+	#sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 100
+	#sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-4.9 100
+	#sudo apt-get install libpcap-dev
+	#sudo apt-get install openssl
+	
+	##commands for debian
+	sudo aptitude update
+	sudo aptitude install build-essential
+	sudo aptitude install gcc-4.9 g++-4.9 cpp-4.9
+	sudo aptitude install gcc-5 g++-5 cpp-5
+	sudo aptitude install cuda
+	sudo aptitude upgrade cuda
+	sudo aptitude install libpcap-dev
+	sudo aptitude install openssl	
+
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-7.5/lib64
 
 all: run
