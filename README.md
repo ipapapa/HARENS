@@ -59,7 +59,7 @@ User Guide
     - ```cd \path\to\Project\HARENS```
     - ```make clean``` (only when you want to re-install)
     - ```make install```
-    - ```make```
+    - ```make all```
   - If using Ubuntu
     - open the file \path\to\Project\HARENS\src\makefile with your favorite editor
     - uncommand the lines after *##commands for ubuntu*
@@ -67,11 +67,11 @@ User Guide
     - ```cd \path\to\Project\HARENS```
     - ```make clean``` (only when you want to re-install)
     - ```make install```
-    - ```make```
+    - ```make all```
   - If other system
     - Edit makefile (I'm sure you can handle this)
     - ```make install```
-    - ```make```
+    - ```make all```
   - You would find "run", the executable, in current path
 
 ###Usage
