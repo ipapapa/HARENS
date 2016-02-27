@@ -29,14 +29,10 @@ install:
 	#sudo apt-get install openssl
 	
 	##commands for debian
-	sudo aptitude update
-	sudo aptitude install build-essential
-	sudo aptitude install gcc-4.9 g++-4.9 cpp-4.9
-	sudo aptitude install gcc-5 g++-5 cpp-5
-	sudo aptitude install cuda
-	sudo aptitude upgrade cuda
-	sudo aptitude install libpcap-dev
-	sudo aptitude install openssl	
+	sudo apt-get update
+	sudo apt-get install gcc g++ gcc-4.8 g++-4.8 gcc-4.9 g++-4.9 gcc-5 g++-5 libxi6 libxi-dev libglu1-mesa libglu1-mesa-dev libxmu6 libxmu6-dev linux-headers-amd64 linux-source
+	sudo apt-get install libpcap-dev
+	sudo apt-get install openssl	
 
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-7.5/lib64
 
