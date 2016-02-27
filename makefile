@@ -4,7 +4,7 @@ install:
 	make -C ./src install
 
 all:
-	make -C ./src
+	make -C ./src all
 
 .PHONY: clean
 clean:
