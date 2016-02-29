@@ -47,6 +47,6 @@ public:
 	/*
 	* Interpret size in bytes into the metrics easy to read
 	*/
-	static std::string InterpretSize(unsigned long long file_len);
+	static const char* InterpretSize(unsigned long long file_len);
 };
 

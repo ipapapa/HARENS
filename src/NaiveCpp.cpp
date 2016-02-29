@@ -27,8 +27,9 @@ int	NaiveCpp::Execute()
 		tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 	} while (keepReading);
 
-	IO::Print("Found %s of redundency, which is %f %% of file\n", 
-		IO::InterpretSize(total_duplication_size)
+	IO::Print("Found %s of redundency, "
+		, IO::InterpretSize(total_duplication_size));
+	IO::Print("which is %f %% of file\n"
 		, (float)total_duplication_size / file_length * 100);
 
 	IO::Print("Reading time: %f ms\n", tot_read);
@@ -69,6 +70,8 @@ bool NaiveCpp::ReadFile() {
 		buffer_len = charArrayBuffer.GetLen();
 		memcpy(buffer, charArrayBuffer.GetArr(), buffer_len);
 		file_length += buffer_len;
+		if (buffer_len != MAX_BUFFER_LEN)
+			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
 		return buffer_len == MAX_BUFFER_LEN;
 
 		//copy the last window into overlap

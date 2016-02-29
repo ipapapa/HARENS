@@ -37,8 +37,9 @@ int CppPipeline::Execute()
 	tChunking.join();
 	tFingerprinting.join();
 
-	IO::Print("Found %s of redundency, which is %f %% of file\n"
-		, IO::InterpretSize(total_duplication_size)
+	IO::Print("Found %s of redundency, "
+		, IO::InterpretSize(total_duplication_size));
+	IO::Print("which is %f %% of file\n"
 		, (float)total_duplication_size / file_length * 100);
 
 	clock_t end = clock();

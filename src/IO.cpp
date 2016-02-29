@@ -27,12 +27,12 @@ void IO::Print(const char* format, ...) {
 /*
 * Interpret size in bytes into the metrics easy to read
 */
-std::string IO::InterpretSize(unsigned long long file_len) {
+const char* IO::InterpretSize(unsigned long long fileLen) {
 	for (int i = 0; i < 5; ++i) {
-		if (file_len < 1000) {
-			return std::to_string(file_len) + " " + METRICS[i];
+		if (fileLen < 1000) {
+			return (std::to_string(fileLen) + " " + METRICS[i]).c_str();
 		}
-		file_len /= 1000;
+		fileLen /= 1000;
 	}
 	throw extraOrdinaryLargeFileException;
 }

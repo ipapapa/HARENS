@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
 					isCollisionCheck = true;
 				}
 				else {
-					printf("Error: unknown test: %s\n", test);
+					printf("Error: unknown test: %s\n", test.c_str());
 					return 1;
 				}
 			}
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 					method = CUDA_Pipeline;
 				}
 				else {
-					printf("Error: unknown algorithm: %s\n", alg);
+					printf("Error: unknown algorithm: %s\n", alg.c_str());
 					return 1;
 				}
 			}
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 					IO::SetFileFormat(FileFormat::PlainText);
 				}
 				else {
-					printf("Error: unknown format: %s\n", format);
+					printf("Error: unknown format: %s\n", format.c_str());
 					return 1;
 				}
 			}
