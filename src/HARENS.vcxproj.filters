@@ -117,7 +117,7 @@
     <ClInclude Include="LRUQueue.h">
       <Filter>Basic Functions</Filter>
     </ClInclude>
-    <ClInclude Include="VritualReader.h">
+    <ClInclude Include="VirtualReader.h">
       <Filter>IO Packages</Filter>
     </ClInclude>
     <ClInclude Include="PlainFileReader.h">

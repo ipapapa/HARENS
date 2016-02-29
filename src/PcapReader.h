@@ -1,5 +1,5 @@
 #pragma once
-#include "VritualReader.h"
+#include "VirtualReader.h"
 
 // Ethernet addresses are 6 bytes
 #define ETHER_ADDR_LEN	6

@@ -51,6 +51,7 @@ User Guide
 -------------
 
 ###Installation
+- Before installation, make sure you have cuda-toolkit (>=6.5) installed
 - (For Windows users)
   - Open HARENS.sln with Visual Studio and compile
   - The default setting is release-x64, you would find "HARENS.exe", the executable, in path .\x64\Release\

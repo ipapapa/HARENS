@@ -14,6 +14,15 @@ void PlainFileReader::SetupFile(char* filename) {
 	curFilePos = 0;
 }
 
+
+PlainFileReader::PlainFileReader() {
+	buffer = new char[MAX_BUFFER_LEN];
+}
+
+PlainFileReader::~PlainFileReader() {
+	delete[] buffer;
+}
+
 /*
 * Set up the reader for a file List, and set up the first file
 * Make sure the filenameList is not empty.

@@ -26,15 +26,15 @@ install:
 	#sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.9 100
 	#sudo update-alternatives --install /usr/bin/cpp cpp-bin /usr/bin/cpp-4.9 100
 	#sudo apt-get install libpcap-dev
-	#sudo apt-get install openssl
+	#sudo apt-get install openssl libssl-dev
+    #export LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$$LD_LIBRARY_PATH
 	
 	##commands for debian
 	sudo apt-get update
-	sudo apt-get install gcc g++ gcc-4.8 g++-4.8 gcc-4.9 g++-4.9 gcc-5 g++-5 libxi6 libxi-dev libglu1-mesa libglu1-mesa-dev libxmu6 libxmu6-dev linux-headers-amd64 linux-source
+	sudo apt-get install gcc g++ gcc-4.8 g++-4.8 gcc-4.9 g++-4.9 gcc-5 g++-5 libxi6 libxi-dev libglu1-mesa libglu1-mesa-dev libxmu6 linux-headers-amd64 linux-source
 	sudo apt-get install libpcap-dev
-	sudo apt-get install openssl	
-
-	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-7.5/lib64
+	sudo apt-get install openssl libssl-dev
+	export LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$$LD_LIBRARY_PATH
 
 all: run
 
@@ -42,23 +42,21 @@ all: run
 run: $(objects)
 	$(NVCC) Main.o NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o \
 	RedundancyEliminator_CPP_CollisionTest.o RedundancyEliminator_CPP.o RedundancyEliminator_CUDA.o \
-	RabinHash.o IO.o PcapReader.o FixedSizedCharArray.o \
+	RabinHash.o IO.o PcapReader.o PlainFileReader.o FixedSizedCharArray.o \
 	$(iflags) $(lflags) -o $@
 
 #Rule how to create arbitary .out files. 
 #First state what is needed for them e.g. additional headers, .cpp files in an include folder...
 #Then the command to create the .out file, probably you want to add further options to the g++ call.
 #%.o: %.cpp %.h
-Main.o: Main.cpp NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o
-	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
-
-NaiveCpp.o: NaiveCpp.cpp IO.o RabinHash.o RedundancyEliminator_CPP.o PcapReader.o
-	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 CppPipeline.o: CppPipeline.cpp IO.o RabinHash.o RedundancyEliminator_CPP.o PcapReader.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 CudaAcceleratedAlg.o: CudaAcceleratedAlg.cpp IO.o RabinHash.o PcapReader.o RedundancyEliminator_CUDA.o
+	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
+
+FixedSizedCharArray.o: FixedSizedCharArray.cpp
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 Harens.o: Harens.cpp IO.o RabinHash.o PcapReader.o RedundancyEliminator_CUDA.o
@@ -67,30 +65,37 @@ Harens.o: Harens.cpp IO.o RabinHash.o PcapReader.o RedundancyEliminator_CUDA.o
 HashCollisionTest.o: HashCollisionTest.cpp IO.o RabinHash.o RedundancyEliminator_CPP_CollisionTest.o PcapReader.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
-RedundancyEliminator_CPP_CollisionTest.o: RedundancyEliminator_CPP_CollisionTest.cpp RedundancyEliminator_CPP.o
+IO.o: IO.cpp PcapReader.o PlainFileReader.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
-RedundancyEliminator_CPP.o: RedundancyEliminator_CPP.cpp RabinHash.o
+Main.o: Main.cpp NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
-RedundancyEliminator_CUDA.o: RedundancyEliminator_CUDA.cu RabinHash.o
-	$(NVCC) $(cudaflags) $(cflags) $(iflags) $(lflags) $< -o $@
-
-RabinHash.o: RabinHash.cpp
-	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
-
-IO.o: IO.cpp
+NaiveCpp.o: NaiveCpp.cpp IO.o RabinHash.o RedundancyEliminator_CPP.o PcapReader.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 PcapReader.o: PcapReader.cpp FixedSizedCharArray.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
-FixedSizedCharArray.o: FixedSizedCharArray.cpp
+PlainFileReader.o: PlainFileReader.cpp
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
+RabinHash.o: RabinHash.cpp
+	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
+
+RedundancyEliminator_CPP.o: RedundancyEliminator_CPP.cpp RabinHash.o
+	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
+
+RedundancyEliminator_CPP_CollisionTest.o: RedundancyEliminator_CPP_CollisionTest.cpp RedundancyEliminator_CPP.o
+	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
+
+RedundancyEliminator_CUDA.o: RedundancyEliminator_CUDA.cu RabinHash.o
+	$(NVCC) $(cudaflags) $(cflags) $(iflags) $(lflags) $< -o $@
+
 %.o: %.h 
-$(objects): Definition.h CircularQueuePool.h LRUQueue.h LRUVirtualHash.h \
-LRUStrHash.h LRUStrHashPool.h makefile
+$(objects): CircularQueuePool.h Definition.h EncryptionHashes.h \
+LRUQueue.h LRUStrHash.h  LRUStrHashPool.h LRUVirtualHash.h \
+VirtualReader.h makefile
 RedundancyEliminator_CPP_CollisionTest.o: LRUHash.h 
 
 .PHONY: clean

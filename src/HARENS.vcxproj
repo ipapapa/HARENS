@@ -55,7 +55,7 @@
     <ClInclude Include="RedundancyEliminator_CPP.h" />
     <ClInclude Include="RedundancyEliminator_CUDA.h" />
     <ClInclude Include="LRUVirtualHash.h" />
-    <ClInclude Include="VritualReader.h" />
+    <ClInclude Include="VirtualReader.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="RedundancyEliminator_CUDA.cu" />

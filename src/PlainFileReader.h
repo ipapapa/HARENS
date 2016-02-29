@@ -1,5 +1,5 @@
 #pragma once
-#include "VritualReader.h"
+#include "VirtualReader.h"
 
 /*
 * A reader of plain file.
@@ -20,13 +20,9 @@ protected:
 	void SetupFile(char* filename) override;
 
 public:
-	PlainFileReader() {
-		buffer = new char[MAX_BUFFER_LEN];
-	}
+	PlainFileReader();
 
-	~PlainFileReader() {
-		delete[] buffer;
-	}
+	~PlainFileReader();
 
 	/*
 	* Set up the reader for a file List, and set up the first file
