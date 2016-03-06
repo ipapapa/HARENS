@@ -4,13 +4,13 @@
 * Set up a file stream for plain file.
 */
 void PlainFileReader::SetupFile(char* filename) {
-	ifs = std::ifstream(filename, std::ios::in | std::ios::binary | std::ios::ate);
-	if (!ifs.is_open()) {
+	ifs = new std::ifstream(filename, std::ios::in | std::ios::binary | std::ios::ate);
+	if (!ifs->is_open()) {
 		fprintf(stderr, "Cannot open file %s\n", filename);
 		exit(EXIT_FAILURE);
 	}
-	fileLen = ifs.tellg();
-	ifs.seekg(0, ifs.beg);
+	fileLen = ifs->tellg();
+	ifs->seekg(0, ifs->beg);
 	curFilePos = 0;
 }
 
@@ -20,6 +20,7 @@ PlainFileReader::PlainFileReader() {
 }
 
 PlainFileReader::~PlainFileReader() {
+	delete ifs;
 	delete[] buffer;
 }
 
@@ -49,7 +50,7 @@ void PlainFileReader::ReadChunk(FixedSizedCharArray &charArray, unsigned int rea
 		}
 		else {						  //Read current file and move on the the next one
 			//Read current file
-			ifs.read(buffer, fileLen - curFilePos);
+			ifs->read(buffer, fileLen - curFilePos);
 			charArray.Append(buffer, fileLen - curFilePos, fileLen - curFilePos);
 			readLen -= fileLen - curFilePos;
 			//Set up for next file
@@ -58,7 +59,7 @@ void PlainFileReader::ReadChunk(FixedSizedCharArray &charArray, unsigned int rea
 	}
 	curFilePos += readLen;
 	
-	ifs.read(buffer, readLen);
+	ifs->read(buffer, readLen);
 	charArray.Append(buffer, readLen, lenLimit);
 }
 
@@ -66,15 +67,15 @@ void PlainFileReader::ReadChunk(FixedSizedCharArray &charArray, unsigned int rea
 * Read the whole file into memory
 */
 char* PlainFileReader::ReadAll(char* filename) {
-	ifs = std::ifstream(filename, std::ios::in | std::ios::binary | std::ios::ate);
-	if (!ifs.is_open()) {
+	ifs = new std::ifstream(filename, std::ios::in | std::ios::binary | std::ios::ate);
+	if (!ifs->is_open()) {
 		fprintf(stderr, "Cannot open file %s\n", filename);
 		exit(EXIT_FAILURE);
 	}
-	fileLen = ifs.tellg();
-	ifs.seekg(0, ifs.beg);
+	fileLen = ifs->tellg();
+	ifs->seekg(0, ifs->beg);
 	curFilePos = 0;
 	char* fileContent = new char[fileLen];
-	ifs.read(fileContent, fileLen);
+	ifs->read(fileContent, fileLen);
 	return fileContent;
 }

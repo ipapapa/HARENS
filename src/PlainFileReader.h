@@ -8,7 +8,7 @@
 */
 class PlainFileReader: public VirtualReader {
 private:
-	std::ifstream ifs;
+	std::ifstream *ifs;
 	int fileLen;
 	int curFilePos;
 	char* buffer;

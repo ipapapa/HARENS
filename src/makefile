@@ -1,7 +1,7 @@
 #This is a makefile for HARENS
 #Please make sure you have installed nvcc in your computer and added it in system path
 
-CXX = /usr/bin/g++-5
+CXX = /usr/bin/g++
 NVCC = /usr/local/cuda/bin/nvcc
 cudaflags = -gencode arch=compute_20,code=sm_20
 cudaflags += -gencode arch=compute_35,code=sm_35
@@ -31,7 +31,7 @@ install:
 	
 	##commands for debian
 	sudo apt-get update
-	sudo apt-get install gcc g++ gcc-4.8 g++-4.8 gcc-4.9 g++-4.9 gcc-5 g++-5 libxi6 libxi-dev libglu1-mesa libglu1-mesa-dev libxmu6 linux-headers-amd64 linux-source
+	sudo apt-get install gcc g++ gcc-4.9 g++-4.9 libxi6 libxi-dev libglu1-mesa libglu1-mesa-dev libxmu6 linux-headers-amd64 linux-source
 	sudo apt-get install libpcap-dev
 	sudo apt-get install openssl libssl-dev
 	export LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$$LD_LIBRARY_PATH
