@@ -44,7 +44,7 @@ lib: $(objects)
 	ar rcs libharens.a NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o \
 	RedundancyEliminator_CPP_CollisionTest.o RedundancyEliminator_CPP.o RedundancyEliminator_CUDA.o \
 	RabinHash.o IO.o PcapReader.o PlainFileReader.o FixedSizedCharArray.o && \
-	mkdir ../lib.d && \
+	mkdir -p ../lib.d && \
 	mv libharens.a ../lib.d/
 
 #Tell make to make one .out file for each .cpp file found in the current directory

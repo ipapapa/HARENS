@@ -192,3 +192,4 @@ ModelManifest.xml
 #Build results of makefile
 *.o
 run
+lib.d/
