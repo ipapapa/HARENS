@@ -36,7 +36,16 @@ install:
 	sudo apt-get install openssl libssl-dev
 	export LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$$LD_LIBRARY_PATH
 
+.PHONY: all
 all: run
+
+.PHONY: lib
+lib: $(objects)
+	ar rcs libharens.a NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o \
+	RedundancyEliminator_CPP_CollisionTest.o RedundancyEliminator_CPP.o RedundancyEliminator_CUDA.o \
+	RabinHash.o IO.o PcapReader.o PlainFileReader.o FixedSizedCharArray.o && \
+	mkdir ../lib.d && \
+	mv libharens.a ../lib.d/
 
 #Tell make to make one .out file for each .cpp file found in the current directory
 run: $(objects)
