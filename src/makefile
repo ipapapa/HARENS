@@ -43,7 +43,7 @@ all: run
 lib: $(objects)
 	ar rcs libharens.a NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o \
 	RedundancyEliminator_CPP_CollisionTest.o RedundancyEliminator_CPP.o RedundancyEliminator_CUDA.o \
-	RabinHash.o IO.o PcapReader.o PlainFileReader.o FixedSizedCharArray.o && \
+	RabinHash.o IO.o PcapReader.o PlainFileReader.o FixedSizedCharArray.o harens-re.o && \
 	mkdir -p ../lib.d && \
 	mv libharens.a ../lib.d/
 
@@ -58,6 +58,9 @@ run: $(objects)
 #First state what is needed for them e.g. additional headers, .cpp files in an include folder...
 #Then the command to create the .out file, probably you want to add further options to the g++ call.
 #%.o: %.cpp %.h
+
+harens-re.o: harens-re.cpp IO.o RabinHash.o PcapReader.o RedundancyEliminator_CUDA.o
+	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 CppPipeline.o: CppPipeline.cpp IO.o RabinHash.o RedundancyEliminator_CPP.o PcapReader.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@

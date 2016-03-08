@@ -1,112 +1,117 @@
-#include "Harens.h"
+#include "harens-re.h"
 using namespace std;
 
-Harens::Harens(int mapperNum, int reducerNum) 
-	: charArrayBuffer(MAX_BUFFER_LEN), chunk_hash_queue_pool(reducerNum) {
+HarensRE::HarensRE(int mapperNum, int reducerNum) 
+	: charArrayBuffer(MAX_BUFFER_LEN), chunk_hash_queue_pool(reducerNum) 
+{
 	this->mapperNum = mapperNum;
 	this->reducerNum = reducerNum;
 	segment_threads = new thread[mapperNum];
 	chunk_match_threads = new thread[reducerNum];
 	circ_hash_pool = new LRUStrHash<SHA_DIGEST_LENGTH>[reducerNum];
 	duplication_size = new unsigned long long[reducerNum];
-	for (int i = 0; i < reducerNum; ++i) {
+	for (int i = 0; i < reducerNum; ++i) 
+	{
 		circ_hash_pool[i] = LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM / reducerNum);
 		duplication_size[i] = 0;
 	}
 
 	re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::NonMultifingerprint);
-	//initialize pagable buffer
-	for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) {
+	// initialize pagable buffer
+	for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) 
+	{
 		pagable_buffer[i] = new char[MAX_BUFFER_LEN];
 		pagable_buffer_obsolete[i] = true;
 	}
-	//initialize fixed buffer
-	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
+	// initialize fixed buffer
+	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
+	{
 		cudaMallocHost((void**)&fixed_buffer[i], MAX_BUFFER_LEN);
-		//fixed_buffer_obsolete[i] = true;
+		// fixed_buffer_obsolete[i] = true;
 	}
-	//initialize chunking kernel ascychronize
-	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
+	// initialize chunking kernel ascychronize
+	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
+	{
 		cudaMalloc((void**)&input_kernel[i], MAX_BUFFER_LEN);
 		cudaMalloc((void**)&result_kernel[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
 		cudaMallocHost((void**)&result_host[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
 		result_host_obsolete[i] = true;
 		result_host_executing[i] = false;
 	}
-	//initialize chunking result processing
-	for (int i = 0; i < RESULT_BUFFER_NUM; ++i) {
+	// initialize chunking result processing
+	for (int i = 0; i < RESULT_BUFFER_NUM; ++i) 
+	{
 		cudaStreamCreate(&stream[i]);
 		chunking_result[i] = new unsigned int[MAX_WINDOW_NUM];
 		chunking_result_obsolete[i] = true;
 	}
-	//initialize chunk hashing
-	//for (int i = 0; i < STREAM_NUM; ++i) {
-	//	segment_threads[i] = new thread[FINGERPRINTING_THREAD_NUM];
-	//	for (int j = 0; j < FINGERPRINTING_THREAD_NUM; ++j) {
-	//		//MAX_WINDOW_NUM / 4 is a guess of the upper bound of the number of chunks
-	//		/*chunk_hashing_value_queue[i][j] = LRUUcharArrayQueue(MAX_WINDOW_NUM / 4);
-	//		chunk_len_queue[i][j] = LRUUintQueue(MAX_WINDOW_NUM / 4);*/
-	//	}
-	//}
 }
 
-Harens::~Harens() {
+HarensRE::~HarensRE() 
+{
 	delete[] segment_threads;
 	delete[] chunk_match_threads;
 	delete[] circ_hash_pool;
 	delete[] duplication_size;
 
-	//destruct chunk hashing & matching
-	/*for (int i = 0; i < STREAM_NUM; ++i) {
-	delete[] segment_threads[i];
-	}*/
-	//destruct chunking result proc
-	for (int i = 0; i < RESULT_BUFFER_NUM; ++i) {
+	// destruct chunking result proc
+	for (int i = 0; i < RESULT_BUFFER_NUM; ++i) 
+	{
 		cudaStreamDestroy(stream[i]);
 		delete[] chunking_result[i];
 	}
-	//destruct chunking kernel ascychronize
-	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
+	// destruct chunking kernel ascychronize
+	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
+	{
 		cudaFree(input_kernel[i]);
 		cudaFree(result_kernel[i]);
 		cudaFreeHost(result_host[i]);
 	}
-	//destruct fixed buffer
-	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) {
+	// destruct fixed buffer
+	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
+	{
 		cudaFreeHost(fixed_buffer[i]);
 	}
-	//destruct pagable buffer
-	for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) {
+	// destruct pagable buffer
+	for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) 
+	{
 		delete[] pagable_buffer[i];
 	}
 }
-	
-int Harens::Execute() {
-	IO::Print("\n======= CUDA Implementation With Pipeline and Single Machine MapReduce ======\n");
-	
-	//Create threads
-	thread tReadFile(std::mem_fn(&Harens::ReadFile), this);
-	tReadFile.join();
-	start = clock();
-	//thread tTransfer(Transfer);
-	thread tChunkingKernel(std::mem_fn(&Harens::ChunkingKernel), this);
-	thread tChunkingResultProc(std::mem_fn(&Harens::ChunkingResultProc), this);
-	thread tChunkHashing(std::mem_fn(&Harens::ChunkHashing), this);
-	for (int i = 0; i < reducerNum; ++i)
-		chunk_match_threads[i] = thread(std::mem_fn(&Harens::ChunkMatch), this, i);
 
-	//tTransfer.join();
+std::vector< std::tuple<int, unsigned char*, int, char*> > 
+HarensRE::HandleGetRequest()
+{
+
+}
+
+void
+HarensRE::Start()
+{
+	IO::Print("redundancy elimination module kernel started...\n");
+	tChunkingKernel = thread(std::mem_fn(&HarensRE::ChunkingKernel), this);
+	tChunkingResultProc = thread(std::mem_fn(&HarensRE::ChunkingResultProc), this);
+	tChunkHashing = thread(std::mem_fn(&HarensRE::ChunkHashing), this);
+	for (int i = 0; i < reducerNum; ++i)
+	{
+		chunk_match_threads[i] = thread(std::mem_fn(&HarensRE::ChunkMatch), this, i);
+	}
+}
+
+void HarensRE::End()
+{
+	// terminate the kernel
+	IO::Print("redundancy elimination module kernel is going to terminate...\n");
+	unique_lock<mutex> terminateSigLock(terminateSigMutex);
+	terminateSig = true;
+	terminateSigLock.unlock();
 	tChunkingKernel.join();
 	tChunkingResultProc.join();
 	tChunkHashing.join();
 	for (int i = 0; i < reducerNum; ++i)
 		chunk_match_threads[i].join();
-	//tRoundQuery.join();
 
-	end = clock();
-	time_tot = (end - start) * 1000 / CLOCKS_PER_SEC;
-	IO::Print("Read file time: %f ms\n", time_r);
-	//printf("Transfer time: %f ms\n", time_t);
+	// make conclusion
 	IO::Print("Chunking kernel time: %f ms\n", time_ck);
 	IO::Print("Chunking processing time: %f ms\n", time_cp);
 	IO::Print("Map (Chunk hashing) time: %f ms\n", time_ch);
@@ -118,41 +123,11 @@ int Harens::Execute() {
 		, IO::InterpretSize(total_duplication_size));
 	IO::Print("which is %f %% of file\n"
 		, (float)total_duplication_size / file_length * 100);
-
-	return 0;
 }
 
-void Harens::Test(double &rate, double &time) {
-	//Create threads
-	thread tReadFile(std::mem_fn(&Harens::ReadFile), this);
-	tReadFile.join();
-	start = clock();
-	//thread tTransfer(Transfer);
-	thread tChunkingKernel(std::mem_fn(&Harens::ChunkingKernel), this);
-	thread tChunkingResultProc(std::mem_fn(&Harens::ChunkingResultProc), this);
-	thread tChunkHashing(std::mem_fn(&Harens::ChunkHashing), this);
-	for (int i = 0; i < reducerNum; ++i)
-		chunk_match_threads[i] = thread(std::mem_fn(&Harens::ChunkMatch), this, i);
-
-	//tTransfer.join();
-	tChunkingKernel.join();
-	tChunkingResultProc.join();
-	tChunkHashing.join();
-	for (int i = 0; i < reducerNum; ++i)
-		chunk_match_threads[i].join();
-	//tRoundQuery.join();
-
-	end = clock();
-
-	rate = total_duplication_size * 100.0 / file_length;
-	time = (end - start) * 1000 / CLOCKS_PER_SEC;
-}
-
-/*
-* Read data from a plain text or pcap file into memory.
-* Transfer is done in this step now.
-*/
-void Harens::ReadFile() {
+void 
+HarensRE::ReadFile() 
+{
 	int pagableBufferIdx = 0;
 	unsigned int curFilePos = 0;
 	int curWindowNum;
@@ -179,16 +154,19 @@ void Harens::ReadFile() {
 	end_r = clock();
 	time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 	//Read the rest
-	while (true) {
+	while (true) 
+	{
 		unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == false) {
+		while (pagable_buffer_obsolete[pagableBufferIdx] == false) 
+		{
 			pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
 		}
 		start_r = clock();
 
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 
-		if (charArrayBuffer.GetLen() == 0) {
+		if (charArrayBuffer.GetLen() == 0) 
+		{
 			readFileIterLock.unlock();
 			pagable_buffer_cond[pagableBufferIdx].notify_all();
 			break;	//Read nothing
@@ -221,65 +199,22 @@ void Harens::ReadFile() {
 
 }
 
-/*
-* Transfer data from pagable buffer to pinned buffer.
-* Because memory transfer between GPU device memory and
-* pinned buffer is way faster than between pagable buffer.
-*/
-//void Transfer() {
-//	int pagableBufferIdx = 0;
-//	int fixedBufferIdx = 0;
-//	while (true) {
-//		//Get pagable buffer ready
-//		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-//		while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
-//			cout << 2 << endl;
-//			if (read_file_end) {
-//				transfer_end = true;
-//				cout << "end transfer \n";
-//				return;
-//			}
-//			pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
-//		}
-//		//Get fixed buffer ready
-//		unique_lock<mutex> fixedLock(fixed_buffer_mutex[fixedBufferIdx]);
-//		while (fixed_buffer_obsolete[fixedBufferIdx] == false) {
-//			cout << 3 << endl;
-//			fixed_buffer_cond[fixedBufferIdx].wait(fixedLock);
-//		}
-//		start_t = clock();
-//		fixed_buffer_len[fixedBufferIdx] = pagable_buffer_len[pagableBufferIdx];
-//		memcpy(fixed_buffer[fixedBufferIdx], 
-//			   pagable_buffer[pagableBufferIdx], 
-//			   fixed_buffer_len[fixedBufferIdx]);
-//		//pagable buffer is still not obsolete here!
-//		fixed_buffer_obsolete[fixedBufferIdx] = false;
-//		pagableLock.unlock();
-//		pagable_buffer_cond[pagableBufferIdx].notify_one();
-//		fixedLock.unlock();
-//		fixed_buffer_cond[fixedBufferIdx].notify_one();
-//		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-//		fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
-//		end_t = clock();
-//		time_t += (end_t - start_t) * 1000 / CLOCKS_PER_SEC;
-//	}
-//}
-
-/*
-* Call the GPU kernel function to compute the Rabin hash value
-* of each sliding window
-*/
-void Harens::ChunkingKernel() {
+void 
+HarensRE::ChunkingKernel() 
+{
 	int pagableBufferIdx = 0;
 	int fixedBufferIdx = 0;
 	int streamIdx = 0;
-	while (true) {
+	while (true) 
+	{
 		//Wait for the last process of this stream to finish
 		//Get pagable buffer ready
 		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
+		while (pagable_buffer_obsolete[pagableBufferIdx] == true) 
+		{
 			unique_lock<mutex> readFileEndLock(read_file_end_mutex);
-			if (read_file_end) {
+			if (read_file_end) 
+			{
 				unique_lock<mutex> chunkingKernelEndLock(chunking_kernel_end_mutex);
 				chunking_kernel_end = true;
 				return;
@@ -290,7 +225,8 @@ void Harens::ChunkingKernel() {
 
 		//Get result host ready
 		unique_lock<mutex> resultHostLock(result_host_mutex[fixedBufferIdx]);
-		while (result_host_executing[fixedBufferIdx] == true) {
+		while (result_host_executing[fixedBufferIdx] == true) 
+		{
 			result_host_cond[fixedBufferIdx].wait(resultHostLock);
 		}
 
@@ -322,20 +258,21 @@ void Harens::ChunkingKernel() {
 	}
 }
 
-/*
-* Mark the beginning of a window as a fingerprint based on the MODP rule.
-* The fingerprints divide the stream into chunks.
-*/
-void Harens::ChunkingResultProc() {
+void 
+HarensRE::ChunkingResultProc() 
+{
 	int resultHostIdx = 0;
 	int streamIdx = 0;
 		
-	while (true) {
+	while (true) 
+	{
 		//Get result host ready
 		unique_lock<mutex> resultHostLock(result_host_mutex[resultHostIdx]);
-		while (result_host_executing[resultHostIdx] == false) {
+		while (result_host_executing[resultHostIdx] == false) 
+		{
 			unique_lock<mutex> chunkingKernelEndLock(chunking_kernel_end_mutex);
-			if (chunking_kernel_end) {
+			if (chunking_kernel_end) 
+			{
 				unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
 				chunking_proc_end = true;
 				return;
@@ -346,7 +283,8 @@ void Harens::ChunkingResultProc() {
 		cudaStreamSynchronize(stream[streamIdx]);
 		//Get the chunking result ready
 		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
-		while (chunking_result_obsolete[streamIdx] == false) {
+		while (chunking_result_obsolete[streamIdx] == false) 
+		{
 			chunking_result_cond[streamIdx].wait(chunkingResultLock);
 		}
 			
@@ -354,8 +292,10 @@ void Harens::ChunkingResultProc() {
 		//all the inputs other than the last one contains #MAX_WINDOW_NUM of windows
 		int chunkingResultIdx = 0;
 		unsigned int resultHostLen = result_host_len[resultHostIdx];
-		for (unsigned int j = 0; j < resultHostLen; ++j) {
-			if (result_host[resultHostIdx][j] == 0) {
+		for (unsigned int j = 0; j < resultHostLen; ++j) 
+		{
+			if (result_host[resultHostIdx][j] == 0) 
+			{
 				chunking_result[streamIdx][chunkingResultIdx++] = j;
 			}
 		}
@@ -376,19 +316,20 @@ void Harens::ChunkingResultProc() {
 	}
 }
 
-/*
-* Compute a non-collision hash (SHA-1) value for each chunk
-* Chunks are divided into segments and processed by function ChunkSegmentHashing.
-*/
-void Harens::ChunkHashing() {
+void 
+HarensRE::ChunkHashing() 
+{
 	int pagableBufferIdx = 0;
 	int chunkingResultIdx = 0;
-	while (true) {
+	while (true) 
+	{
 		//Get pagable buffer ready
 		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
+		while (pagable_buffer_obsolete[pagableBufferIdx] == true) 
+		{
 			unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-			if (chunking_proc_end) {
+			if (chunking_proc_end) 
+			{
 				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 				chunk_hashing_end = true;
 				return;
@@ -398,9 +339,11 @@ void Harens::ChunkHashing() {
 		}
 		//Get the chunking result ready
 		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
-		while (chunking_result_obsolete[chunkingResultIdx] == true) {
+		while (chunking_result_obsolete[chunkingResultIdx] == true) 
+		{
 			unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-			if (chunking_proc_end) {
+			if (chunking_proc_end) 
+			{
 				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
 				chunk_hashing_end = true;
 				return;
@@ -410,12 +353,14 @@ void Harens::ChunkHashing() {
 		}
 
 		start_ch = clock();
-		for (int i = 0; i < mapperNum; ++i) {
+		for (int i = 0; i < mapperNum; ++i) 
+		{
 			segment_threads[i] = thread(std::mem_fn(&Harens::ChunkSegmentHashing)
 				, this, pagableBufferIdx, chunkingResultIdx, i);
 		}
 
-		for (int i = 0; i < mapperNum; ++i) {
+		for (int i = 0; i < mapperNum; ++i) 
+		{
 			segment_threads[i].join();
 		}
 
@@ -433,39 +378,46 @@ void Harens::ChunkHashing() {
 	}
 }
 
-/*
-* Compute a non-collision hash (SHA-1) value for each chunk in the segment
-*/
-void Harens::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum) {
+void 
+HarensRE::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum) 
+{
 	int listSize = chunking_result_len[chunkingResultIdx];
 	unsigned int* chunkingResultSeg = &chunking_result[chunkingResultIdx]
 													  [segmentNum * listSize / mapperNum];
 	int segLen = listSize / mapperNum;
 	if ((segmentNum + 1) * listSize / mapperNum > listSize)
+	{
 		segLen = listSize - segmentNum * listSize / mapperNum;
+	}
 	re.ChunkHashingAsync(chunkingResultSeg, segLen, pagable_buffer[pagableBufferIdx],
 		chunk_hash_queue_pool);
 	/*tuple<unsigned long long, unsigned int> chunkInfo;
 	unsigned long long toBeDel;
-	do {
+	do 
+{
 		chunkInfo = chunk_hash_queue[chunkingResultIdx][segmentNum].Pop();
-		if (hash_pool.FindAndAdd(get<0>(chunkInfo), toBeDel)) {
+		if (hash_pool.FindAndAdd(get<0>(chunkInfo), toBeDel)) 
+{
 			total_duplication_size += get<1>(chunkInfo);
 		}
 	} while (get<1>(chunkInfo) != -1);*/
 }
 
-/*
-* Match the chunks by their hash values
-*/
-void Harens::ChunkMatch(int hashPoolIdx) {
+void 
+HarensRE::ChunkMatch(int hashPoolIdx) 
+{
 	unsigned char* toBeDel = nullptr;
-	while (true) {
-		if (chunk_hash_queue_pool.IsEmpty(hashPoolIdx)) {
+	while (true) 
+	{
+		if (chunk_hash_queue_pool.IsEmpty(hashPoolIdx)) 
+		{
 			unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
-			if (chunk_hashing_end)
+			if (chunk_hashing_end) 
+			{
 				return;
-			else {
+			}
+			else 
+			{
 				chunkHashingEndLock.unlock();
 				this_thread::sleep_for(std::chrono::milliseconds(500));
 				continue;
@@ -477,7 +429,8 @@ void Harens::ChunkMatch(int hashPoolIdx) {
 		tuple<unsigned char*, unsigned int> valLenPair = chunk_hash_queue_pool.Pop(hashPoolIdx);
 		if (circ_hash_pool[hashPoolIdx].FindAndAdd(get<0>(valLenPair), toBeDel))
 			duplication_size[hashPoolIdx] += get<1>(valLenPair);
-		if (toBeDel != nullptr) {
+		if (toBeDel != nullptr) 
+		{
 			//Remove chunk corresponding to toBeDel from storage
 		}
 
