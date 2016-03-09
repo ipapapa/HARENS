@@ -27,12 +27,12 @@ private:
 	thread tChunkingResultProc;
 	thread tChunkHashing;
 	thread *chunk_match_threads;
-	// request list
-	std::vector<std::string, 
-				std::vector< std::tuple<int, unsigned char*, int, char*> >*,
-				mutex, 
-				condition_variable> requestList;
-	mutex requestListMutex;
+	// request queue
+	std::queue< std::tuple<std::string, 
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   condition_variable> > requestQueue;
+	mutex requestQueueMutex;
+	condition_variable newRequestCond;
 	// pagable buffer
 	array<char* PAGABLE_BUFFER_NUM> pagable_buffer;
 	array<unsigned int, PAGABLE_BUFFER_NUM> pagable_buffer_len;
@@ -81,7 +81,6 @@ private:
 		   time_cp = 0,
 		   time_ch, 
 		   time_cm;
-	int count = 0;
 
 public:
 	HarensRE(int mapperNum, int reducerNum);

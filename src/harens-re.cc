@@ -87,21 +87,16 @@ HarensRE::HandleGetRequest(string request)
 	condition_variable resultCond;
 	vector< tuple<int, unsigned char*, int, char*> >*  result
 		= new vector< tuple<int, unsigned char*, int, char*> >();
-	unique_lock<mutex> requestListLock(requestListMutex);
-	requestList.push_back(make_tuple(ref(request), 
-									 ref(result), 
-									 ref(resultMutex), 
-									 ref(resultCond)));
-	auto& requestIter = requestList.end();
-	--requestIter;
-	requestListLock.unlock();
+	unique_lock<mutex> requestQueueLock(requestQueueMutex);
+	requestQueue.push(make_tuple(ref(request), 
+								 ref(result), 
+								 ref(resultCond)));
+	requestQueueLock.unlock();
+	newRequestCond.notify_all();
 	// wait for result notification
 	unique_lock<mutex> resultLock(resultMutex);
 	resultCond.wait(resultLock, []{return result->size() > 0;});
-	//Remove request from vector
-	requestListLock.lock();
-	requestList.erase(requestIter);
-	requestListLock.unlock();
+
 	return result;
 }
 
@@ -109,6 +104,7 @@ void
 HarensRE::Start()
 {
 	IO::Print("redundancy elimination module kernel started...\n");
+	// initiate and start threads
 	tReadData = thread(std::mem_fn(&HarensRE::ReadData), this);
 	tChunkingKernel = thread(std::mem_fn(&HarensRE::ChunkingKernel), this);
 	tChunkingResultProc = thread(std::mem_fn(&HarensRE::ChunkingResultProc), this);
@@ -150,78 +146,113 @@ void HarensRE::End()
 		, (float)total_duplication_size / file_length * 100);
 }
 
+//TODO: start here
+//Use iterator to walk through requestQueue
+//remember to notifyone() when this request is done
+//figure out how to know a request is done, especially when input file is too large for one pagable memory
 void 
 HarensRE::ReadData() 
 {
+	// variables available in the whole scope
+	int count = 0;
+	unsigned long long fileLength = 0;
+	FixedSizeCharArray charArrayBuffer;
 	int pagableBufferIdx = 0;
-	unsigned int curFilePos = 0;
-	int curWindowNum;
-	//Read the first part
-	unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
-	start_r = clock();
-	IO::fileReader->SetupReader(IO::input_file_name);
-	IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
-	pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
-	memcpy(pagable_buffer[pagableBufferIdx], 
-		   charArrayBuffer.GetArr(), 
-		   pagable_buffer_len[pagableBufferIdx]);
-	file_length += pagable_buffer_len[pagableBufferIdx];
-	++count;
 
-	memcpy(overlap, 
-		   &pagable_buffer[pagableBufferIdx]
-		   				  [pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], 
-		   WINDOW_SIZE - 1);	//copy the last window into overlap
-	pagable_buffer_obsolete[pagableBufferIdx] = false;
-	readFileInitLock.unlock();
-	pagable_buffer_cond[pagableBufferIdx].notify_one();
-	pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-	end_r = clock();
-	time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
-	//Read the rest
-	while (true) 
+	// this function would only return when getting terminate signals
+	while (true)
 	{
-		unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == false) 
+		// if request list is empty, check for termination signal
+		// terminate reading data process if termination signal received
+		// otherwise, wait for new request
+		unique_lock<mutex> requestQueueLock(requestQueueMutex);
+		while (requestQueue.empty())
 		{
-			pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
+			unique_lock<mutex> terminateSigLock(terminateSigMutex);
+			if (terminateSig)
+			{
+				IO::Print("Total file size: %s\n", IO::InterpretSize(fileLength));
+				IO::Print("Need %d pagable buffers\n", count);
+				return;
+			}
+			terminateSigLock.unlock();
+			newRequestCond.wait(requestQueueLock);
 		}
+
+		// get the request that came first
+		auto& reqResCond = requestQueue.front();
+		requestQueue.pop();
+		string& request = get<0>(reqResCond);
+		auto& result = get<1>(reqResCond);
+		condition_variable& resultCond = get<2>(reqResCond);
+
+		// set up the overlap buffer
+		char overlap[WINDOW_SIZE - 1];
+
+		// read the first part
+		unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
 		start_r = clock();
-
-		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
-
-		if (charArrayBuffer.GetLen() == 0) 
-		{
-			readFileIterLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].notify_all();
-			break;	//Read nothing
-		}
-		++count;
+		IO::fileReader->SetupFile(request.c_str());	
+		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
+		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
 		memcpy(pagable_buffer[pagableBufferIdx], 
-			   overlap, 
-			   WINDOW_SIZE - 1);		//copy the overlap into current part
-		memcpy(&pagable_buffer[pagableBufferIdx][WINDOW_SIZE - 1], 
 			   charArrayBuffer.GetArr(), 
-			   charArrayBuffer.GetLen());
-		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-		file_length += charArrayBuffer.GetLen();
-		pagable_buffer_obsolete[pagableBufferIdx] = false;
+			   pagable_buffer_len[pagableBufferIdx]);
+		file_length += pagable_buffer_len[pagableBufferIdx];
+		++count;
+
+		//copy the last window into overlap
 		memcpy(overlap, 
-			   &pagable_buffer[pagableBufferIdx][charArrayBuffer.GetLen()], 
-			   WINDOW_SIZE - 1);	//copy the last window into overlap
-		readFileIterLock.unlock();
+			   &pagable_buffer[pagableBufferIdx]
+			   				  [pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], 
+			   WINDOW_SIZE - 1);	
+		pagable_buffer_obsolete[pagableBufferIdx] = false;
+		readFileInitLock.unlock();
 		pagable_buffer_cond[pagableBufferIdx].notify_one();
 		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 		end_r = clock();
 		time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
-	}
-	IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-	unique_lock<mutex> readFileEndLock(read_file_end_mutex);
-	IO::Print("Need %d pagable buffers\n", count);
-	read_file_end = true;
-	//In case the other threads stuck in waiting for condition variable
-	pagable_buffer_cond[pagableBufferIdx].notify_all();
+		
+		// read the rest, this block only ends when reading to the end of file
+		while (true) 
+		{
+			unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
+			while (pagable_buffer_obsolete[pagableBufferIdx] == false) 
+			{
+				pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
+			}
+			start_r = clock();
 
+			IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
+
+			if (charArrayBuffer.GetLen() == 0) 
+			{
+				readFileIterLock.unlock();
+				pagable_buffer_cond[pagableBufferIdx].notify_all();
+				break;	//Read nothing
+			}
+			++count;
+			memcpy(pagable_buffer[pagableBufferIdx], 
+				   overlap, 
+				   WINDOW_SIZE - 1);		//copy the overlap into current part
+			memcpy(&pagable_buffer[pagableBufferIdx][WINDOW_SIZE - 1], 
+				   charArrayBuffer.GetArr(), 
+				   charArrayBuffer.GetLen());
+			pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+			file_length += charArrayBuffer.GetLen();
+			pagable_buffer_obsolete[pagableBufferIdx] = false;
+			memcpy(overlap, 
+				   &pagable_buffer[pagableBufferIdx][charArrayBuffer.GetLen()], 
+				   WINDOW_SIZE - 1);	//copy the last window into overlap
+			readFileIterLock.unlock();
+			pagable_buffer_cond[pagableBufferIdx].notify_one();
+			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+			end_r = clock();
+			time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
+		}
+		//In case the other threads stuck in waiting for condition variable
+		pagable_buffer_cond[pagableBufferIdx].notify_all();
+	}
 }
 
 void 

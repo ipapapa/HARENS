@@ -20,7 +20,7 @@ static class ExtraOrdinaryLargeFileException : public std::exception {
 */
 class IO {
 private:
-	static FileFormat fileFormat;	//Only allow access through Set/Get function
+	static FileFormat fileFormat;	//Only allow access through Set/Get methods
 
 public:
 	static VirtualReader* fileReader;
@@ -29,6 +29,9 @@ public:
 	static int fileIdx;
 	static char* output_file_name;
 
+	/*
+	* Get and Set methods for member fileFormat
+	*/
 	static FileFormat GetFileFormat() { return fileFormat; }
 	static void SetFileFormat(FileFormat _fileFormat) {
 		fileFormat = _fileFormat;
