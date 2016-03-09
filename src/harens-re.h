@@ -22,10 +22,17 @@ private:
 	bool terminateSig = false;
 	mutex terminateSigMutex;
 	// threads
+	thread tReadData;
 	thread tChunkingKernel;
 	thread tChunkingResultProc;
 	thread tChunkHashing;
 	thread *chunk_match_threads;
+	// request list
+	std::vector<std::string, 
+				std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+				mutex, 
+				condition_variable> requestList;
+	mutex requestListMutex;
 	// pagable buffer
 	array<char* PAGABLE_BUFFER_NUM> pagable_buffer;
 	array<unsigned int, PAGABLE_BUFFER_NUM> pagable_buffer_len;
@@ -83,10 +90,14 @@ public:
 	/**
 	* \brief fetching data for the GET request and do redundancy elimination process.
 	* Simulating fetching data from server by reading files.
+	* \param the GET request (a file name stored data in server's file system)
 	* \return the hash-chunk pairs of the data. 
 	* The two integers before hash value and data chunk are their lengths.
+	* MIND: return value is a pointer, caller of this function should be responsible
+	* to release the memory!
 	*/
-	std::vector< std::tuple<int, unsigned char*, int, char*> > HandleGetRequest();
+	std::vector< std::tuple<int, unsigned char*, int, char*> >*
+	HandleGetRequest(std::string request);
 
 	/**
 	* \brief start the core of redundancy elimination module
@@ -97,6 +108,11 @@ public:
 	* \brief terminate the core of redundancy elimination module
 	*/
 	void End();
+
+	/** 
+	* \brief read data from file system based on given filenames.
+	*/
+	void ReadData();
 
 	/**
 	* \brief call the GPU kernel function to compute the Rabin hash value

@@ -79,16 +79,37 @@ HarensRE::~HarensRE()
 	}
 }
 
-std::vector< std::tuple<int, unsigned char*, int, char*> > 
-HarensRE::HandleGetRequest()
+vector< tuple<int, unsigned char*, int, char*> >* 
+HarensRE::HandleGetRequest(string request)
 {
-
+	// put values into request list as reference
+	mutex resultMutex;
+	condition_variable resultCond;
+	vector< tuple<int, unsigned char*, int, char*> >*  result
+		= new vector< tuple<int, unsigned char*, int, char*> >();
+	unique_lock<mutex> requestListLock(requestListMutex);
+	requestList.push_back(make_tuple(ref(request), 
+									 ref(result), 
+									 ref(resultMutex), 
+									 ref(resultCond)));
+	auto& requestIter = requestList.end();
+	--requestIter;
+	requestListLock.unlock();
+	// wait for result notification
+	unique_lock<mutex> resultLock(resultMutex);
+	resultCond.wait(resultLock, []{return result->size() > 0;});
+	//Remove request from vector
+	requestListLock.lock();
+	requestList.erase(requestIter);
+	requestListLock.unlock();
+	return result;
 }
 
 void
 HarensRE::Start()
 {
 	IO::Print("redundancy elimination module kernel started...\n");
+	tReadData = thread(std::mem_fn(&HarensRE::ReadData), this);
 	tChunkingKernel = thread(std::mem_fn(&HarensRE::ChunkingKernel), this);
 	tChunkingResultProc = thread(std::mem_fn(&HarensRE::ChunkingResultProc), this);
 	tChunkHashing = thread(std::mem_fn(&HarensRE::ChunkHashing), this);
@@ -100,11 +121,15 @@ HarensRE::Start()
 
 void HarensRE::End()
 {
-	// terminate the kernel
-	IO::Print("redundancy elimination module kernel is going to terminate...\n");
+	// send termination signal
+	IO::Print("seding terminaltion signial to kernel...\n");
 	unique_lock<mutex> terminateSigLock(terminateSigMutex);
 	terminateSig = true;
 	terminateSigLock.unlock();
+
+	// wait for the kernel to terminate
+	IO::Print("redundancy elimination module kernel is going to terminate...\n");
+	tReadData.join();
 	tChunkingKernel.join();
 	tChunkingResultProc.join();
 	tChunkHashing.join();
@@ -126,7 +151,7 @@ void HarensRE::End()
 }
 
 void 
-HarensRE::ReadFile() 
+HarensRE::ReadData() 
 {
 	int pagableBufferIdx = 0;
 	unsigned int curFilePos = 0;
