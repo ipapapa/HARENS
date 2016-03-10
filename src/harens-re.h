@@ -27,12 +27,35 @@ private:
 	thread tChunkingResultProc;
 	thread tChunkHashing;
 	thread *chunk_match_threads;
-	// request queue
+	// request queue: sync between HandleGetRequest and ReadData
+	// consists of request, response, condition variable
 	std::queue< std::tuple<std::string, 
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
 						   condition_variable> > requestQueue;
 	mutex requestQueueMutex;
 	condition_variable newRequestCond;
+	// package queue: sync between ReadData and ChunkingKernel
+	// consists of pagable buffer indices for package data, response, condition variable
+	std::queue< std::tuple<std::vector<int>,
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   condition_variable> > packageQueue;
+	mutex packageQueueMutex;
+	condition_variable newPackageCond;
+	// rabin result queue: sync between ChunkingKernel and ChunkingResultProc
+	// consists of result-host indices for rabin hash, response, condition variable
+	std::queue< std::tuple<std::vector<int>,
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   condition_variable> > rabinQueue;
+	mutex rabinQueueMutex;
+	condition_variable newRabinCond;
+	// chunk queue: sync between ChunkingResultProc and ChunkHashing
+	// consists of chunking result buffer indices used, response, condition variable
+	std::queue< std::tuple<std::vector<int>,
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   condition_variable> > chunkQueue;
+	mutex chunkQueueMutex;
+	condition_variable newChunksCond;
+
 	// pagable buffer
 	array<char* PAGABLE_BUFFER_NUM> pagable_buffer;
 	array<unsigned int, PAGABLE_BUFFER_NUM> pagable_buffer_len;

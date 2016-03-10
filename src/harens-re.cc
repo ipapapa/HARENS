@@ -159,10 +159,10 @@ HarensRE::ReadData()
 	FixedSizeCharArray charArrayBuffer;
 	int pagableBufferIdx = 0;
 
-	// this function would only return when getting terminate signals
+	// this function would only end when it received termination signals
 	while (true)
 	{
-		// if request list is empty, check for termination signal
+		// if request queue is empty, check for termination signal
 		// terminate reading data process if termination signal received
 		// otherwise, wait for new request
 		unique_lock<mutex> requestQueueLock(requestQueueMutex);
@@ -185,6 +185,9 @@ HarensRE::ReadData()
 		string& request = get<0>(reqResCond);
 		auto& result = get<1>(reqResCond);
 		condition_variable& resultCond = get<2>(reqResCond);
+
+		// set a vector containing all the indices of pagable buffers used to store this data
+		vector<int> pagableBuffersUsed;
 
 		// set up the overlap buffer
 		char overlap[WINDOW_SIZE - 1];
@@ -210,6 +213,7 @@ HarensRE::ReadData()
 			   				  [pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], 
 			   WINDOW_SIZE - 1);
 		readFileInitLock.unlock();
+		pagableBuffersUsed.push_back(pagableBufferIdx);
 		pagable_buffer_cond[pagableBufferIdx].notify_one();
 		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 		end_r = clock();
@@ -227,14 +231,15 @@ HarensRE::ReadData()
 
 			IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 
+			// read nothing
 			if (charArrayBuffer.GetLen() == 0) 
 			{
 				readFileIterLock.unlock();
 				pagable_buffer_cond[pagableBufferIdx].notify_all();
-				break;	//Read nothing
+				break;	
 			}
 			++count;
-			//copy the overlap into current part
+			// copy the overlap into current part
 			memcpy(pagable_buffer[pagableBufferIdx], 
 				   overlap, 
 				   WINDOW_SIZE - 1);		
@@ -245,195 +250,292 @@ HarensRE::ReadData()
 			file_length += charArrayBuffer.GetLen();
 			pagable_buffer_obsolete[pagableBufferIdx] = false;
 
-			//copy the last window into overlap
+			// copy the last window into overlap
 			memcpy(overlap, 
 				   &pagable_buffer[pagableBufferIdx][charArrayBuffer.GetLen()], 
 				   WINDOW_SIZE - 1);	
 			readFileIterLock.unlock();
+			pagableBuffersUsed.push_back(pagableBufferIdx);
 			pagable_buffer_cond[pagableBufferIdx].notify_one();
 			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 			end_r = clock();
 			time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 		}
+
+		// done reading data for this request
+		unique_lock<mutex> packageQueueLock(packageQueueMutex);
+		// only pass result and resultCond by reference, because pagableBuffersUsed \
+		// would be destroyed by the end of processing this request
+		packageQueue.push(make_tuple(pagableBuffersUsed,
+									 ref(result),
+									 ref(resultCond)));
+		packageQueueLock.unlock();
+		newPackageCond.notify_all();
 	}
 }
 
 void 
 HarensRE::ChunkingKernel() 
 {
-	int pagableBufferIdx = 0;
+	// variables available in the whole scope
 	int fixedBufferIdx = 0;
 	int streamIdx = 0;
+
+	// this function would only end when it received termination signals
 	while (true) 
 	{
-		//Wait for the last process of this stream to finish
-		//Get pagable buffer ready
-		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == true) 
+		// if package queue is empty, check for termination signal
+		// terminate chunking kernel process if termination signal is received 
+		// otherwise, wait for new package
+		unique_lock<mutex> packageQueueLock(packageQueueMutex);
+		while (packageQueue.empty())
 		{
-			unique_lock<mutex> readFileEndLock(read_file_end_mutex);
-			if (read_file_end) 
+			unique_lock<mutex> terminateSigLock(terminateSigMutex);
+			if (terminateSig)
 			{
-				unique_lock<mutex> chunkingKernelEndLock(chunking_kernel_end_mutex);
-				chunking_kernel_end = true;
 				return;
 			}
-			readFileEndLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
+			terminateSigLock.unlock();
+			newPackageCond.wait(packageQueueLock);
 		}
 
-		//Get result host ready
-		unique_lock<mutex> resultHostLock(result_host_mutex[fixedBufferIdx]);
-		while (result_host_executing[fixedBufferIdx] == true) 
+		// get the package that came first
+		auto& pkgResCond = packageQueue.front();
+		packageQueue.pop();
+		vector<int> pagableBuffersUsed = get<0>(pkgResCond);
+		auto& result = get<1>(pkgResCond);
+		condition_variable& resultCond = get<2>(pkgResCond);
+
+		// set a vector containing all the indices of result-host used to store the results
+		vector<int> resultHostUsed;
+
+		for(vector<int>::iterator pagableBufferIdx = pagableBuffersUsed.begin();
+			pagableBufferIdx != pagableBuffersUsed.end();
+			++pagableBufferIdx)
 		{
-			result_host_cond[fixedBufferIdx].wait(resultHostLock);
+			// pagable buffer is ready since this thread has received the package
+
+			// get result host ready
+			unique_lock<mutex> resultHostLock(result_host_mutex[fixedBufferIdx]);
+			while (result_host_executing[fixedBufferIdx] == true) 
+			{
+				result_host_cond[fixedBufferIdx].wait(resultHostLock);
+			}
+
+			start_ck = clock();
+			fixed_buffer_len[fixedBufferIdx] = pagable_buffer_len[*pagableBufferIdx];
+			memcpy(fixed_buffer[fixedBufferIdx], 
+				   pagable_buffer[*pagableBufferIdx], 
+				   fixed_buffer_len[fixedBufferIdx]);
+			//pagable buffer is still not obsolete here!
+
+			re.RabinHashAsync(input_kernel[fixedBufferIdx], 
+							  fixed_buffer[fixedBufferIdx], 
+							  fixed_buffer_len[fixedBufferIdx],
+							  result_kernel[fixedBufferIdx], 
+							  result_host[fixedBufferIdx],
+							  stream[streamIdx]);
+
+			result_host_len[fixedBufferIdx] = fixed_buffer_len[fixedBufferIdx] - WINDOW_SIZE + 1;
+			result_host_executing[fixedBufferIdx] = true;
+			resultHostLock.unlock();
+			resultHostUsed.push_back(fixedBufferIdx);
+			result_host_cond[fixedBufferIdx].notify_one();
+			fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
+			streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
+			end_ck = clock();
+			time_ck += (end_ck - start_ck) * 1000 / CLOCKS_PER_SEC;
 		}
 
-		start_ck = clock();
-		fixed_buffer_len[fixedBufferIdx] = pagable_buffer_len[pagableBufferIdx];
-		memcpy(fixed_buffer[fixedBufferIdx], 
-			   pagable_buffer[pagableBufferIdx], 
-			   fixed_buffer_len[fixedBufferIdx]);
-		//pagable buffer is still not obsolete here!
-		pagableLock.unlock();
-		pagable_buffer_cond[pagableBufferIdx].notify_one();
-		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-
-		re.RabinHashAsync(input_kernel[fixedBufferIdx], 
-						  fixed_buffer[fixedBufferIdx], 
-						  fixed_buffer_len[fixedBufferIdx],
-						  result_kernel[fixedBufferIdx], 
-						  result_host[fixedBufferIdx],
-						  stream[streamIdx]);
-
-		result_host_len[fixedBufferIdx] = fixed_buffer_len[fixedBufferIdx] - WINDOW_SIZE + 1;
-		result_host_executing[fixedBufferIdx] = true;
-		resultHostLock.unlock();
-		result_host_cond[fixedBufferIdx].notify_one();
-		fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
-		streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
-		end_ck = clock();
-		time_ck += (end_ck - start_ck) * 1000 / CLOCKS_PER_SEC;
+		// done (Rabin) hashing data for this package
+		unique_lock<mutex> rabinQueueLock(rabinQueueMutex);
+		// only pass result and resultCond by reference, because resultHostUsed \
+		// would be destroyed by the end of processing this package
+		rabinQueue.push(make_tuple(resultHostUsed,
+								   ref(result),
+								   ref(resultCond)));
+		rabinQueueLock.unlock();
+		newRabinCond.notify_all();
 	}
 }
 
 void 
 HarensRE::ChunkingResultProc() 
 {
-	int resultHostIdx = 0;
+	// variables available in the whole scope
 	int streamIdx = 0;
-		
+	
+	// this function would only end when it received termination signals 
 	while (true) 
 	{
-		//Get result host ready
-		unique_lock<mutex> resultHostLock(result_host_mutex[resultHostIdx]);
-		while (result_host_executing[resultHostIdx] == false) 
+		// if rabin hash result queue is empty, check for termination signal
+		// terminate chunking result processing if termination signal is received
+		// otherwise, wait for new package
+		unique_lock<mutex> rabinQueueLock(rabinQueueMutex);
+		while (rabinQueue.empty())
 		{
-			unique_lock<mutex> chunkingKernelEndLock(chunking_kernel_end_mutex);
-			if (chunking_kernel_end) 
+			unique_lock<mutex> terminateSigLock(terminateSigMutex);
+			if (terminateSig)
 			{
-				unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-				chunking_proc_end = true;
 				return;
 			}
-			chunkingKernelEndLock.unlock();
-			result_host_cond[resultHostIdx].wait(resultHostLock);
+			terminateSigLock.unlock();
+			newRabinCond.wait(rabinQueueLock);
 		}
-		cudaStreamSynchronize(stream[streamIdx]);
-		//Get the chunking result ready
-		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
-		while (chunking_result_obsolete[streamIdx] == false) 
+
+		// get the rabin hash result that came first
+		auto& rabinResCond = rabinQueue.front();
+		rabinQueue.pop();
+		vector<int> resultHostUsed = get<0>(rabinResCond);
+		auto& result = get<1>(rabinResCond);
+		condition_variable& resultCond = get<2>(rabinResCond);
+
+		// set a vector containing all the indices of chunking result buffers used
+		vector<int> chunkingResultBufferUsed;
+
+		for(vector<int>::iterator resultHostIdx = resultHostUsed.begin();
+			resultHostIdx != resultHostUsed.end();
+			++resultHostIdx)
 		{
-			chunking_result_cond[streamIdx].wait(chunkingResultLock);
-		}
+			// result host is ready since this thread has received the rabin hash result
 			
-		start_cp = clock();
-		//all the inputs other than the last one contains #MAX_WINDOW_NUM of windows
-		int chunkingResultIdx = 0;
-		unsigned int resultHostLen = result_host_len[resultHostIdx];
-		for (unsigned int j = 0; j < resultHostLen; ++j) 
-		{
-			if (result_host[resultHostIdx][j] == 0) 
+			// wait until the last stream with the same stream index is finished
+			cudaStreamSynchronize(stream[streamIdx]);
+			// get the chunking result ready
+			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
+			while (chunking_result_obsolete[streamIdx] == false) 
 			{
-				chunking_result[streamIdx][chunkingResultIdx++] = j;
+				chunking_result_cond[streamIdx].wait(chunkingResultLock);
 			}
+				
+			start_cp = clock();
+			
+			int chunkingResultIdx = 0;
+			unsigned int resultHostLen = result_host_len[*resultHostIdx];
+			for (unsigned int j = 0; j < resultHostLen; ++j) 
+			{
+				if (result_host[*resultHostIdx][j] == 0) 
+				{
+					chunking_result[streamIdx][chunkingResultIdx++] = j;
+				}
+			}
+
+			chunking_result_len[streamIdx] = chunkingResultIdx;
+
+			result_host_executing[*resultHostIdx] = false;
+			chunking_result_obsolete[streamIdx] = false;
+			resultHostLock.unlock();
+			result_host_cond[*resultHostIdx].notify_one();
+			chunkingResultLock.unlock();
+			chunking_result_cond[streamIdx].notify_one();
+
+			chunkingResultBufferUsed.push_back(streamIdx);
+			streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
+			end_cp = clock();
+			time_cp += (end_cp - start_cp) * 1000 / CLOCKS_PER_SEC;
 		}
-
-		chunking_result_len[streamIdx] = chunkingResultIdx;
-
-		result_host_executing[resultHostIdx] = false;
-		chunking_result_obsolete[streamIdx] = false;
-		resultHostLock.unlock();
-		result_host_cond[resultHostIdx].notify_one();
-		chunkingResultLock.unlock();
-		chunking_result_cond[streamIdx].notify_one();
-
-		streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
-		resultHostIdx = (resultHostIdx + 1) % FIXED_BUFFER_NUM;
-		end_cp = clock();
-		time_cp += (end_cp - start_cp) * 1000 / CLOCKS_PER_SEC;
+		
+		// done chunking the package
+		unique_lock<mutex> chunkQueueLock(chunkQueueMutex);
+		// only pass result and resultCond by reference, because chunkingResultBufferUsed \
+		// would be destroyed by the end of processing this package chunking
+		chunkQueue.push(make_tuple(chunkingResultBufferUsed,
+								   ref(result),
+								   ref(resultCond)));
+		chunkQueueLock.unlock();
+		newChunksCond.notify_all();
 	}
 }
 
 void 
 HarensRE::ChunkHashing() 
 {
+	// variables available in the whole scope
 	int pagableBufferIdx = 0;
-	int chunkingResultIdx = 0;
+
+	// this function would only end when it received termination signals 
 	while (true) 
 	{
-		//Get pagable buffer ready
-		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == true) 
+		// if chunking result queue is empty, check for termination signal
+		// terminate chunk hashing if termination signal is received
+		// otherwise, wait for new package
+		unique_lock<mutex> chunkQueueLock(chunkQueueMutex);
+		while (chunkQueue.empty())
 		{
-			unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-			if (chunking_proc_end) 
+			unique_lock<mutex> terminateSigLock(terminateSigMutex);
+			if (terminateSig)
 			{
-				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
-				chunk_hashing_end = true;
 				return;
 			}
-			chukingProcEndLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
+			terminateSigLock.unlock();
+			newChunksCond.wait(chunkQueueLock);
 		}
-		//Get the chunking result ready
-		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
-		while (chunking_result_obsolete[chunkingResultIdx] == true) 
+
+		// get the chunking result that came first
+		auto& chunksResCond = chunkQueue.front();
+		chunkQueue.pop();
+		vector<int> chunkingResultBufferUsed = get<0>(chunksResCond);
+		auto& result = get<1>(chunksResCond);
+		condition_variable& resultCond = get<2>(chunksResCond);
+
+		for(vector<int>::iterator chunkingResultIdx = chunkingResultBufferUsed.begin();
+			chunkingResultIdx != chunkingResultBufferUsed.end();
+			++chunkingResultIdx)
 		{
-			unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-			if (chunking_proc_end) 
+			//Get pagable buffer ready
+			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
+			while (pagable_buffer_obsolete[pagableBufferIdx] == true) 
 			{
-				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
-				chunk_hashing_end = true;
-				return;
+				unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
+				if (chunking_proc_end) 
+				{
+					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
+					chunk_hashing_end = true;
+					return;
+				}
+				chukingProcEndLock.unlock();
+				pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
 			}
-			chukingProcEndLock.unlock();
-			chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
+			//Get the chunking result ready
+			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[*chunkingResultIdx]);
+			while (chunking_result_obsolete[*chunkingResultIdx] == true) 
+			{
+				unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
+				if (chunking_proc_end) 
+				{
+					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
+					chunk_hashing_end = true;
+					return;
+				}
+				chukingProcEndLock.unlock();
+				chunking_result_cond[*chunkingResultIdx].wait(chunkingResultLock);
+			}
+
+			start_ch = clock();
+			for (int i = 0; i < mapperNum; ++i) 
+			{
+				segment_threads[i] = thread(std::mem_fn(&Harens::ChunkSegmentHashing)
+					, this, pagableBufferIdx, *chunkingResultIdx, i);
+			}
+
+			for (int i = 0; i < mapperNum; ++i) 
+			{
+				segment_threads[i].join();
+			}
+
+			pagable_buffer_obsolete[pagableBufferIdx] = true;
+			chunking_result_obsolete[*chunkingResultIdx] = true;
+			pagableLock.unlock();
+			pagable_buffer_cond[pagableBufferIdx].notify_one();
+			chunkingResultLock.unlock();
+			chunking_result_cond[*chunkingResultIdx].notify_one();
+
+			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
+			end_ch = clock();
+			time_ch += (end_ch - start_ch) * 1000 / CLOCKS_PER_SEC;
 		}
 
-		start_ch = clock();
-		for (int i = 0; i < mapperNum; ++i) 
-		{
-			segment_threads[i] = thread(std::mem_fn(&Harens::ChunkSegmentHashing)
-				, this, pagableBufferIdx, chunkingResultIdx, i);
-		}
-
-		for (int i = 0; i < mapperNum; ++i) 
-		{
-			segment_threads[i].join();
-		}
-
-		pagable_buffer_obsolete[pagableBufferIdx] = true;
-		chunking_result_obsolete[chunkingResultIdx] = true;
-		pagableLock.unlock();
-		pagable_buffer_cond[pagableBufferIdx].notify_one();
-		chunkingResultLock.unlock();
-		chunking_result_cond[chunkingResultIdx].notify_one();
-
-		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-		chunkingResultIdx = (chunkingResultIdx + 1) % RESULT_BUFFER_NUM;
-		end_ch = clock();
-		time_ch += (end_ch - start_ch) * 1000 / CLOCKS_PER_SEC;
+		
 	}
 }
 
@@ -448,18 +550,10 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int s
 	{
 		segLen = listSize - segmentNum * listSize / mapperNum;
 	}
-	re.ChunkHashingAsync(chunkingResultSeg, segLen, pagable_buffer[pagableBufferIdx],
-		chunk_hash_queue_pool);
-	/*tuple<unsigned long long, unsigned int> chunkInfo;
-	unsigned long long toBeDel;
-	do 
-{
-		chunkInfo = chunk_hash_queue[chunkingResultIdx][segmentNum].Pop();
-		if (hash_pool.FindAndAdd(get<0>(chunkInfo), toBeDel)) 
-{
-			total_duplication_size += get<1>(chunkInfo);
-		}
-	} while (get<1>(chunkInfo) != -1);*/
+	re.ChunkHashingAsync(chunkingResultSeg, 
+						 segLen, 
+						 pagable_buffer[pagableBufferIdx],
+						 chunk_hash_queue_pool);
 }
 
 void 
