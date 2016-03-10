@@ -160,15 +160,6 @@ void CppPipeline::Fingerprinting() {
 	int chunkingResultIdx = 0;
 	//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
 	while (true) {
-		//Get buffer ready
-		unique_lock<mutex> bufferLock(buffer_mutex[bufferIdx]);
-		while (buffer_obsolete[bufferIdx]) {
-			unique_lock<mutex> chunkingEndLock(chunking_end_mutex);
-			if (chunking_end)
-				return;
-			chunkingEndLock.unlock();
-			buffer_cond[bufferIdx].wait(bufferLock);
-		}
 		//Get chunking result ready
 		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
 		while (chunking_result_obsolete[chunkingResultIdx]) {
@@ -178,6 +169,9 @@ void CppPipeline::Fingerprinting() {
 			chunkingEndLock.unlock();
 			chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
 		}
+
+		//Buffer is already ready
+		unique_lock<mutex> bufferLock(buffer_mutex[bufferIdx]);
 
 		start_fin = clock();
 

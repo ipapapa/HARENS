@@ -382,18 +382,6 @@ void Harens::ChunkHashing() {
 	int pagableBufferIdx = 0;
 	int chunkingResultIdx = 0;
 	while (true) {
-		//Get pagable buffer ready
-		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == true) {
-			unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-			if (chunking_proc_end) {
-				unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
-				chunk_hashing_end = true;
-				return;
-			}
-			chukingProcEndLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
-		}
 		//Get the chunking result ready
 		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
 		while (chunking_result_obsolete[chunkingResultIdx] == true) {
@@ -406,6 +394,9 @@ void Harens::ChunkHashing() {
 			chukingProcEndLock.unlock();
 			chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
 		}
+
+		//Pagable buffer is ready because it's never released
+		unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
 
 		start_ch = clock();
 		for (int i = 0; i < mapperNum; ++i) {
