@@ -16,7 +16,7 @@ Our results indicate that HARENS can increase the throughput of other CUDA Redun
 
 We used Intel Core i7-5930K 3.5GHz 12 cores CPU, 32GB DDR4 RAM, and Nvidia Tesla K40c. We used experimental data based on Youtube traces collected by Zink and publically available at the [UMass trace repository](http://traces.cs.umass.edu/index.php/Network/Network).
 
-![throughput](https://cloud.githubusercontent.com/assets/4562887/11403658/e47858c8-9352-11e5-80c4-af876147ea8b.png)
+<img src="Throughput.jpg" width="650"/>
 
 
 Algorithm Overview
