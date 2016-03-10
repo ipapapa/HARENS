@@ -32,13 +32,13 @@ private:
 	clock_t start_fin;
 	float totFin = 0;
 
-public:
-	HashCollisionTest(int hashFuncUsed, bool isCollisionCheck);
-	~HashCollisionTest();
-
 	bool ReadFile();
 	void Chunking();
 	void Fingerprinting();
+
+public:
+	HashCollisionTest(int hashFuncUsed, bool isCollisionCheck);
+	~HashCollisionTest();
 
 	int Execute();
 };

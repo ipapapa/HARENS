@@ -54,14 +54,14 @@ private:
 		   time_ch, 
 		   time_cm;
 
-public:
-	CudaAcceleratedAlg();
-	~CudaAcceleratedAlg();
-
 	bool ReadFile();
 	void ChunkingKernel();
 	void ChunkingResultProc();
 	void ChunkMatch();
+
+public:
+	CudaAcceleratedAlg();
+	~CudaAcceleratedAlg();
 
 	int Execute();
 	void Test(double &rate, double &time);

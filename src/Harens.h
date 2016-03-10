@@ -86,10 +86,6 @@ private:
 		   time_cm;
 	int count = 0;
 
-public:
-	Harens(int mapperNum, int reducerNum);
-	~Harens();
-
 	/*
 	* Read data from a plain text or pcap file into memory.
 	* Transfer is done in this step now.
@@ -132,6 +128,10 @@ public:
 	void ChunkSegmentHashing(int pagableBufferIdx, 
 							 int chunkingResultIdx, 
 							 int segmentNum);
+
+public:
+	Harens(int mapperNum, int reducerNum);
+	~Harens();
 
 	int Execute();
 	void Test(double &rate, double &time);

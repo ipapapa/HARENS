@@ -36,13 +36,13 @@ private:
 		  tot_chunk = 0, 
 		  tot_fin = 0;
 
-public:
-	CppPipeline();
-	~CppPipeline();
-
 	void ReadFile();
 	void Chunking();
 	void Fingerprinting();
+
+public:
+	CppPipeline();
+	~CppPipeline();
 
 	int Execute();
 	void Test(double &rate, double &time);

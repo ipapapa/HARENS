@@ -82,32 +82,6 @@ private:
 		   time_ch, 
 		   time_cm;
 
-public:
-	HarensRE(int mapperNum, int reducerNum);
-	~HarensRE();
-
-	/**
-	* \brief fetching data for the GET request and do redundancy elimination process.
-	* Simulating fetching data from server by reading files.
-	* \param the GET request (a file name stored data in server's file system)
-	* \return the hash-chunk pairs of the data. 
-	* The two integers before hash value and data chunk are their lengths.
-	* MIND: return value is a pointer, caller of this function should be responsible
-	* to release the memory!
-	*/
-	std::vector< std::tuple<int, unsigned char*, int, char*> >*
-	HandleGetRequest(std::string request);
-
-	/**
-	* \brief start the core of redundancy elimination module
-	*/
-	void Start();
-
-	/**
-	* \brief terminate the core of redundancy elimination module
-	*/
-	void End();
-
 	/** 
 	* \brief read data from file system based on given filenames.
 	*/
@@ -142,6 +116,32 @@ public:
 	void ChunkSegmentHashing(int pagableBufferIdx, 
 							 int chunkingResultIdx, 
 							 int segmentNum);
+
+public:
+	HarensRE(int mapperNum, int reducerNum);
+	~HarensRE();
+
+	/**
+	* \brief fetching data for the GET request and do redundancy elimination process.
+	* Simulating fetching data from server by reading files.
+	* \param the GET request (a file name stored data in server's file system)
+	* \return the hash-chunk pairs of the data. 
+	* The two integers before hash value and data chunk are their lengths.
+	* MIND: return value is a pointer, caller of this function should be responsible
+	* to release the memory!
+	*/
+	std::vector< std::tuple<int, unsigned char*, int, char*> >*
+	HandleGetRequest(std::string request);
+
+	/**
+	* \brief start the core of redundancy elimination module
+	*/
+	void Start();
+
+	/**
+	* \brief terminate the core of redundancy elimination module
+	*/
+	void End();
 };
 
 #endif /* HARENS_RE_H */

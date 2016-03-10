@@ -32,13 +32,13 @@ private:
 		  tot_fin = 0, 
 		  tot_time = 0;
 
-public:
-	NaiveCpp();
-	~NaiveCpp();
-
 	bool ReadFile();
 	void Chunking();
 	void Fingerprinting();
+
+public:
+	NaiveCpp();
+	~NaiveCpp();
 
 	int Execute();
 	void Test(double &rate, double &time);

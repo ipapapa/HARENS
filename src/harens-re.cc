@@ -194,19 +194,21 @@ HarensRE::ReadData()
 		start_r = clock();
 		IO::fileReader->SetupFile(request.c_str());	
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
-		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
+
+
+		++count;
 		memcpy(pagable_buffer[pagableBufferIdx], 
 			   charArrayBuffer.GetArr(), 
 			   pagable_buffer_len[pagableBufferIdx]);
+		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
 		file_length += pagable_buffer_len[pagableBufferIdx];
-		++count;
+		pagable_buffer_obsolete[pagableBufferIdx] = false;
 
-		//copy the last window into overlap
+		// copy the last window into overlap
 		memcpy(overlap, 
 			   &pagable_buffer[pagableBufferIdx]
 			   				  [pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], 
-			   WINDOW_SIZE - 1);	
-		pagable_buffer_obsolete[pagableBufferIdx] = false;
+			   WINDOW_SIZE - 1);
 		readFileInitLock.unlock();
 		pagable_buffer_cond[pagableBufferIdx].notify_one();
 		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
@@ -232,26 +234,27 @@ HarensRE::ReadData()
 				break;	//Read nothing
 			}
 			++count;
+			//copy the overlap into current part
 			memcpy(pagable_buffer[pagableBufferIdx], 
 				   overlap, 
-				   WINDOW_SIZE - 1);		//copy the overlap into current part
+				   WINDOW_SIZE - 1);		
 			memcpy(&pagable_buffer[pagableBufferIdx][WINDOW_SIZE - 1], 
 				   charArrayBuffer.GetArr(), 
 				   charArrayBuffer.GetLen());
 			pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
 			file_length += charArrayBuffer.GetLen();
 			pagable_buffer_obsolete[pagableBufferIdx] = false;
+
+			//copy the last window into overlap
 			memcpy(overlap, 
 				   &pagable_buffer[pagableBufferIdx][charArrayBuffer.GetLen()], 
-				   WINDOW_SIZE - 1);	//copy the last window into overlap
+				   WINDOW_SIZE - 1);	
 			readFileIterLock.unlock();
 			pagable_buffer_cond[pagableBufferIdx].notify_one();
 			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 			end_r = clock();
 			time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
 		}
-		//In case the other threads stuck in waiting for condition variable
-		pagable_buffer_cond[pagableBufferIdx].notify_all();
 	}
 }
 
