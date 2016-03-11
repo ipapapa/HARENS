@@ -44,6 +44,7 @@ public:
 	* The hash values are pushed into &chunkHashQ whenever it's computed,
 	* both hash values and chunks are also stored in the result vector
 	* and another thread would process the hash values simultaneously
+	* MIND: caller is responsible in releasing the new chunk in result but not hash value
 	*/
 	void ChunkHashingAsync(unsigned int* indices, 
 						   int indicesNum, 

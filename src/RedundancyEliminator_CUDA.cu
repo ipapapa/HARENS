@@ -213,6 +213,7 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 * The hash values are pushed into &chunkHashQ whenever it's computed,
 * both hash values and chunks are also stored in the result vector
 * and another thread would process the hash values simultaneously
+* MIND: caller is responsible in releasing the new chunk in result but not hash value
 */
 void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, 
 												  int indicesNum, 
@@ -234,11 +235,20 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 		//if chunk is too small, combine it with the next chunk
 		if (chunkLen < MIN_CHUNK_LEN)
 			continue;
-
 		chunk = &(package[prevIdx]);
 		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		chunkHashQ.Push(chunkHash, chunkLen, (*mod));
 
+		//Make a new chunk because the old chunk would be released after chunk hashing
+		char* newChunk = new char[chunkLen];
+		memcpy(newChunk, &chunk, chunkLen);
+		//Push result into vector
+		resultMutex.lock();
+		result.push_back(make_tuple(SHA_DIGEST_LENGTH
+									chunkHash,
+									chunkLen,
+									newChunk));
+		resultMutex.unlock();
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];
 	}
