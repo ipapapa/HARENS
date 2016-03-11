@@ -28,30 +28,34 @@ private:
 	thread tChunkHashing;
 	thread *chunk_match_threads;
 	// request queue: sync between HandleGetRequest and ReadData
-	// consists of request, response, condition variable
+	// consists of request, response, mutex, condition variable
 	std::queue< std::tuple<std::string, 
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   mutex,
 						   condition_variable> > requestQueue;
 	mutex requestQueueMutex;
 	condition_variable newRequestCond;
 	// package queue: sync between ReadData and ChunkingKernel
-	// consists of pagable buffer indices for package data, response, condition variable
+	// consists of pagable buffer indices for package data, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   mutex,
 						   condition_variable> > packageQueue;
 	mutex packageQueueMutex;
 	condition_variable newPackageCond;
 	// rabin result queue: sync between ChunkingKernel and ChunkingResultProc
-	// consists of result-host indices for rabin hash, response, condition variable
+	// consists of result-host indices for rabin hash, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   mutex,
 						   condition_variable> > rabinQueue;
 	mutex rabinQueueMutex;
 	condition_variable newRabinCond;
 	// chunk queue: sync between ChunkingResultProc and ChunkHashing
-	// consists of chunking result buffer indices used, response, condition variable
+	// consists of chunking result buffer indices used, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
+						   mutex,
 						   condition_variable> > chunkQueue;
 	mutex chunkQueueMutex;
 	condition_variable newChunksCond;
@@ -138,7 +142,9 @@ private:
 	*/
 	void ChunkSegmentHashing(int pagableBufferIdx, 
 							 int chunkingResultIdx, 
-							 int segmentNum);
+							 int segmentNum,
+							 std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
+							 mutex& resultMutex);
 
 public:
 	HarensRE(int mapperNum, int reducerNum);

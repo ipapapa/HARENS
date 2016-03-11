@@ -90,6 +90,7 @@ HarensRE::HandleGetRequest(string request)
 	unique_lock<mutex> requestQueueLock(requestQueueMutex);
 	requestQueue.push(make_tuple(ref(request), 
 								 ref(result), 
+								 ref(resultMutex),
 								 ref(resultCond)));
 	requestQueueLock.unlock();
 	newRequestCond.notify_all();
@@ -184,7 +185,8 @@ HarensRE::ReadData()
 		requestQueue.pop();
 		string& request = get<0>(reqResCond);
 		auto& result = get<1>(reqResCond);
-		condition_variable& resultCond = get<2>(reqResCond);
+		mutex& resultMutex = get<2>(reqResCond);
+		condition_variable& resultCond = get<3>(reqResCond);
 
 		// set a vector containing all the indices of pagable buffers used to store this data
 		vector<int> pagableBuffersUsed;
@@ -194,6 +196,10 @@ HarensRE::ReadData()
 
 		// read the first part
 		unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
+		while (pagable_buffer_obsolete[pagableBufferIdx] == false) 
+		{
+			pagable_buffer_cond[pagableBufferIdx].wait(readFileInitLock);
+		}
 		start_r = clock();
 		IO::fileReader->SetupFile(request.c_str());	
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
@@ -214,7 +220,6 @@ HarensRE::ReadData()
 			   WINDOW_SIZE - 1);
 		readFileInitLock.unlock();
 		pagableBuffersUsed.push_back(pagableBufferIdx);
-		pagable_buffer_cond[pagableBufferIdx].notify_one();
 		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 		end_r = clock();
 		time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
@@ -231,11 +236,10 @@ HarensRE::ReadData()
 
 			IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 
-			// read nothing
+			// read the end of file
 			if (charArrayBuffer.GetLen() == 0) 
 			{
 				readFileIterLock.unlock();
-				pagable_buffer_cond[pagableBufferIdx].notify_all();
 				break;	
 			}
 			++count;
@@ -256,7 +260,6 @@ HarensRE::ReadData()
 				   WINDOW_SIZE - 1);	
 			readFileIterLock.unlock();
 			pagableBuffersUsed.push_back(pagableBufferIdx);
-			pagable_buffer_cond[pagableBufferIdx].notify_one();
 			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 			end_r = clock();
 			time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
@@ -268,6 +271,7 @@ HarensRE::ReadData()
 		// would be destroyed by the end of processing this request
 		packageQueue.push(make_tuple(pagableBuffersUsed,
 									 ref(result),
+								 	 ref(resultMutex),
 									 ref(resultCond)));
 		packageQueueLock.unlock();
 		newPackageCond.notify_all();
@@ -304,7 +308,8 @@ HarensRE::ChunkingKernel()
 		packageQueue.pop();
 		vector<int> pagableBuffersUsed = get<0>(pkgResCond);
 		auto& result = get<1>(pkgResCond);
-		condition_variable& resultCond = get<2>(pkgResCond);
+		mutex& resultMutex = get<2>(pkgResCond);
+		condition_variable& resultCond = get<3>(pkgResCond);
 
 		// set a vector containing all the indices of result-host used to store the results
 		vector<int> resultHostUsed;
@@ -340,7 +345,6 @@ HarensRE::ChunkingKernel()
 			result_host_executing[fixedBufferIdx] = true;
 			resultHostLock.unlock();
 			resultHostUsed.push_back(fixedBufferIdx);
-			result_host_cond[fixedBufferIdx].notify_one();
 			fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
 			streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
 			end_ck = clock();
@@ -353,6 +357,7 @@ HarensRE::ChunkingKernel()
 		// would be destroyed by the end of processing this package
 		rabinQueue.push(make_tuple(resultHostUsed,
 								   ref(result),
+								   ref(resultMutex),
 								   ref(resultCond)));
 		rabinQueueLock.unlock();
 		newRabinCond.notify_all();
@@ -388,7 +393,8 @@ HarensRE::ChunkingResultProc()
 		rabinQueue.pop();
 		vector<int> resultHostUsed = get<0>(rabinResCond);
 		auto& result = get<1>(rabinResCond);
-		condition_variable& resultCond = get<2>(rabinResCond);
+		mutex& resultMutex = get<2>(rabinResCond);
+		condition_variable& resultCond = get<3>(rabinResCond);
 
 		// set a vector containing all the indices of chunking result buffers used
 		vector<int> chunkingResultBufferUsed;
@@ -422,12 +428,12 @@ HarensRE::ChunkingResultProc()
 
 			chunking_result_len[streamIdx] = chunkingResultIdx;
 
+			unique_lock<mutex> resultHostLock(result_host_mutex[*resultHostIdx]);
 			result_host_executing[*resultHostIdx] = false;
-			chunking_result_obsolete[streamIdx] = false;
 			resultHostLock.unlock();
 			result_host_cond[*resultHostIdx].notify_one();
+			chunking_result_obsolete[streamIdx] = false;
 			chunkingResultLock.unlock();
-			chunking_result_cond[streamIdx].notify_one();
 
 			chunkingResultBufferUsed.push_back(streamIdx);
 			streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
@@ -441,6 +447,7 @@ HarensRE::ChunkingResultProc()
 		// would be destroyed by the end of processing this package chunking
 		chunkQueue.push(make_tuple(chunkingResultBufferUsed,
 								   ref(result),
+								   ref(resultMutex),
 								   ref(resultCond)));
 		chunkQueueLock.unlock();
 		newChunksCond.notify_all();
@@ -476,46 +483,22 @@ HarensRE::ChunkHashing()
 		chunkQueue.pop();
 		vector<int> chunkingResultBufferUsed = get<0>(chunksResCond);
 		auto& result = get<1>(chunksResCond);
-		condition_variable& resultCond = get<2>(chunksResCond);
+		mutex& resultMutex = get<2>(chunksResCond);
+		condition_variable& resultCond = get<3>(chunksResCond);
 
 		for(vector<int>::iterator chunkingResultIdx = chunkingResultBufferUsed.begin();
 			chunkingResultIdx != chunkingResultBufferUsed.end();
 			++chunkingResultIdx)
 		{
-			//Get pagable buffer ready
-			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-			while (pagable_buffer_obsolete[pagableBufferIdx] == true) 
-			{
-				unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-				if (chunking_proc_end) 
-				{
-					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
-					chunk_hashing_end = true;
-					return;
-				}
-				chukingProcEndLock.unlock();
-				pagable_buffer_cond[pagableBufferIdx].wait(pagableLock);
-			}
-			//Get the chunking result ready
-			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[*chunkingResultIdx]);
-			while (chunking_result_obsolete[*chunkingResultIdx] == true) 
-			{
-				unique_lock<mutex> chukingProcEndLock(chunking_proc_end_mutex);
-				if (chunking_proc_end) 
-				{
-					unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
-					chunk_hashing_end = true;
-					return;
-				}
-				chukingProcEndLock.unlock();
-				chunking_result_cond[*chunkingResultIdx].wait(chunkingResultLock);
-			}
+			// chunking result is ready since this thread has received the result
+
+			// pagable buffer is ready because it's never released
 
 			start_ch = clock();
 			for (int i = 0; i < mapperNum; ++i) 
 			{
 				segment_threads[i] = thread(std::mem_fn(&Harens::ChunkSegmentHashing)
-					, this, pagableBufferIdx, *chunkingResultIdx, i);
+					, this, pagableBufferIdx, *chunkingResultIdx, i, result, resultMutex);
 			}
 
 			for (int i = 0; i < mapperNum; ++i) 
@@ -523,10 +506,12 @@ HarensRE::ChunkHashing()
 				segment_threads[i].join();
 			}
 
+			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
 			pagable_buffer_obsolete[pagableBufferIdx] = true;
-			chunking_result_obsolete[*chunkingResultIdx] = true;
 			pagableLock.unlock();
 			pagable_buffer_cond[pagableBufferIdx].notify_one();
+			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[*chunkingResultIdx]);
+			chunking_result_obsolete[*chunkingResultIdx] = true;
 			chunkingResultLock.unlock();
 			chunking_result_cond[*chunkingResultIdx].notify_one();
 
@@ -540,7 +525,11 @@ HarensRE::ChunkHashing()
 }
 
 void 
-HarensRE::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int segmentNum) 
+HarensRE::ChunkSegmentHashing(int pagableBufferIdx, 
+							  int chunkingResultIdx, 
+							  int segmentNum,
+							  vector< tuple<int, unsigned char*, int, char*> >* result,
+							  mutex& resultMutex) 
 {
 	int listSize = chunking_result_len[chunkingResultIdx];
 	unsigned int* chunkingResultSeg = &chunking_result[chunkingResultIdx]
@@ -553,7 +542,9 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx, int chunkingResultIdx, int s
 	re.ChunkHashingAsync(chunkingResultSeg, 
 						 segLen, 
 						 pagable_buffer[pagableBufferIdx],
-						 chunk_hash_queue_pool);
+						 chunk_hash_queue_pool
+						 result,
+						 resultMutex);
 }
 
 void 

@@ -38,6 +38,19 @@ public:
 						   int indicesNum, 
 						   char* package,
 						   CircularQueuePool &chunkHashQ);
+
+	/*
+	* Compute the hash value of each chunk.
+	* The hash values are pushed into &chunkHashQ whenever it's computed,
+	* both hash values and chunks are also stored in the result vector
+	* and another thread would process the hash values simultaneously
+	*/
+	void ChunkHashingAsync(unsigned int* indices, 
+						   int indicesNum, 
+						   char* package,
+						   CircularQueuePool &chunkHashQ,
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
+						   mutex& resultMutex);
 	
 	/*
 	* Compute hash value for each chunk and find out the duplicate chunks.

@@ -209,6 +209,43 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 }
 
 /*
+* Compute the hash value of each chunk.
+* The hash values are pushed into &chunkHashQ whenever it's computed,
+* both hash values and chunks are also stored in the result vector
+* and another thread would process the hash values simultaneously
+*/
+void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, 
+												  int indicesNum, 
+												  char* package,
+												  CircularQueuePool &chunkHashQ,
+												  std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
+												  mutex& resultMutex) 
+{
+	unsigned int prevIdx = 0;
+	char* chunk;
+	unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+	unsigned int chunkLen;
+	for (int i = 0; i < indicesNum; ++i) {
+		if (prevIdx == 0) {
+			prevIdx = indices[i];
+			continue;
+		}
+		chunkLen = indices[i] - prevIdx;
+		//if chunk is too small, combine it with the next chunk
+		if (chunkLen < MIN_CHUNK_LEN)
+			continue;
+
+		chunk = &(package[prevIdx]);
+		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
+		chunkHashQ.Push(chunkHash, chunkLen, (*mod));
+
+		//Mind! never use sizeof(chunk) to check the chunk size
+		prevIdx = indices[i];
+	}
+	//cout << "end\n";
+}
+
+/*
 * Compute hash value for each chunk and find out the duplicate chunks.
 * Take a queue as input
 */
