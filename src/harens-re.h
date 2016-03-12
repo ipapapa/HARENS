@@ -29,39 +29,44 @@ private:
 	thread *chunk_match_threads;
 	// request queue: sync between HandleGetRequest and ReadData
 	// consists of request, response, mutex, condition variable
-	std::queue< std::tuple<std::string, 
-						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
-						   mutex,
-						   condition_variable> > requestQueue;
+	std::queue< std::tuple<std::string&, 
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   mutex&,
+						   condition_variable&> > requestQueue;
 	mutex requestQueueMutex;
 	condition_variable newRequestCond;
 	// package queue: sync between ReadData and ChunkingKernel
 	// consists of pagable buffer indices for package data, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
-						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
-						   mutex,
-						   condition_variable> > packageQueue;
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   mutex&,
+						   condition_variable&> > packageQueue;
 	mutex packageQueueMutex;
 	condition_variable newPackageCond;
 	// rabin result queue: sync between ChunkingKernel and ChunkingResultProc
 	// consists of result-host indices for rabin hash, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
-						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
-						   mutex,
-						   condition_variable> > rabinQueue;
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   mutex&,
+						   condition_variable&> > rabinQueue;
 	mutex rabinQueueMutex;
 	condition_variable newRabinCond;
 	// chunk queue: sync between ChunkingResultProc and ChunkHashing
 	// consists of chunking result buffer indices used, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
-						   std::vector< std::tuple<int, unsigned char*, int, char*> >*,
-						   mutex,
-						   condition_variable> > chunkQueue;
+						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   mutex&,
+						   condition_variable&> > chunkQueue;
 	mutex chunkQueueMutex;
 	condition_variable newChunksCond;
-
+	// hash queue: sync between ChunkHashing and ChunkMatch
+	// consists of response and condition variable
+	std::queue< std::tuple<std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   condition_variable&> > hashQueue;
+	mutex hashQueueMutex;
+	condition_variable newHashCond;
 	// pagable buffer
-	array<char* PAGABLE_BUFFER_NUM> pagable_buffer;
+	array<char*, PAGABLE_BUFFER_NUM> pagable_buffer;
 	array<unsigned int, PAGABLE_BUFFER_NUM> pagable_buffer_len;
 	array<mutex, PAGABLE_BUFFER_NUM> pagable_buffer_mutex;
 	array<condition_variable, PAGABLE_BUFFER_NUM> pagable_buffer_cond;
@@ -87,11 +92,11 @@ private:
 	array<bool, RESULT_BUFFER_NUM> chunking_result_obsolete;
 	// chunk hashing
 	thread *segment_threads;
-	CircularQueuePool chunk_hash_queue_pool;
 	// chunk matching 
 	LRUStrHash<SHA_DIGEST_LENGTH> *circ_hash_pool;
 	unsigned long long *duplication_size;
 	unsigned long long total_duplication_size = 0;
+	unsigned long long totalFileLen = 0;
 	// time
 	clock_t start_r, 
 			end_r, 

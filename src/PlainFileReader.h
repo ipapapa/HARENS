@@ -25,6 +25,12 @@ public:
 	~PlainFileReader();
 
 	/*
+	* Set up the reader for a single file, and set up the first file
+	* Make sure the filename is not empty.
+	*/
+	void SetupReader(char* filename) override;
+
+	/*
 	* Set up the reader for a file List, and set up the first file
 	* Make sure the filenameList is not empty.
 	*/

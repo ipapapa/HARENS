@@ -25,6 +25,18 @@ PlainFileReader::~PlainFileReader() {
 }
 
 /*
+* Set up the reader for a single file, and set up the first file
+* Make sure the filename is not empty.
+*/
+void PlainFileReader::SetupReader(char* filename) {
+	filenameList = std::vector<char*>();
+	filenameList.push_back(filename);
+	fileNum = 1;
+	fileIdx = 0;
+	SetupFile(filenameList[fileIdx]);
+}
+
+/*
 * Set up the reader for a file List, and set up the first file
 * Make sure the filenameList is not empty.
 */

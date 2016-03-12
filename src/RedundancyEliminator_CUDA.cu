@@ -210,7 +210,6 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 
 /*
 * Compute the hash value of each chunk.
-* The hash values are pushed into &chunkHashQ whenever it's computed,
 * both hash values and chunks are also stored in the result vector
 * and another thread would process the hash values simultaneously
 * MIND: caller is responsible in releasing the new chunk in result but not hash value
@@ -218,7 +217,6 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices, 
 												  int indicesNum, 
 												  char* package,
-												  CircularQueuePool &chunkHashQ,
 												  std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
 												  mutex& resultMutex) 
 {
@@ -237,17 +235,16 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 			continue;
 		chunk = &(package[prevIdx]);
 		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
-		chunkHashQ.Push(chunkHash, chunkLen, (*mod));
 
 		//Make a new chunk because the old chunk would be released after chunk hashing
 		char* newChunk = new char[chunkLen];
 		memcpy(newChunk, &chunk, chunkLen);
 		//Push result into vector
 		resultMutex.lock();
-		result.push_back(make_tuple(SHA_DIGEST_LENGTH
-									chunkHash,
-									chunkLen,
-									newChunk));
+		result->push_back(make_tuple(SHA_DIGEST_LENGTH,
+									 chunkHash,
+									 chunkLen,
+									 newChunk));
 		resultMutex.unlock();
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];

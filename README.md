@@ -74,6 +74,9 @@ User Guide
     - ```make install```
     - ```make all```
   - You would find "run", the executable, in current path
+  - Possible problems
+    - The ```make install``` command does not always work, try it again if it fails
+    - Use ```echo $LD_LIBRARY_PATH``` to check if ```/usr/local/cuda-7.5/lib64``` is in path. Run ```export LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$LD_LIBRARY_PATH``` if not.
 
 ###Usage
 Refer to the guide by typing:

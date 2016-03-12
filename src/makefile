@@ -11,6 +11,7 @@ build = -std=c++11 -O2 -I/usr/local/cuda-7.5/include -I/usr/include
 lflags = -L/usr/local/cuda-7.5/lib64
 lflags += -lcudart -lpcap -lcrypto
 objects := $(patsubst %.cpp,%.o,$(wildcard *.cpp)) $(patsubst %.cu,%.o,$(wildcard *.cu))
+libobjects := $(objects) harens-re.o
 
 .PHONY: intall
 install:
@@ -40,7 +41,7 @@ install:
 all: run
 
 .PHONY: lib
-lib: $(objects)
+lib: $(libobjects)
 	ar rcs libharens.a NaiveCpp.o CppPipeline.o CudaAcceleratedAlg.o Harens.o HashCollisionTest.o \
 	RedundancyEliminator_CPP_CollisionTest.o RedundancyEliminator_CPP.o RedundancyEliminator_CUDA.o \
 	RabinHash.o IO.o PcapReader.o PlainFileReader.o FixedSizedCharArray.o harens-re.o && \
@@ -59,7 +60,7 @@ run: $(objects)
 #Then the command to create the .out file, probably you want to add further options to the g++ call.
 #%.o: %.cpp %.h
 
-harens-re.o: harens-re.cpp IO.o RabinHash.o PcapReader.o RedundancyEliminator_CUDA.o
+harens-re.o: harens-re.cc IO.o RabinHash.o PcapReader.o RedundancyEliminator_CUDA.o
 	$(CXX) $(cflags) $(iflags) $(lflags) $< -o $@
 
 CppPipeline.o: CppPipeline.cpp IO.o RabinHash.o RedundancyEliminator_CPP.o PcapReader.o

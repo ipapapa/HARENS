@@ -2,7 +2,6 @@
 using namespace std;
 
 HarensRE::HarensRE(int mapperNum, int reducerNum) 
-	: charArrayBuffer(MAX_BUFFER_LEN), chunk_hash_queue_pool(reducerNum) 
 {
 	this->mapperNum = mapperNum;
 	this->reducerNum = reducerNum;
@@ -96,7 +95,7 @@ HarensRE::HandleGetRequest(string request)
 	newRequestCond.notify_all();
 	// wait for result notification
 	unique_lock<mutex> resultLock(resultMutex);
-	resultCond.wait(resultLock, []{return result->size() > 0;});
+	resultCond.wait(resultLock, [result]{return result->size() > 0;});
 
 	return result;
 }
@@ -138,13 +137,12 @@ void HarensRE::End()
 	IO::Print("Chunking processing time: %f ms\n", time_cp);
 	IO::Print("Map (Chunk hashing) time: %f ms\n", time_ch);
 	IO::Print("Reduce (Chunk matching) time %f ms\n", time_cm);
-	IO::Print("Total time: %f ms\n", time_tot);
 	for (int i = 0; i < reducerNum; ++i)
 		total_duplication_size += duplication_size[i];
 	IO::Print("Found %s of redundency, "
 		, IO::InterpretSize(total_duplication_size));
 	IO::Print("which is %f %% of file\n"
-		, (float)total_duplication_size / file_length * 100);
+		, (float)total_duplication_size / totalFileLen * 100);
 }
 
 //TODO: start here
@@ -156,8 +154,7 @@ HarensRE::ReadData()
 {
 	// variables available in the whole scope
 	int count = 0;
-	unsigned long long fileLength = 0;
-	FixedSizeCharArray charArrayBuffer;
+	FixedSizedCharArray charArrayBuffer(MAX_BUFFER_LEN);
 	int pagableBufferIdx = 0;
 
 	// this function would only end when it received termination signals
@@ -172,7 +169,7 @@ HarensRE::ReadData()
 			unique_lock<mutex> terminateSigLock(terminateSigMutex);
 			if (terminateSig)
 			{
-				IO::Print("Total file size: %s\n", IO::InterpretSize(fileLength));
+				IO::Print("Total file size: %s\n", IO::InterpretSize(totalFileLen));
 				IO::Print("Need %d pagable buffers\n", count);
 				return;
 			}
@@ -201,16 +198,15 @@ HarensRE::ReadData()
 			pagable_buffer_cond[pagableBufferIdx].wait(readFileInitLock);
 		}
 		start_r = clock();
-		IO::fileReader->SetupFile(request.c_str());	
+		IO::fileReader->SetupReader(strdup(request.c_str()));	
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
-
 
 		++count;
 		memcpy(pagable_buffer[pagableBufferIdx], 
 			   charArrayBuffer.GetArr(), 
 			   pagable_buffer_len[pagableBufferIdx]);
 		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
-		file_length += pagable_buffer_len[pagableBufferIdx];
+		totalFileLen += pagable_buffer_len[pagableBufferIdx];
 		pagable_buffer_obsolete[pagableBufferIdx] = false;
 
 		// copy the last window into overlap
@@ -251,7 +247,7 @@ HarensRE::ReadData()
 				   charArrayBuffer.GetArr(), 
 				   charArrayBuffer.GetLen());
 			pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-			file_length += charArrayBuffer.GetLen();
+			totalFileLen += charArrayBuffer.GetLen();
 			pagable_buffer_obsolete[pagableBufferIdx] = false;
 
 			// copy the last window into overlap
@@ -497,8 +493,8 @@ HarensRE::ChunkHashing()
 			start_ch = clock();
 			for (int i = 0; i < mapperNum; ++i) 
 			{
-				segment_threads[i] = thread(std::mem_fn(&Harens::ChunkSegmentHashing)
-					, this, pagableBufferIdx, *chunkingResultIdx, i, result, resultMutex);
+				segment_threads[i] = thread(std::mem_fn(&HarensRE::ChunkSegmentHashing)
+					, this, pagableBufferIdx, *chunkingResultIdx, i, result, ref(resultMutex));
 			}
 
 			for (int i = 0; i < mapperNum; ++i) 
@@ -542,7 +538,6 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx,
 	re.ChunkHashingAsync(chunkingResultSeg, 
 						 segLen, 
 						 pagable_buffer[pagableBufferIdx],
-						 chunk_hash_queue_pool
 						 result,
 						 resultMutex);
 }
@@ -550,35 +545,67 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx,
 void 
 HarensRE::ChunkMatch(int hashPoolIdx) 
 {
+	// variables available in the whole scope
 	unsigned char* toBeDel = nullptr;
+
+	// this function would only end when it received termination signals 
 	while (true) 
 	{
-		if (chunk_hash_queue_pool.IsEmpty(hashPoolIdx)) 
+		// if hash queue is empty, check for termination signal
+		// terminate chunk match processing if termination signal is received
+		// otherwise, wait for new hash coming
+		unique_lock<mutex> hashQueueLock(hashQueueMutex);
+		while (hashQueue.empty())
 		{
-			unique_lock<mutex> chunkHashingEndLock(chunk_hashing_end_mutex);
-			if (chunk_hashing_end) 
+			unique_lock<mutex> terminateSigLock(terminateSigMutex);
+			if (terminateSig)
 			{
 				return;
 			}
-			else 
-			{
-				chunkHashingEndLock.unlock();
-				this_thread::sleep_for(std::chrono::milliseconds(500));
-				continue;
-			}
+			terminateSigLock.unlock();
+			newHashCond.wait(hashQueueLock);
 		}
+
+		// get the (SHA1) hash values of chunks that came first
+		auto& resCond = hashQueue.front();
+		hashQueue.pop();
+		auto& result = get<0>(resCond);
+		condition_variable& resultCond = get<1>(resCond);
 			
 		start_cm = clock();
 
-		tuple<unsigned char*, unsigned int> valLenPair = chunk_hash_queue_pool.Pop(hashPoolIdx);
-		if (circ_hash_pool[hashPoolIdx].FindAndAdd(get<0>(valLenPair), toBeDel))
-			duplication_size[hashPoolIdx] += get<1>(valLenPair);
-		if (toBeDel != nullptr) 
+		for(auto resultIter = result->begin();
+			resultIter != result->end();
+			++resultIter)
 		{
-			//Remove chunk corresponding to toBeDel from storage
+			// get the values 
+			int hashLen = get<0>(*resultIter); 
+			unsigned char* hashVal = get<1>(*resultIter);
+			int chunkLen = get<2>(*resultIter);
+			char* chunkVal = get<3>(*resultIter);
+
+			// find out the index of circ_hash_pool to handle this hash value
+			unsigned int hashPoolIdx;
+			memcpy(&hashPoolIdx, hashVal, sizeof(unsigned int));
+			hashPoolIdx %= reducerNum;
+
+			// find out duplications
+			if (circ_hash_pool[hashPoolIdx].FindAndAdd(hashVal, toBeDel))
+			{
+				duplication_size[hashPoolIdx] += chunkLen;
+				get<2>(*resultIter) = 0;
+				delete[] chunkVal;
+				get<3>(*resultIter) = NULL;
+				if (toBeDel != nullptr) 
+				{	
+					// remove chunk corresponding to toBeDel from storage
+				}
+			}
 		}
 
 		end_cm = clock();
 		time_cm += (end_cm - start_cm) * 1000 / CLOCKS_PER_SEC;
+		hashQueueLock.unlock();
+		resultCond.notify_one();
 	}
 }

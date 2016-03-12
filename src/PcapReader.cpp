@@ -136,6 +136,19 @@ void PcapReader::SetupFile(char* filename) {
 
 /*
 * Open pcap file and set a handle.
+* Make sure the filename is not empty.
+*/
+void PcapReader::SetupReader(char* filename) {
+	filenameList = std::vector<char*>();
+	filenameList.push_back(filename);
+	fileNum = 1;
+	fileIdx = 0;
+	//open the first pcap file 
+	SetupFile(filenameList[fileIdx]);
+}
+
+/*
+* Open pcap file and set a handle.
 * Make sure the filenameList is not empty.
 */
 void PcapReader::SetupReader(std::vector<char*> _filenameList) {

@@ -15,6 +15,7 @@
 #include <mutex>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#include <queue>
 #include <set>
 #include <sstream>
 #include <stdlib.h>

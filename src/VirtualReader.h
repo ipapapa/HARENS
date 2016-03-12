@@ -18,7 +18,12 @@ protected:
 
 public:
 	/*
-	* Set up the reader for a file List, and set up the first file
+	* Set up the reader for a single file, and set up the first file
+	*/
+	virtual void SetupReader(char* filename) = 0;
+
+	/*
+	* Set up the reader for a file list, and set up the first file
 	*/
 	virtual void SetupReader(std::vector<char*> filenameList) = 0;
 
