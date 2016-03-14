@@ -24,18 +24,18 @@ int	NaiveCpp::Execute()
 		Chunking();
 		Fingerprinting();
 		end = clock();
-		tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
+		timeTotal += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 	} while (keepReading);
 
 	IO::Print("Found %s of redundency, "
-		, IO::InterpretSize(total_duplication_size));
+		, IO::InterpretSize(totalDuplicationSize));
 	IO::Print("which is %f %% of file\n"
-		, (float)total_duplication_size / file_length * 100);
+		, (float)totalDuplicationSize / totalFileLen * 100);
 
-	IO::Print("Reading time: %f ms\n", tot_read);
-	IO::Print("Chunking time: %f ms\n", tot_chunk);
-	IO::Print("Fingerprinting time: %f ms\n", tot_fin);
-	IO::Print("Total time: %f ms\n", tot_time);
+	IO::Print("Reading time: %f ms\n", timeReading);
+	IO::Print("Chunking time: %f ms\n", timeChunkPartitioning);
+	IO::Print("Fingerprinting time: %f ms\n", timeChunkHashingAndMatching);
+	IO::Print("Total time: %f ms\n", timeTotal);
 	IO::Print("=============================================================================\n");
 
 	return 0;
@@ -51,11 +51,11 @@ void NaiveCpp::Test(double &rate, double &time) {
 		Chunking();
 		Fingerprinting();
 		end = clock();
-		tot_time += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
+		timeTotal += ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 	} while (keepReading);
 
-	rate = (float)total_duplication_size / file_length * 100;
-	time = tot_time;
+	rate = (float)totalDuplicationSize / totalFileLen * 100;
+	time = timeTotal;
 }
 
 bool NaiveCpp::ReadFile() {
@@ -63,50 +63,50 @@ bool NaiveCpp::ReadFile() {
 	//Read the first part
 	if (readFirstTime) {
 		readFirstTime = false;
-		start_read = clock();
+		startReading = clock();
 
 		IO::fileReader->SetupReader(IO::input_file_name);
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
-		buffer_len = charArrayBuffer.GetLen();
-		memcpy(buffer, charArrayBuffer.GetArr(), buffer_len);
-		file_length += buffer_len;
-		if (buffer_len != MAX_BUFFER_LEN)
-			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-		return buffer_len == MAX_BUFFER_LEN;
+		bufferLen = charArrayBuffer.GetLen();
+		memcpy(buffer, charArrayBuffer.GetArr(), bufferLen);
+		totalFileLen += bufferLen;
+		if (bufferLen != MAX_BUFFER_LEN)
+			IO::Print("File size: %s\n", IO::InterpretSize(totalFileLen));
+		return bufferLen == MAX_BUFFER_LEN;
 
 		//copy the last window into overlap
-		memcpy(overlap, &buffer[buffer_len - WINDOW_SIZE + 1], WINDOW_SIZE - 1);
-		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+		memcpy(overlap, &buffer[bufferLen - WINDOW_SIZE + 1], WINDOW_SIZE - 1);
+		timeReading += ((float)clock() - startReading) * 1000 / CLOCKS_PER_SEC;
 	}
 	else { //Read the rest
-		start_read = clock();
+		startReading = clock();
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 		memcpy(buffer, overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
 		memcpy(&buffer[WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
-		buffer_len = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-		file_length += charArrayBuffer.GetLen();
+		bufferLen = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		totalFileLen += charArrayBuffer.GetLen();
 		//copy the last window into overlap
 		memcpy(overlap, &buffer[charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	
-		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
-		if (buffer_len != MAX_BUFFER_LEN)
-			IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-		return buffer_len == MAX_BUFFER_LEN;
+		timeReading += ((float)clock() - startReading) * 1000 / CLOCKS_PER_SEC;
+		if (bufferLen != MAX_BUFFER_LEN)
+			IO::Print("File size: %s\n", IO::InterpretSize(totalFileLen));
+		return bufferLen == MAX_BUFFER_LEN;
 	}
 }
 
 void NaiveCpp::Chunking() {
-	start_chunk = clock();
-	deque<unsigned int> currentChunkingResult = re.chunking(buffer, buffer_len);
-	tot_chunk += ((float)clock() - start_chunk) * 1000 / CLOCKS_PER_SEC;
+	startChunkPartitioning = clock();
+	deque<unsigned int> currentChunkingResult = re.chunking(buffer, bufferLen);
+	timeChunkPartitioning += ((float)clock() - startChunkPartitioning) * 1000 / CLOCKS_PER_SEC;
 
-	chunking_result = currentChunkingResult;
+	chunkingResultBuffer = currentChunkingResult;
 }
 
 void NaiveCpp::Fingerprinting() {
 	/*When the whole process starts, all chunking results are obsolete, 
 	* that's the reason fingerprinting part need to check buffer state*/
-	start_fin = clock();
+	startChunkHashingAndMatching = clock();
 
-	total_duplication_size += re.fingerPrinting(chunking_result, buffer);
-	tot_fin += ((float)clock() - start_fin) * 1000 / CLOCKS_PER_SEC;
+	totalDuplicationSize += re.fingerPrinting(chunkingResultBuffer, buffer);
+	timeChunkHashingAndMatching += ((float)clock() - startChunkHashingAndMatching) * 1000 / CLOCKS_PER_SEC;
 }

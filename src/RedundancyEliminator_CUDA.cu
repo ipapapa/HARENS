@@ -246,9 +246,9 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 									 chunkHash,
 									 chunkLen,
 									 newChunk));
-		resultLenInUint8 += sizeof(unsigned int) * 2	// SHA1_HASH_LENGTH and chunkLen
-						  + SHA1_HASH_LENGTH			// chunkHash
-						  + chunkLen;					// newChunk
+		resultLenInUint8 += sizeof(int) * 2		// SHA1_HASH_LENGTH and chunkLen
+						  + SHA1_HASH_LENGTH	// chunkHash
+						  + chunkLen;			// newChunk
 		resultMutex.unlock();
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];

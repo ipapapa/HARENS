@@ -5,78 +5,78 @@ HarensRE::HarensRE(int mapperNum, int reducerNum)
 {
 	this->mapperNum = mapperNum;
 	this->reducerNum = reducerNum;
-	segment_threads = new thread[mapperNum];
-	chunk_match_threads = new thread[reducerNum];
+	segmentThreads = new thread[mapperNum];
+	tChunkMatch = new thread[reducerNum];
 	circHashPool = new LRUStrHash<SHA1_HASH_LENGTH>[reducerNum];
 	circHashPoolMutex = new mutex[reducerNum];
-	duplication_size = new unsigned long long[reducerNum];
+	duplicationSize = new unsigned long long[reducerNum];
 	for (int i = 0; i < reducerNum; ++i) 
 	{
 		circHashPool[i] = LRUStrHash<SHA1_HASH_LENGTH>(MAX_CHUNK_NUM / reducerNum);
-		duplication_size[i] = 0;
+		duplicationSize[i] = 0;
 	}
 
 	re.SetupRedundancyEliminator_CUDA(RedundancyEliminator_CUDA::NonMultifingerprint);
 	// initialize pagable buffer
 	for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) 
 	{
-		pagable_buffer[i] = new char[MAX_BUFFER_LEN];
-		pagable_buffer_obsolete[i] = true;
+		pagableBuffer[i] = new char[MAX_BUFFER_LEN];
+		pagableBufferObsolete[i] = true;
 	}
 	// initialize fixed buffer
 	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
 	{
-		cudaMallocHost((void**)&fixed_buffer[i], MAX_BUFFER_LEN);
+		cudaMallocHost((void**)&fixedBuffer[i], MAX_BUFFER_LEN);
 		// fixed_buffer_obsolete[i] = true;
 	}
 	// initialize chunking kernel ascychronize
 	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
 	{
-		cudaMalloc((void**)&input_kernel[i], MAX_BUFFER_LEN);
-		cudaMalloc((void**)&result_kernel[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
-		cudaMallocHost((void**)&result_host[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
-		result_host_obsolete[i] = true;
-		result_host_executing[i] = false;
+		cudaMalloc((void**)&kernelInputBuffer[i], MAX_BUFFER_LEN);
+		cudaMalloc((void**)&kernelResultBuffer[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
+		cudaMallocHost((void**)&hostResultBuffer[i], MAX_WINDOW_NUM * BYTES_IN_UINT);
+		hostResultObsolete[i] = true;
+		hostResultExecuting[i] = false;
 	}
 	// initialize chunking result processing
 	for (int i = 0; i < RESULT_BUFFER_NUM; ++i) 
 	{
 		cudaStreamCreate(&stream[i]);
-		chunking_result[i] = new unsigned int[MAX_WINDOW_NUM];
-		chunking_result_obsolete[i] = true;
+		chunkingResultBuffer[i] = new unsigned int[MAX_WINDOW_NUM];
+		chunkingResultObsolete[i] = true;
 	}
 }
 
 HarensRE::~HarensRE() 
 {
-	delete[] segment_threads;
-	delete[] chunk_match_threads;
+	delete[] segmentThreads;
+	delete[] tChunkMatch;
 	delete[] circHashPool;
 	delete[] circHashPoolMutex;
-	delete[] duplication_size;
+	delete[] duplicationSize;
 
 	// destruct chunking result proc
 	for (int i = 0; i < RESULT_BUFFER_NUM; ++i) 
 	{
 		cudaStreamDestroy(stream[i]);
-		delete[] chunking_result[i];
+		delete[] chunkingResultBuffer[i];
 	}
 	// destruct chunking kernel ascychronize
 	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
 	{
-		cudaFree(input_kernel[i]);
-		cudaFree(result_kernel[i]);
-		cudaFreeHost(result_host[i]);
+		cudaFree(kernelInputBuffer[i]);
+		cudaFree(kernelResultBuffer[i]);
+		cudaFreeHost(hostResultBuffer[i]);
 	}
 	// destruct fixed buffer
 	for (int i = 0; i < FIXED_BUFFER_NUM; ++i) 
 	{
-		cudaFreeHost(fixed_buffer[i]);
+		cudaFreeHost(fixedBuffer[i]);
 	}
 	// destruct pagable buffer
 	for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) 
 	{
-		delete[] pagable_buffer[i];
+		delete[] pagableBuffer[i];
 	}
 }
 
@@ -114,11 +114,11 @@ HarensRE::Start()
 	tChunkHashing = thread(std::mem_fn(&HarensRE::ChunkHashing), this);
 	for (int i = 0; i < reducerNum; ++i)
 	{
-		chunk_match_threads[i] = thread(std::mem_fn(&HarensRE::ChunkMatch), this);
+		tChunkMatch[i] = thread(std::mem_fn(&HarensRE::ChunkMatch), this);
 	}
 }
 
-void HarensRE::End()
+void HarensRE::Stop()
 {
 	// send termination signal
 	IO::Print("seding terminaltion signial to kernel...\n");
@@ -133,19 +133,19 @@ void HarensRE::End()
 	tChunkingResultProc.join();
 	tChunkHashing.join();
 	for (int i = 0; i < reducerNum; ++i)
-		chunk_match_threads[i].join();
+		tChunkMatch[i].join();
 
 	// make conclusion
-	IO::Print("Chunking kernel time: %f ms\n", time_ck);
-	IO::Print("Chunking processing time: %f ms\n", time_cp);
-	IO::Print("Map (Chunk hashing) time: %f ms\n", time_ch);
-	IO::Print("Reduce (Chunk matching) time %f ms\n", time_cm);
+	IO::Print("Chunking kernel time: %f ms\n", timeChunkingKernel);
+	IO::Print("Chunking processing time: %f ms\n", timeChunkPartitioning);
+	IO::Print("Map (Chunk hashing) time: %f ms\n", timeChunkHashing);
+	IO::Print("Reduce (Chunk matching) time %f ms\n", timeChunkMatching);
 	for (int i = 0; i < reducerNum; ++i)
-		total_duplication_size += duplication_size[i];
+		totalDuplicationSize += duplicationSize[i];
 	IO::Print("Found %s of redundency, "
-		, IO::InterpretSize(total_duplication_size));
+		, IO::InterpretSize(totalDuplicationSize));
 	IO::Print("which is %f %% of file\n"
-		, (float)total_duplication_size / totalFileLen * 100);
+		, (float)totalDuplicationSize / totalFileLen * 100);
 }
 
 //TODO: start here
@@ -196,43 +196,43 @@ HarensRE::ReadData()
 		char overlap[WINDOW_SIZE - 1];
 
 		// read the first part
-		unique_lock<mutex> readFileInitLock(pagable_buffer_mutex[pagableBufferIdx]);
-		while (pagable_buffer_obsolete[pagableBufferIdx] == false) 
+		unique_lock<mutex> readFileInitLock(pagableBufferMutex[pagableBufferIdx]);
+		while (pagableBufferObsolete[pagableBufferIdx] == false) 
 		{
-			pagable_buffer_cond[pagableBufferIdx].wait(readFileInitLock);
+			pagableBufferCond[pagableBufferIdx].wait(readFileInitLock);
 		}
-		start_r = clock();
+		startReading = clock();
 		IO::fileReader->SetupReader(strdup(request.c_str()));	
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
 
 		++count;
-		memcpy(pagable_buffer[pagableBufferIdx], 
+		memcpy(pagableBuffer[pagableBufferIdx], 
 			   charArrayBuffer.GetArr(), 
-			   pagable_buffer_len[pagableBufferIdx]);
-		pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen();
-		totalFileLen += pagable_buffer_len[pagableBufferIdx];
-		pagable_buffer_obsolete[pagableBufferIdx] = false;
+			   pagableBufferLen[pagableBufferIdx]);
+		pagableBufferLen[pagableBufferIdx] = charArrayBuffer.GetLen();
+		totalFileLen += pagableBufferLen[pagableBufferIdx];
+		pagableBufferObsolete[pagableBufferIdx] = false;
 
 		// copy the last window into overlap
 		memcpy(overlap, 
-			   &pagable_buffer[pagableBufferIdx]
-			   				  [pagable_buffer_len[pagableBufferIdx] - WINDOW_SIZE + 1], 
+			   &pagableBuffer[pagableBufferIdx]
+			   				  [pagableBufferLen[pagableBufferIdx] - WINDOW_SIZE + 1], 
 			   WINDOW_SIZE - 1);
 		readFileInitLock.unlock();
 		pagableBuffersUsed.push_back(pagableBufferIdx);
 		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-		end_r = clock();
-		time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
+		endReading = clock();
+		timeReading += (endReading - startReading) * 1000 / CLOCKS_PER_SEC;
 		
 		// read the rest, this block only ends when reading to the end of file
 		while (true) 
 		{
-			unique_lock<mutex> readFileIterLock(pagable_buffer_mutex[pagableBufferIdx]);
-			while (pagable_buffer_obsolete[pagableBufferIdx] == false) 
+			unique_lock<mutex> readFileIterLock(pagableBufferMutex[pagableBufferIdx]);
+			while (pagableBufferObsolete[pagableBufferIdx] == false) 
 			{
-				pagable_buffer_cond[pagableBufferIdx].wait(readFileIterLock);
+				pagableBufferCond[pagableBufferIdx].wait(readFileIterLock);
 			}
-			start_r = clock();
+			startReading = clock();
 
 			IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 
@@ -244,25 +244,25 @@ HarensRE::ReadData()
 			}
 			++count;
 			// copy the overlap into current part
-			memcpy(pagable_buffer[pagableBufferIdx], 
+			memcpy(pagableBuffer[pagableBufferIdx], 
 				   overlap, 
 				   WINDOW_SIZE - 1);		
-			memcpy(&pagable_buffer[pagableBufferIdx][WINDOW_SIZE - 1], 
+			memcpy(&pagableBuffer[pagableBufferIdx][WINDOW_SIZE - 1], 
 				   charArrayBuffer.GetArr(), 
 				   charArrayBuffer.GetLen());
-			pagable_buffer_len[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+			pagableBufferLen[pagableBufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
 			totalFileLen += charArrayBuffer.GetLen();
-			pagable_buffer_obsolete[pagableBufferIdx] = false;
+			pagableBufferObsolete[pagableBufferIdx] = false;
 
 			// copy the last window into overlap
 			memcpy(overlap, 
-				   &pagable_buffer[pagableBufferIdx][charArrayBuffer.GetLen()], 
+				   &pagableBuffer[pagableBufferIdx][charArrayBuffer.GetLen()], 
 				   WINDOW_SIZE - 1);	
 			readFileIterLock.unlock();
 			pagableBuffersUsed.push_back(pagableBufferIdx);
 			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-			end_r = clock();
-			time_r += (end_r - start_r) * 1000 / CLOCKS_PER_SEC;
+			endReading = clock();
+			timeReading += (endReading - startReading) * 1000 / CLOCKS_PER_SEC;
 		}
 
 		// done reading data for this request
@@ -323,34 +323,34 @@ HarensRE::ChunkingKernel()
 			// pagable buffer is ready since this thread has received the package
 
 			// get result host ready
-			unique_lock<mutex> resultHostLock(result_host_mutex[fixedBufferIdx]);
-			while (result_host_executing[fixedBufferIdx] == true) 
+			unique_lock<mutex> resultHostLock(hostResultMutex[fixedBufferIdx]);
+			while (hostResultExecuting[fixedBufferIdx] == true) 
 			{
-				result_host_cond[fixedBufferIdx].wait(resultHostLock);
+				hostResultCond[fixedBufferIdx].wait(resultHostLock);
 			}
 
-			start_ck = clock();
-			fixed_buffer_len[fixedBufferIdx] = pagable_buffer_len[*pagableBufferIdx];
-			memcpy(fixed_buffer[fixedBufferIdx], 
-				   pagable_buffer[*pagableBufferIdx], 
-				   fixed_buffer_len[fixedBufferIdx]);
+			startChunkingKernel = clock();
+			fixedBufferLen[fixedBufferIdx] = pagableBufferLen[*pagableBufferIdx];
+			memcpy(fixedBuffer[fixedBufferIdx], 
+				   pagableBuffer[*pagableBufferIdx], 
+				   fixedBufferLen[fixedBufferIdx]);
 			//pagable buffer is still not obsolete here!
 
-			re.RabinHashAsync(input_kernel[fixedBufferIdx], 
-							  fixed_buffer[fixedBufferIdx], 
-							  fixed_buffer_len[fixedBufferIdx],
-							  result_kernel[fixedBufferIdx], 
-							  result_host[fixedBufferIdx],
+			re.RabinHashAsync(kernelInputBuffer[fixedBufferIdx], 
+							  fixedBuffer[fixedBufferIdx], 
+							  fixedBufferLen[fixedBufferIdx],
+							  kernelResultBuffer[fixedBufferIdx], 
+							  hostResultBuffer[fixedBufferIdx],
 							  stream[streamIdx]);
 
-			result_host_len[fixedBufferIdx] = fixed_buffer_len[fixedBufferIdx] - WINDOW_SIZE + 1;
-			result_host_executing[fixedBufferIdx] = true;
+			hostResultLen[fixedBufferIdx] = fixedBufferLen[fixedBufferIdx] - WINDOW_SIZE + 1;
+			hostResultExecuting[fixedBufferIdx] = true;
 			resultHostLock.unlock();
 			resultHostUsed.push_back(fixedBufferIdx);
 			fixedBufferIdx = (fixedBufferIdx + 1) % FIXED_BUFFER_NUM;
 			streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
-			end_ck = clock();
-			time_ck += (end_ck - start_ck) * 1000 / CLOCKS_PER_SEC;
+			endChunkingKernel = clock();
+			timeChunkingKernel += (endChunkingKernel - startChunkingKernel) * 1000 / CLOCKS_PER_SEC;
 		}
 
 		// done (Rabin) hashing data for this package
@@ -412,37 +412,37 @@ HarensRE::ChunkingResultProc()
 			// wait until the last stream with the same stream index is finished
 			cudaStreamSynchronize(stream[streamIdx]);
 			// get the chunking result ready
-			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[streamIdx]);
-			while (chunking_result_obsolete[streamIdx] == false) 
+			unique_lock<mutex> chunkingResultLock(chunkingResultMutex[streamIdx]);
+			while (chunkingResultObsolete[streamIdx] == false) 
 			{
-				chunking_result_cond[streamIdx].wait(chunkingResultLock);
+				chunkingResultCond[streamIdx].wait(chunkingResultLock);
 			}
 				
-			start_cp = clock();
+			startChunkPartitioning = clock();
 			
 			int chunkingResultIdx = 0;
-			unsigned int resultHostLen = result_host_len[*resultHostIdx];
+			unsigned int resultHostLen = hostResultLen[*resultHostIdx];
 			for (unsigned int j = 0; j < resultHostLen; ++j) 
 			{
-				if (result_host[*resultHostIdx][j] == 0) 
+				if (hostResultBuffer[*resultHostIdx][j] == 0) 
 				{
-					chunking_result[streamIdx][chunkingResultIdx++] = j;
+					chunkingResultBuffer[streamIdx][chunkingResultIdx++] = j;
 				}
 			}
 
-			chunking_result_len[streamIdx] = chunkingResultIdx;
+			chunkingResultLen[streamIdx] = chunkingResultIdx;
 
-			unique_lock<mutex> resultHostLock(result_host_mutex[*resultHostIdx]);
-			result_host_executing[*resultHostIdx] = false;
+			unique_lock<mutex> resultHostLock(hostResultMutex[*resultHostIdx]);
+			hostResultExecuting[*resultHostIdx] = false;
 			resultHostLock.unlock();
-			result_host_cond[*resultHostIdx].notify_one();
-			chunking_result_obsolete[streamIdx] = false;
+			hostResultCond[*resultHostIdx].notify_one();
+			chunkingResultObsolete[streamIdx] = false;
 			chunkingResultLock.unlock();
 
 			chunkingResultBufferUsed.push_back(streamIdx);
 			streamIdx = (streamIdx + 1) % RESULT_BUFFER_NUM;
-			end_cp = clock();
-			time_cp += (end_cp - start_cp) * 1000 / CLOCKS_PER_SEC;
+			endChunkPartitioning = clock();
+			timeChunkPartitioning += (endChunkPartitioning - startChunkPartitioning) * 1000 / CLOCKS_PER_SEC;
 		}
 		
 		// done chunking the package
@@ -500,10 +500,10 @@ HarensRE::ChunkHashing()
 
 			// pagable buffer is ready because it's never released
 
-			start_ch = clock();
+			startChunkHashing = clock();
 			for (int i = 0; i < mapperNum; ++i) 
 			{
-				segment_threads[i] = thread(std::mem_fn(&HarensRE::ChunkSegmentHashing), 
+				segmentThreads[i] = thread(std::mem_fn(&HarensRE::ChunkSegmentHashing), 
 											this, 
 											pagableBufferIdx, 
 											*chunkingResultIdx, 
@@ -515,21 +515,21 @@ HarensRE::ChunkHashing()
 
 			for (int i = 0; i < mapperNum; ++i) 
 			{
-				segment_threads[i].join();
+				segmentThreads[i].join();
 			}
 
-			unique_lock<mutex> pagableLock(pagable_buffer_mutex[pagableBufferIdx]);
-			pagable_buffer_obsolete[pagableBufferIdx] = true;
+			unique_lock<mutex> pagableLock(pagableBufferMutex[pagableBufferIdx]);
+			pagableBufferObsolete[pagableBufferIdx] = true;
 			pagableLock.unlock();
-			pagable_buffer_cond[pagableBufferIdx].notify_one();
-			unique_lock<mutex> chunkingResultLock(chunking_result_mutex[*chunkingResultIdx]);
-			chunking_result_obsolete[*chunkingResultIdx] = true;
+			pagableBufferCond[pagableBufferIdx].notify_one();
+			unique_lock<mutex> chunkingResultLock(chunkingResultMutex[*chunkingResultIdx]);
+			chunkingResultObsolete[*chunkingResultIdx] = true;
 			chunkingResultLock.unlock();
-			chunking_result_cond[*chunkingResultIdx].notify_one();
+			chunkingResultCond[*chunkingResultIdx].notify_one();
 
 			pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
-			end_ch = clock();
-			time_ch += (end_ch - start_ch) * 1000 / CLOCKS_PER_SEC;
+			endChunkHashing = clock();
+			timeChunkHashing += (endChunkHashing - startChunkHashing) * 1000 / CLOCKS_PER_SEC;
 		}
 		
 		// done computing hash values for the chunks
@@ -550,8 +550,8 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx,
 							  int& resultLenInUint8,
 							  mutex& resultMutex) 
 {
-	int listSize = chunking_result_len[chunkingResultIdx];
-	unsigned int* chunkingResultSeg = &chunking_result[chunkingResultIdx]
+	int listSize = chunkingResultLen[chunkingResultIdx];
+	unsigned int* chunkingResultSeg = &chunkingResultBuffer[chunkingResultIdx]
 													  [segmentNum * listSize / mapperNum];
 	int segLen = listSize / mapperNum;
 	if ((segmentNum + 1) * listSize / mapperNum > listSize)
@@ -560,7 +560,7 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx,
 	}
 	re.ChunkHashingAsync(chunkingResultSeg, 
 						 segLen, 
-						 pagable_buffer[pagableBufferIdx],
+						 pagableBuffer[pagableBufferIdx],
 						 result,
 						 resultLenInUint8,
 						 resultMutex);
@@ -597,7 +597,7 @@ HarensRE::ChunkMatch()
 		int& resultLenInUint8 = get<1>(resCond);
 		condition_variable& resultCond = get<2>(resCond);
 			
-		start_cm = clock();
+		startChunkMatching = clock();
 
 		for(auto resultIter = result->begin();
 			resultIter != result->end();
@@ -621,7 +621,7 @@ HarensRE::ChunkMatch()
 			circHashPoolMutex[hashPoolIdx].unlock();
 			if (found)
 			{
-				duplication_size[hashPoolIdx] += chunkLen;
+				duplicationSize[hashPoolIdx] += chunkLen;
 				resultLenInUint8 -= chunkLen;
 				get<2>(*resultIter) = 0;
 				delete[] chunkVal;
@@ -633,8 +633,8 @@ HarensRE::ChunkMatch()
 			}
 		}
 
-		end_cm = clock();
-		time_cm += (end_cm - start_cm) * 1000 / CLOCKS_PER_SEC;
+		endChunkMatching = clock();
+		timeChunkMatching += (endChunkMatching - startChunkMatching) * 1000 / CLOCKS_PER_SEC;
 		hashQueueLock.unlock();
 		resultCond.notify_one();
 	}

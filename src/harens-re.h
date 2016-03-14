@@ -26,7 +26,7 @@ private:
 	thread tChunkingKernel;
 	thread tChunkingResultProc;
 	thread tChunkHashing;
-	thread *chunk_match_threads;
+	thread *tChunkMatch;
 	// request queue: sync between HandleGetRequest and ReadData
 	// consists of request, response, mutex, condition variable
 	std::queue< std::tuple<std::string&, 
@@ -71,54 +71,54 @@ private:
 	mutex hashQueueMutex;
 	condition_variable newHashCond;
 	// pagable buffer
-	array<char*, PAGABLE_BUFFER_NUM> pagable_buffer;
-	array<unsigned int, PAGABLE_BUFFER_NUM> pagable_buffer_len;
-	array<mutex, PAGABLE_BUFFER_NUM> pagable_buffer_mutex;
-	array<condition_variable, PAGABLE_BUFFER_NUM> pagable_buffer_cond;
-	array<bool, PAGABLE_BUFFER_NUM> pagable_buffer_obsolete;
+	array<char*, PAGABLE_BUFFER_NUM> pagableBuffer;
+	array<unsigned int, PAGABLE_BUFFER_NUM> pagableBufferLen;
+	array<mutex, PAGABLE_BUFFER_NUM> pagableBufferMutex;
+	array<condition_variable, PAGABLE_BUFFER_NUM> pagableBufferCond;
+	array<bool, PAGABLE_BUFFER_NUM> pagableBufferObsolete;
 	// fixed buffer
-	array<char*, FIXED_BUFFER_NUM> fixed_buffer;
-	array<unsigned int, FIXED_BUFFER_NUM> fixed_buffer_len;
+	array<char*, FIXED_BUFFER_NUM> fixedBuffer;
+	array<unsigned int, FIXED_BUFFER_NUM> fixedBufferLen;
 	// chunking kernel asynchronize
-	array<char*, FIXED_BUFFER_NUM> input_kernel;
-	array<unsigned int*, FIXED_BUFFER_NUM> result_kernel;
-	array<unsigned int*, FIXED_BUFFER_NUM> result_host;
-	array<unsigned int, FIXED_BUFFER_NUM> result_host_len;
-	array<mutex, FIXED_BUFFER_NUM> result_host_mutex;
-	array<condition_variable, FIXED_BUFFER_NUM> result_host_cond;
-	array<bool, FIXED_BUFFER_NUM> result_host_obsolete;
-	array<bool, FIXED_BUFFER_NUM> result_host_executing;
+	array<char*, FIXED_BUFFER_NUM> kernelInputBuffer;
+	array<unsigned int*, FIXED_BUFFER_NUM> kernelResultBuffer;
+	array<unsigned int*, FIXED_BUFFER_NUM> hostResultBuffer;
+	array<unsigned int, FIXED_BUFFER_NUM> hostResultLen;
+	array<mutex, FIXED_BUFFER_NUM> hostResultMutex;
+	array<condition_variable, FIXED_BUFFER_NUM> hostResultCond;
+	array<bool, FIXED_BUFFER_NUM> hostResultObsolete;
+	array<bool, FIXED_BUFFER_NUM> hostResultExecuting;
 	// chunking result processing
 	array<cudaStream_t, RESULT_BUFFER_NUM> stream;
-	array<unsigned int*, RESULT_BUFFER_NUM> chunking_result;
-	array<unsigned int, RESULT_BUFFER_NUM> chunking_result_len;
-	array<mutex, RESULT_BUFFER_NUM> chunking_result_mutex;
-	array<condition_variable, RESULT_BUFFER_NUM> chunking_result_cond;
-	array<bool, RESULT_BUFFER_NUM> chunking_result_obsolete;
+	array<unsigned int*, RESULT_BUFFER_NUM> chunkingResultBuffer;
+	array<unsigned int, RESULT_BUFFER_NUM> chunkingResultLen;
+	array<mutex, RESULT_BUFFER_NUM> chunkingResultMutex;
+	array<condition_variable, RESULT_BUFFER_NUM> chunkingResultCond;
+	array<bool, RESULT_BUFFER_NUM> chunkingResultObsolete;
 	// chunk hashing
-	thread *segment_threads;
+	thread *segmentThreads;
 	// chunk matching 
 	LRUStrHash<SHA1_HASH_LENGTH> *circHashPool;
 	mutex *circHashPoolMutex;
-	unsigned long long *duplication_size;
-	unsigned long long total_duplication_size = 0;
+	unsigned long long *duplicationSize;
+	unsigned long long totalDuplicationSize = 0;
 	unsigned long long totalFileLen = 0;
 	// time
-	clock_t start_r, 
-			end_r, 
-			start_ck, 
-			end_ck, 
-			start_cp, 
-			end_cp, 
-			start_ch, 
-			end_ch, 
-			start_cm, 
-			end_cm;
-	double time_r = 0, 
-		   time_ck = 0, 
-		   time_cp = 0,
-		   time_ch, 
-		   time_cm;
+	clock_t startReading, 
+			endReading, 
+			startChunkingKernel, 
+			endChunkingKernel, 
+			startChunkPartitioning, 
+			endChunkPartitioning, 
+			startChunkHashing, 
+			endChunkHashing, 
+			startChunkMatching, 
+			endChunkMatching;
+	double timeReading = 0, 
+		   timeChunkingKernel = 0, 
+		   timeChunkPartitioning = 0,
+		   timeChunkHashing = 0, 
+		   timeChunkMatching = 0;
 
 	/** 
 	* \brief read data from file system based on given filenames.
@@ -190,7 +190,7 @@ public:
 	/**
 	* \brief terminate the core of redundancy elimination module
 	*/
-	void End();
+	void Stop();
 };
 
 #endif /* HARENS_RE_H */

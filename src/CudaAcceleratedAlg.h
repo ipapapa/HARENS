@@ -8,51 +8,48 @@ class CudaAcceleratedAlg {
 private:
 	//file
 	bool readFirstTime = true;
-	unsigned long long file_length;
+	unsigned long long totalFileLen;
 	FixedSizedCharArray charArrayBuffer;
 	char overlap[WINDOW_SIZE - 1];
 	//pagable buffer
-	char* pagable_buffer;
-	unsigned int pagable_buffer_len;
+	char* pagableBuffer;
+	unsigned int pagableBufferLen;
 	//fixed buffer
-	char* fixed_buffer;
-	unsigned int fixed_buffer_len;
+	char* fixedBuffer;
+	unsigned int fixedBufferLen;
 	//RedundancyEliminator_CUDA
 	RedundancyEliminator_CUDA re;
 	//chunking kernel asynchronize
-	char* input_kernel;
-	unsigned int* result_kernel;
-	unsigned int* result_host;
-	unsigned int result_host_len;
+	char* kernelInputBuffer;
+	unsigned int* kernelResultBuffer;
+	unsigned int* hostResultBuffer;
+	unsigned int hostResultLen;
 	//chunking result processing
 	cudaStream_t stream;
-	unsigned int* chunking_result;
-	unsigned int chunking_result_len;
+	unsigned int* chunkingResultBuffer;
+	unsigned int chunkingResultLen;
 	//chunk matching 
-	LRUStrHash<SHA1_HASH_LENGTH> hash_pool;
-	unsigned long long total_duplication_size = 0;
+	LRUStrHash<SHA1_HASH_LENGTH> hashPool;
+	unsigned long long totalDuplicationSize = 0;
 	//Time
 	clock_t start, 
 			end, 
-			start_r, 
-			end_r, 
-			start_t, 
-			end_t, 
-			start_ck, 
-			end_ck, 
-			start_cp, 
-			end_cp, 
-			start_ch, 
-			end_ch, 
-			start_cm, 
-			end_cm;
-	double time_tot = 0, 
-		   time_r = 0, 
-		   time_t = 0, 
-		   time_ck = 0, 
-		   time_cp = 0, 
-		   time_ch, 
-		   time_cm;
+			startReading, 
+			endReading, 
+			startChunkingKernel, 
+			endChunkingKernel, 
+			startChunkPartitioning, 
+			endChunkPartitioning, 
+			startChunkHashing, 
+			endChunkHashing, 
+			startChunkMatching, 
+			endChunkMatching;
+	double timeTotal = 0, 
+		   timeReading = 0, 
+		   timeChunkingKernel = 0, 
+		   timeChunkPartitioning = 0, 
+		   timeChunkHashing, 
+		   timeChunkMatching;
 
 	bool ReadFile();
 	void ChunkingKernel();

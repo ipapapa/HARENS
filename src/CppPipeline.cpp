@@ -7,12 +7,12 @@ CppPipeline::CppPipeline(): charArrayBuffer(MAX_BUFFER_LEN) {
 	buffer = new char*[PAGABLE_BUFFER_NUM];
 	for (int i = 0; i < PAGABLE_BUFFER_NUM; ++i) {
 		buffer[i] = new char[MAX_BUFFER_LEN];
-		buffer_len[i] = 0;
-		buffer_obsolete[i] = true;
+		bufferLen[i] = 0;
+		bufferObsolete[i] = true;
 	}
 
 	for (int i = 0; i < RESULT_BUFFER_NUM; ++i) {
-		chunking_result_obsolete[i] = true;
+		chunkingResultObsolete[i] = true;
 	}
 }
 
@@ -38,14 +38,14 @@ int CppPipeline::Execute()
 	tFingerprinting.join();
 
 	IO::Print("Found %s of redundency, "
-		, IO::InterpretSize(total_duplication_size));
+		, IO::InterpretSize(totalDuplicationSize));
 	IO::Print("which is %f %% of file\n"
-		, (float)total_duplication_size / file_length * 100);
+		, (float)totalDuplicationSize / totalFileLen * 100);
 
 	clock_t end = clock();
-	IO::Print("Reading time: %f ms\n", tot_read);
-	IO::Print("Chunking time: %f ms\n", tot_chunk);
-	IO::Print("Fingerprinting time: %f ms\n", tot_fin);
+	IO::Print("Reading time: %f ms\n", timeReading);
+	IO::Print("Chunking time: %f ms\n", timeChunkPartitioning);
+	IO::Print("Fingerprinting time: %f ms\n", timeChunkHashingAndMatching);
 	IO::Print("Total time: %f ms\n", ((float)end - start) * 1000 / CLOCKS_PER_SEC);
 	IO::Print("=============================================================================\n");
 
@@ -63,7 +63,7 @@ void CppPipeline::Test(double &rate, double &time) {
 	tFingerprinting.join();
 	clock_t end = clock();
 
-	rate = (float)total_duplication_size / file_length * 100;
+	rate = (float)totalDuplicationSize / totalFileLen * 100;
 	time = ((float)end - start) * 1000 / CLOCKS_PER_SEC;
 }
 
@@ -72,84 +72,84 @@ void CppPipeline::ReadFile() {
 	unsigned int curFilePos = 0;
 	int curWindowNum;
 	//Read the first part
-	unique_lock<mutex> readFileInitLock(buffer_mutex[bufferIdx]);
-	start_read = clock();
+	unique_lock<mutex> readFileInitLock(bufferMutex[bufferIdx]);
+	startReading = clock();
 	IO::fileReader->SetupReader(IO::input_file_name);
 	IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN);
-	buffer_len[bufferIdx] = charArrayBuffer.GetLen();
-	memcpy(buffer[bufferIdx], charArrayBuffer.GetArr(), buffer_len[bufferIdx]);
-	file_length += buffer_len[bufferIdx];
+	bufferLen[bufferIdx] = charArrayBuffer.GetLen();
+	memcpy(buffer[bufferIdx], charArrayBuffer.GetArr(), bufferLen[bufferIdx]);
+	totalFileLen += bufferLen[bufferIdx];
 		
-	memcpy(overlap, &buffer[bufferIdx][buffer_len[bufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
-	buffer_obsolete[bufferIdx] = false;
+	memcpy(overlap, &buffer[bufferIdx][bufferLen[bufferIdx] - WINDOW_SIZE + 1], WINDOW_SIZE - 1);	//copy the last window into overlap
+	bufferObsolete[bufferIdx] = false;
 	readFileInitLock.unlock();
-	buffer_cond[bufferIdx].notify_one();
+	bufferCond[bufferIdx].notify_one();
 	bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
-	tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+	timeReading += ((float)clock() - startReading) * 1000 / CLOCKS_PER_SEC;
 	//Read the rest
 	while (true) {
-		unique_lock<mutex> readFileIterLock(buffer_mutex[bufferIdx]);
-		while (buffer_obsolete[bufferIdx] == false) {
-			buffer_cond[bufferIdx].wait(readFileIterLock);
+		unique_lock<mutex> readFileIterLock(bufferMutex[bufferIdx]);
+		while (bufferObsolete[bufferIdx] == false) {
+			bufferCond[bufferIdx].wait(readFileIterLock);
 		}
-		start_read = clock();
+		startReading = clock();
 
 		IO::fileReader->ReadChunk(charArrayBuffer, MAX_BUFFER_LEN - WINDOW_SIZE + 1);
 
 		if (charArrayBuffer.GetLen() == 0) {
 			readFileIterLock.unlock();
-			buffer_cond[bufferIdx].notify_all();
+			bufferCond[bufferIdx].notify_all();
 			break;	//Read nothing
 		}
 		memcpy(buffer[bufferIdx], overlap, WINDOW_SIZE - 1);	//copy the overlap into current part
 		memcpy(&buffer[bufferIdx][WINDOW_SIZE - 1], charArrayBuffer.GetArr(), charArrayBuffer.GetLen());
-		buffer_len[bufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
-		file_length += charArrayBuffer.GetLen();
-		buffer_obsolete[bufferIdx] = false;
+		bufferLen[bufferIdx] = charArrayBuffer.GetLen() + WINDOW_SIZE - 1;
+		totalFileLen += charArrayBuffer.GetLen();
+		bufferObsolete[bufferIdx] = false;
 		memcpy(overlap, &buffer[bufferIdx][charArrayBuffer.GetLen()], WINDOW_SIZE - 1);	//copy the last window into overlap
 		readFileIterLock.unlock();
-		buffer_cond[bufferIdx].notify_one();
+		bufferCond[bufferIdx].notify_one();
 		bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
-		tot_read += ((float)clock() - start_read) * 1000 / CLOCKS_PER_SEC;
+		timeReading += ((float)clock() - startReading) * 1000 / CLOCKS_PER_SEC;
 	}
-	IO::Print("File size: %s\n", IO::InterpretSize(file_length));
-	unique_lock<mutex> readFileEndLock(read_file_end_mutex);
-	read_file_end = true;
+	IO::Print("File size: %s\n", IO::InterpretSize(totalFileLen));
+	unique_lock<mutex> readFileEndLock(readFileEndMutex);
+	readFileEnd = true;
 	//In case the other threads stuck in waiting for condition variable
-	buffer_cond[bufferIdx].notify_all();
+	bufferCond[bufferIdx].notify_all();
 }
 
 void CppPipeline::Chunking() {
 	int bufferIdx = 0;
 	int chunkingResultIdx = 0;
 	while (true) {
-		unique_lock<mutex> bufferLock(buffer_mutex[bufferIdx]);
-		if (buffer_obsolete[bufferIdx]) {
-			unique_lock<mutex> readFileEndLock(read_file_end_mutex);
-			if (read_file_end){
-				unique_lock<mutex> chunkingEndLock(chunking_end_mutex);
-				chunking_end = true;
+		unique_lock<mutex> bufferLock(bufferMutex[bufferIdx]);
+		if (bufferObsolete[bufferIdx]) {
+			unique_lock<mutex> readFileEndLock(readFileEndMutex);
+			if (readFileEnd){
+				unique_lock<mutex> chunkingEndLock(chunkingEndMutex);
+				chunkingEnd = true;
 				return;
 			}
 			readFileEndLock.unlock();
-			buffer_cond[bufferIdx].wait(bufferLock);
+			bufferCond[bufferIdx].wait(bufferLock);
 		}
 
-		start_chunk = clock();
-		deque<unsigned int> currentChunkingResult = re.chunking(buffer[bufferIdx], buffer_len[bufferIdx]);
-		tot_chunk += ((float)clock() - start_chunk) * 1000 / CLOCKS_PER_SEC;
+		startChunkPartitioning = clock();
+		deque<unsigned int> currentChunkingResult = re.chunking(buffer[bufferIdx], bufferLen[bufferIdx]);
+		timeChunkPartitioning += ((float)clock() - startChunkPartitioning) * 1000 / CLOCKS_PER_SEC;
 		bufferLock.unlock();
-		buffer_cond[bufferIdx].notify_one();
+		bufferCond[bufferIdx].notify_one();
 		bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
 
-		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
-		while (chunking_result_obsolete[chunkingResultIdx] == false) {
-			chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
+		unique_lock<mutex> chunkingResultLock(chunkingResultMutex[chunkingResultIdx]);
+		while (chunkingResultObsolete[chunkingResultIdx] == false) {
+			chunkingResultCond[chunkingResultIdx].wait(chunkingResultLock);
 		}
-		chunking_result[chunkingResultIdx] = currentChunkingResult;
-		chunking_result_obsolete[chunkingResultIdx] = false;
+		chunkingResultBuffer[chunkingResultIdx] = currentChunkingResult;
+		chunkingResultObsolete[chunkingResultIdx] = false;
 		chunkingResultLock.unlock();
-		chunking_result_cond[chunkingResultIdx].notify_one();
+		chunkingResultCond[chunkingResultIdx].notify_one();
 		chunkingResultIdx = (chunkingResultIdx + 1) % RESULT_BUFFER_NUM;
 
 	}
@@ -161,30 +161,30 @@ void CppPipeline::Fingerprinting() {
 	//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
 	while (true) {
 		//Get chunking result ready
-		unique_lock<mutex> chunkingResultLock(chunking_result_mutex[chunkingResultIdx]);
-		while (chunking_result_obsolete[chunkingResultIdx]) {
-			unique_lock<mutex> chunkingEndLock(chunking_end_mutex);
-			if (chunking_end)
+		unique_lock<mutex> chunkingResultLock(chunkingResultMutex[chunkingResultIdx]);
+		while (chunkingResultObsolete[chunkingResultIdx]) {
+			unique_lock<mutex> chunkingEndLock(chunkingEndMutex);
+			if (chunkingEnd)
 				return;
 			chunkingEndLock.unlock();
-			chunking_result_cond[chunkingResultIdx].wait(chunkingResultLock);
+			chunkingResultCond[chunkingResultIdx].wait(chunkingResultLock);
 		}
 
 		//Buffer is already ready
-		unique_lock<mutex> bufferLock(buffer_mutex[bufferIdx]);
+		unique_lock<mutex> bufferLock(bufferMutex[bufferIdx]);
 
-		start_fin = clock();
+		startChunkHashingAndMatching = clock();
 
-		total_duplication_size += re.fingerPrinting(chunking_result[chunkingResultIdx], buffer[bufferIdx]);
-		buffer_obsolete[bufferIdx] = true;
-		chunking_result_obsolete[chunkingResultIdx] = true;
+		totalDuplicationSize += re.fingerPrinting(chunkingResultBuffer[chunkingResultIdx], buffer[bufferIdx]);
+		bufferObsolete[bufferIdx] = true;
+		chunkingResultObsolete[chunkingResultIdx] = true;
 		bufferLock.unlock();
-		buffer_cond[bufferIdx].notify_one();
+		bufferCond[bufferIdx].notify_one();
 		chunkingResultLock.unlock();
-		chunking_result_cond[chunkingResultIdx].notify_one();
+		chunkingResultCond[chunkingResultIdx].notify_one();
 
 		bufferIdx = (bufferIdx + 1) % PAGABLE_BUFFER_NUM;
 		chunkingResultIdx = (chunkingResultIdx + 1) % RESULT_BUFFER_NUM;
-		tot_fin += ((float)clock() - start_fin) * 1000 / CLOCKS_PER_SEC;
+		timeChunkHashingAndMatching += ((float)clock() - startChunkHashingAndMatching) * 1000 / CLOCKS_PER_SEC;
 	}
 }

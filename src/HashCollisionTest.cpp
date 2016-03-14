@@ -87,7 +87,7 @@ void HashCollisionTest::Chunking() {
 
 void HashCollisionTest::Fingerprinting() {
 	//When the whole process starts, all chunking results are obsolete, that's the reason fingerprinting part need to check buffer state
-	start_fin = clock();
+	startChunkHashingAndMatching = clock();
 	
 	if (isCollisionCheck) {
 		tuple<int, int> result;
@@ -120,5 +120,5 @@ void HashCollisionTest::Fingerprinting() {
 		}
 	}
 
-	totFin += ((float)clock() - start_fin) * 1000 / CLOCKS_PER_SEC;
+	totFin += ((float)clock() - startChunkHashingAndMatching) * 1000 / CLOCKS_PER_SEC;
 }

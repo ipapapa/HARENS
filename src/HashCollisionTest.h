@@ -29,7 +29,7 @@ private:
 	unsigned int totalDuplicationSize = 0;
 	unsigned int totalFalseReportSize = 0;
 	//Time
-	clock_t start_fin;
+	clock_t startChunkHashingAndMatching;
 	float totFin = 0;
 
 	bool ReadFile();
