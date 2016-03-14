@@ -31,6 +31,7 @@ private:
 	// consists of request, response, mutex, condition variable
 	std::queue< std::tuple<std::string&, 
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   int&,
 						   mutex&,
 						   condition_variable&> > requestQueue;
 	mutex requestQueueMutex;
@@ -39,6 +40,7 @@ private:
 	// consists of pagable buffer indices for package data, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   int&,
 						   mutex&,
 						   condition_variable&> > packageQueue;
 	mutex packageQueueMutex;
@@ -47,6 +49,7 @@ private:
 	// consists of result-host indices for rabin hash, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   int&,
 						   mutex&,
 						   condition_variable&> > rabinQueue;
 	mutex rabinQueueMutex;
@@ -55,6 +58,7 @@ private:
 	// consists of chunking result buffer indices used, response, mutex, condition variable
 	std::queue< std::tuple<std::vector<int>,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   int&,
 						   mutex&,
 						   condition_variable&> > chunkQueue;
 	mutex chunkQueueMutex;
@@ -62,6 +66,7 @@ private:
 	// hash queue: sync between ChunkHashing and ChunkMatch
 	// consists of response and condition variable
 	std::queue< std::tuple<std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
+						   int&,
 						   condition_variable&> > hashQueue;
 	mutex hashQueueMutex;
 	condition_variable newHashCond;
@@ -93,7 +98,8 @@ private:
 	// chunk hashing
 	thread *segment_threads;
 	// chunk matching 
-	LRUStrHash<SHA_DIGEST_LENGTH> *circ_hash_pool;
+	LRUStrHash<SHA1_HASH_LENGTH> *circHashPool;
+	mutex *circHashPoolMutex;
 	unsigned long long *duplication_size;
 	unsigned long long total_duplication_size = 0;
 	unsigned long long totalFileLen = 0;
@@ -140,15 +146,22 @@ private:
 	/**
 	* \brief match the chunks by their hash values
 	*/
-	void ChunkMatch(int hashPoolIdx);
+	void ChunkMatch();
 
 	/**
 	* \brief compute a non-collision hash (SHA-1) value for each chunk in the segment
+	* \param pagableBufferIdx the index of pagable buffer that stores the chunks
+	* \param chunkingResultIdx the index of the buffer that stores the chunking result
+	* \param segmentNum the segment of chunking result that this thread is going to process
+	* \param result a vector that stores the results, which are hash-value pairs
+	* \param resultLenInUint8 the length of all the results if stored in a uint8_t array
+	* \param resultMutex mutex of the result, used to prevent data race
 	*/
 	void ChunkSegmentHashing(int pagableBufferIdx, 
 							 int chunkingResultIdx, 
 							 int segmentNum,
 							 std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
+							 int& resultLenInUint8,
 							 mutex& resultMutex);
 
 public:
@@ -158,14 +171,16 @@ public:
 	/**
 	* \brief fetching data for the GET request and do redundancy elimination process.
 	* Simulating fetching data from server by reading files.
-	* \param the GET request (a file name stored data in server's file system)
-	* \return the hash-chunk pairs of the data. 
+	* \param request the GET request (a file name stored data in server's file system)
+	* \param result the hash-chunk pairs of the data. 
 	* The two integers before hash value and data chunk are their lengths.
-	* MIND: return value is a pointer, caller of this function should be responsible
+	* \param resultLenInUint8 the length of result if put it in a uint8_t array
+	* MIND: result is a pointer, caller of this function should be responsible
 	* to release the memory!
 	*/
-	std::vector< std::tuple<int, unsigned char*, int, char*> >*
-	HandleGetRequest(std::string request);
+	void HandleGetRequest(std::string request,
+						  std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
+						  int& resultLenInUint8);
 
 	/**
 	* \brief start the core of redundancy elimination module

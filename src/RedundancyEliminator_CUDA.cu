@@ -114,9 +114,9 @@ __global__ void Hash(const unsigned long long *TA,
 
 RedundancyEliminator_CUDA::RedundancyEliminator_CUDA(Type type) {
 	if (type == NonMultifingerprint)
-		circHash = new LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
+		circHash = new LRUStrHash<SHA1_HASH_LENGTH>(MAX_CHUNK_NUM);
 	else
-		circHash = new LRUStrHashPool<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
+		circHash = new LRUStrHashPool<SHA1_HASH_LENGTH>(MAX_CHUNK_NUM);
 	hashFunc = RabinHash();
 	int tableSize = RabinHash::TABLE_ROW_NUM * BYTES_IN_ULONG;
 	cudaMalloc((void**)&kernelTA, tableSize);
@@ -133,9 +133,9 @@ RedundancyEliminator_CUDA::RedundancyEliminator_CUDA(Type type) {
 
 void RedundancyEliminator_CUDA::SetupRedundancyEliminator_CUDA(Type type) {
 	if (type == NonMultifingerprint)
-		circHash = new LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
+		circHash = new LRUStrHash<SHA1_HASH_LENGTH>(MAX_CHUNK_NUM);
 	else
-		circHash = new LRUStrHashPool<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM);
+		circHash = new LRUStrHashPool<SHA1_HASH_LENGTH>(MAX_CHUNK_NUM);
 	hashFunc = RabinHash();
 	int tableSize = RabinHash::TABLE_ROW_NUM * BYTES_IN_ULONG;
 	cudaMalloc((void**)&kernelTA, tableSize);
@@ -186,7 +186,7 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 {
 	unsigned int prevIdx = 0;
 	char* chunk;
-	unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+	unsigned char *chunkHash = new unsigned char[SHA1_HASH_LENGTH];
 	unsigned int chunkLen;
 	for (int i = 0; i < indicesNum; ++i) {
 		if (prevIdx == 0) {
@@ -218,11 +218,12 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 												  int indicesNum, 
 												  char* package,
 												  std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
+												  int& resultLenInUint8,
 												  mutex& resultMutex) 
 {
 	unsigned int prevIdx = 0;
 	char* chunk;
-	unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+	unsigned char *chunkHash = new unsigned char[SHA1_HASH_LENGTH];
 	unsigned int chunkLen;
 	for (int i = 0; i < indicesNum; ++i) {
 		if (prevIdx == 0) {
@@ -241,10 +242,13 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 		memcpy(newChunk, &chunk, chunkLen);
 		//Push result into vector
 		resultMutex.lock();
-		result->push_back(make_tuple(SHA_DIGEST_LENGTH,
+		result->push_back(make_tuple(SHA1_HASH_LENGTH,
 									 chunkHash,
 									 chunkLen,
 									 newChunk));
+		resultLenInUint8 += sizeof(unsigned int) * 2	// SHA1_HASH_LENGTH and chunkLen
+						  + SHA1_HASH_LENGTH			// chunkHash
+						  + chunkLen;					// newChunk
 		resultMutex.unlock();
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];
@@ -277,7 +281,7 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(deque<unsigned int> index
 		chunk = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		unsigned char *chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		unsigned char *chunkHash = new unsigned char[SHA1_HASH_LENGTH];
 		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
@@ -317,7 +321,7 @@ unsigned int RedundancyEliminator_CUDA::fingerPrinting(unsigned int *idxArr,
 		chunk = &(package[prevIdx]);
 
 		//Mind! never use sizeof(chunk) to check the chunk size
-		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		unsigned char* chunkHash = new unsigned char[SHA1_HASH_LENGTH];
 		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (circHash->Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;

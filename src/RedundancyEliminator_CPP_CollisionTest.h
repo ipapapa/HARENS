@@ -10,7 +10,7 @@ class RedundancyEliminator_CPP_CollisionTest: public RedundancyEliminator_CPP
 private:
 	//The LRU hashes for three kind of hash functions
 	LRUHash<unsigned long long> rabinLRUHash;
-	LRUStrHash<SHA_DIGEST_LENGTH> sha1LRUHash;
+	LRUStrHash<SHA1_HASH_LENGTH> sha1LRUHash;
 	LRUStrHash<MD5_DIGEST_LENGTH> md5LRUHash;
 
 	/*
@@ -22,8 +22,8 @@ private:
 				  rabinMap;
 	unordered_map<unsigned char*, 
 				  tuple<char*, int>, 
-				  CharArrayHashFunc<SHA_DIGEST_LENGTH>, 
-				  CharArrayEqualTo<SHA_DIGEST_LENGTH>> 
+				  CharArrayHashFunc<SHA1_HASH_LENGTH>, 
+				  CharArrayEqualTo<SHA1_HASH_LENGTH>> 
 				  sha1Map;
 	unordered_map<unsigned char*,
 				  tuple<char*, int>,

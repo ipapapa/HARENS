@@ -10,7 +10,7 @@
 class RedundancyEliminator_CPP {
 protected:
 	RabinHash hashFunc;
-	LRUStrHash<SHA_DIGEST_LENGTH> circHash;
+	LRUStrHash<SHA1_HASH_LENGTH> circHash;
 
 	//Add a new chunk into cache, if hash value queue is full also delete the oldest chunk
 	void addNewChunk(unsigned char* hashValue,

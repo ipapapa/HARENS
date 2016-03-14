@@ -7,11 +7,12 @@ HarensRE::HarensRE(int mapperNum, int reducerNum)
 	this->reducerNum = reducerNum;
 	segment_threads = new thread[mapperNum];
 	chunk_match_threads = new thread[reducerNum];
-	circ_hash_pool = new LRUStrHash<SHA_DIGEST_LENGTH>[reducerNum];
+	circHashPool = new LRUStrHash<SHA1_HASH_LENGTH>[reducerNum];
+	circHashPoolMutex = new mutex[reducerNum];
 	duplication_size = new unsigned long long[reducerNum];
 	for (int i = 0; i < reducerNum; ++i) 
 	{
-		circ_hash_pool[i] = LRUStrHash<SHA_DIGEST_LENGTH>(MAX_CHUNK_NUM / reducerNum);
+		circHashPool[i] = LRUStrHash<SHA1_HASH_LENGTH>(MAX_CHUNK_NUM / reducerNum);
 		duplication_size[i] = 0;
 	}
 
@@ -50,7 +51,8 @@ HarensRE::~HarensRE()
 {
 	delete[] segment_threads;
 	delete[] chunk_match_threads;
-	delete[] circ_hash_pool;
+	delete[] circHashPool;
+	delete[] circHashPoolMutex;
 	delete[] duplication_size;
 
 	// destruct chunking result proc
@@ -78,17 +80,20 @@ HarensRE::~HarensRE()
 	}
 }
 
-vector< tuple<int, unsigned char*, int, char*> >* 
-HarensRE::HandleGetRequest(string request)
+void
+HarensRE::HandleGetRequest(string request,
+						   vector< tuple<int, unsigned char*, int, char*> >* result,
+						   int& resultLenInUint8)
 {
 	// put values into request list as reference
 	mutex resultMutex;
 	condition_variable resultCond;
-	vector< tuple<int, unsigned char*, int, char*> >*  result
-		= new vector< tuple<int, unsigned char*, int, char*> >();
+	result = new vector< tuple<int, unsigned char*, int, char*> >();
+	resultLenInUint8 = 0;
 	unique_lock<mutex> requestQueueLock(requestQueueMutex);
 	requestQueue.push(make_tuple(ref(request), 
 								 ref(result), 
+								 ref(resultLenInUint8),
 								 ref(resultMutex),
 								 ref(resultCond)));
 	requestQueueLock.unlock();
@@ -96,8 +101,6 @@ HarensRE::HandleGetRequest(string request)
 	// wait for result notification
 	unique_lock<mutex> resultLock(resultMutex);
 	resultCond.wait(resultLock, [result]{return result->size() > 0;});
-
-	return result;
 }
 
 void
@@ -111,7 +114,7 @@ HarensRE::Start()
 	tChunkHashing = thread(std::mem_fn(&HarensRE::ChunkHashing), this);
 	for (int i = 0; i < reducerNum; ++i)
 	{
-		chunk_match_threads[i] = thread(std::mem_fn(&HarensRE::ChunkMatch), this, i);
+		chunk_match_threads[i] = thread(std::mem_fn(&HarensRE::ChunkMatch), this);
 	}
 }
 
@@ -182,8 +185,9 @@ HarensRE::ReadData()
 		requestQueue.pop();
 		string& request = get<0>(reqResCond);
 		auto& result = get<1>(reqResCond);
-		mutex& resultMutex = get<2>(reqResCond);
-		condition_variable& resultCond = get<3>(reqResCond);
+		int& resultLenInUint8 = get<2>(reqResCond);
+		mutex& resultMutex = get<3>(reqResCond);
+		condition_variable& resultCond = get<4>(reqResCond);
 
 		// set a vector containing all the indices of pagable buffers used to store this data
 		vector<int> pagableBuffersUsed;
@@ -267,6 +271,7 @@ HarensRE::ReadData()
 		// would be destroyed by the end of processing this request
 		packageQueue.push(make_tuple(pagableBuffersUsed,
 									 ref(result),
+									 ref(resultLenInUint8),
 								 	 ref(resultMutex),
 									 ref(resultCond)));
 		packageQueueLock.unlock();
@@ -304,8 +309,9 @@ HarensRE::ChunkingKernel()
 		packageQueue.pop();
 		vector<int> pagableBuffersUsed = get<0>(pkgResCond);
 		auto& result = get<1>(pkgResCond);
-		mutex& resultMutex = get<2>(pkgResCond);
-		condition_variable& resultCond = get<3>(pkgResCond);
+		int& resultLenInUint8 = get<2>(pkgResCond);
+		mutex& resultMutex = get<3>(pkgResCond);
+		condition_variable& resultCond = get<4>(pkgResCond);
 
 		// set a vector containing all the indices of result-host used to store the results
 		vector<int> resultHostUsed;
@@ -353,6 +359,7 @@ HarensRE::ChunkingKernel()
 		// would be destroyed by the end of processing this package
 		rabinQueue.push(make_tuple(resultHostUsed,
 								   ref(result),
+								   ref(resultLenInUint8),
 								   ref(resultMutex),
 								   ref(resultCond)));
 		rabinQueueLock.unlock();
@@ -389,8 +396,9 @@ HarensRE::ChunkingResultProc()
 		rabinQueue.pop();
 		vector<int> resultHostUsed = get<0>(rabinResCond);
 		auto& result = get<1>(rabinResCond);
-		mutex& resultMutex = get<2>(rabinResCond);
-		condition_variable& resultCond = get<3>(rabinResCond);
+		int& resultLenInUint8 = get<2>(rabinResCond);
+		mutex& resultMutex = get<3>(rabinResCond);
+		condition_variable& resultCond = get<4>(rabinResCond);
 
 		// set a vector containing all the indices of chunking result buffers used
 		vector<int> chunkingResultBufferUsed;
@@ -443,6 +451,7 @@ HarensRE::ChunkingResultProc()
 		// would be destroyed by the end of processing this package chunking
 		chunkQueue.push(make_tuple(chunkingResultBufferUsed,
 								   ref(result),
+								   ref(resultLenInUint8),
 								   ref(resultMutex),
 								   ref(resultCond)));
 		chunkQueueLock.unlock();
@@ -479,8 +488,9 @@ HarensRE::ChunkHashing()
 		chunkQueue.pop();
 		vector<int> chunkingResultBufferUsed = get<0>(chunksResCond);
 		auto& result = get<1>(chunksResCond);
-		mutex& resultMutex = get<2>(chunksResCond);
-		condition_variable& resultCond = get<3>(chunksResCond);
+		int& resultLenInUint8 = get<2>(chunksResCond);
+		mutex& resultMutex = get<3>(chunksResCond);
+		condition_variable& resultCond = get<4>(chunksResCond);
 
 		for(vector<int>::iterator chunkingResultIdx = chunkingResultBufferUsed.begin();
 			chunkingResultIdx != chunkingResultBufferUsed.end();
@@ -493,8 +503,14 @@ HarensRE::ChunkHashing()
 			start_ch = clock();
 			for (int i = 0; i < mapperNum; ++i) 
 			{
-				segment_threads[i] = thread(std::mem_fn(&HarensRE::ChunkSegmentHashing)
-					, this, pagableBufferIdx, *chunkingResultIdx, i, result, ref(resultMutex));
+				segment_threads[i] = thread(std::mem_fn(&HarensRE::ChunkSegmentHashing), 
+											this, 
+											pagableBufferIdx, 
+											*chunkingResultIdx, 
+											i, 
+											result, 
+											ref(resultLenInUint8), 
+											ref(resultMutex));
 			}
 
 			for (int i = 0; i < mapperNum; ++i) 
@@ -515,8 +531,14 @@ HarensRE::ChunkHashing()
 			end_ch = clock();
 			time_ch += (end_ch - start_ch) * 1000 / CLOCKS_PER_SEC;
 		}
-
 		
+		// done computing hash values for the chunks
+		unique_lock<mutex> hashQueueLock(hashQueueMutex);
+		hashQueue.push(make_tuple(ref(result),
+								  ref(resultLenInUint8),
+								  ref(resultCond)));
+		hashQueueLock.unlock();
+		newHashCond.notify_all();
 	}
 }
 
@@ -525,6 +547,7 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx,
 							  int chunkingResultIdx, 
 							  int segmentNum,
 							  vector< tuple<int, unsigned char*, int, char*> >* result,
+							  int& resultLenInUint8,
 							  mutex& resultMutex) 
 {
 	int listSize = chunking_result_len[chunkingResultIdx];
@@ -539,11 +562,12 @@ HarensRE::ChunkSegmentHashing(int pagableBufferIdx,
 						 segLen, 
 						 pagable_buffer[pagableBufferIdx],
 						 result,
+						 resultLenInUint8,
 						 resultMutex);
 }
 
 void 
-HarensRE::ChunkMatch(int hashPoolIdx) 
+HarensRE::ChunkMatch() 
 {
 	// variables available in the whole scope
 	unsigned char* toBeDel = nullptr;
@@ -570,7 +594,8 @@ HarensRE::ChunkMatch(int hashPoolIdx)
 		auto& resCond = hashQueue.front();
 		hashQueue.pop();
 		auto& result = get<0>(resCond);
-		condition_variable& resultCond = get<1>(resCond);
+		int& resultLenInUint8 = get<1>(resCond);
+		condition_variable& resultCond = get<2>(resCond);
 			
 		start_cm = clock();
 
@@ -584,15 +609,20 @@ HarensRE::ChunkMatch(int hashPoolIdx)
 			int chunkLen = get<2>(*resultIter);
 			char* chunkVal = get<3>(*resultIter);
 
-			// find out the index of circ_hash_pool to handle this hash value
+			// find out the index of circHashPool to handle this hash value
 			unsigned int hashPoolIdx;
 			memcpy(&hashPoolIdx, hashVal, sizeof(unsigned int));
 			hashPoolIdx %= reducerNum;
 
 			// find out duplications
-			if (circ_hash_pool[hashPoolIdx].FindAndAdd(hashVal, toBeDel))
+			bool found;
+			circHashPoolMutex[hashPoolIdx].lock();
+			found = circHashPool[hashPoolIdx].FindAndAdd(hashVal, toBeDel);
+			circHashPoolMutex[hashPoolIdx].unlock();
+			if (found)
 			{
 				duplication_size[hashPoolIdx] += chunkLen;
+				resultLenInUint8 -= chunkLen;
 				get<2>(*resultIter) = 0;
 				delete[] chunkVal;
 				get<3>(*resultIter) = NULL;

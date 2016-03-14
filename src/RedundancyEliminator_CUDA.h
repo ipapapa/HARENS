@@ -14,7 +14,7 @@
 class RedundancyEliminator_CUDA {
 private:
 	RabinHash hashFunc;
-	LRUVirtualHash<SHA_DIGEST_LENGTH>* circHash;
+	LRUVirtualHash<SHA1_HASH_LENGTH>* circHash;
 
 	/*
 	* Add a new chunk into cache, if hash value queue is full, 
@@ -49,6 +49,7 @@ public:
 						   int indicesNum, 
 						   char* package,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
+						   int& resultLenInUint8,
 						   mutex& resultMutex);
 	
 	/*

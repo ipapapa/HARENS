@@ -62,7 +62,7 @@ private:
 	CircularQueuePool chunk_hash_queue_pool;
 	//chunk matching 
 	thread *chunk_match_threads;
-	LRUStrHash<SHA_DIGEST_LENGTH> *circ_hash_pool;
+	LRUStrHash<SHA1_HASH_LENGTH> *circ_hash_pool;
 	unsigned long long *duplication_size;
 	unsigned long long total_duplication_size = 0;
 	//Time

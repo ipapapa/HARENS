@@ -66,7 +66,7 @@ unsigned int RedundancyEliminator_CPP::fingerPrinting(deque<unsigned int> indexQ
 			continue;
 
 		chunk = &(package[prevIdx]);
-		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		unsigned char* chunkHash = new unsigned char[SHA1_HASH_LENGTH];
 		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (circHash.Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;

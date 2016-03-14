@@ -105,7 +105,7 @@ unsigned int RedundancyEliminator_CPP_CollisionTest::
 			continue;
 
 		chunk = &(package[prevIdx]);
-		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		unsigned char* chunkHash = new unsigned char[SHA1_HASH_LENGTH];
 		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (sha1LRUHash.Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;
@@ -239,7 +239,7 @@ tuple<unsigned int, unsigned int> RedundancyEliminator_CPP_CollisionTest::
 			continue;
 
 		chunk = &(package[prevIdx]);
-		unsigned char* chunkHash = new unsigned char[SHA_DIGEST_LENGTH];
+		unsigned char* chunkHash = new unsigned char[SHA1_HASH_LENGTH];
 		EncryptionHashes::computeSha1Hash(chunk, chunkLen, chunkHash);
 		if (sha1LRUHash.Find(chunkHash)) { //find duplications
 			duplicationSize += chunkLen;

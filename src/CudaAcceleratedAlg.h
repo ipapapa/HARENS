@@ -29,7 +29,7 @@ private:
 	unsigned int* chunking_result;
 	unsigned int chunking_result_len;
 	//chunk matching 
-	LRUStrHash<SHA_DIGEST_LENGTH> hash_pool;
+	LRUStrHash<SHA1_HASH_LENGTH> hash_pool;
 	unsigned long long total_duplication_size = 0;
 	//Time
 	clock_t start, 

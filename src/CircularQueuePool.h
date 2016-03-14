@@ -49,7 +49,7 @@ public:
 			chunkHashQueuePool[i] = new unsigned char*[queueSize];
 			for (int j = 0; j < queueSize; ++j) {
 				//Allocate memory for the queue pool
-				chunkHashQueuePool[i][j] = new unsigned char[SHA_DIGEST_LENGTH];
+				chunkHashQueuePool[i][j] = new unsigned char[SHA1_HASH_LENGTH];
 			}
 			chunkLenQueuePool[i] = new unsigned int[queueSize];
 			front[i] = 0;
@@ -72,7 +72,7 @@ public:
 		}
 		//Do push
 		rear[poolAnchor] = (rear[poolAnchor] + 1) % queueSize;
-		memcpy(chunkHashQueuePool[poolAnchor][rear[poolAnchor]], hashValue, SHA_DIGEST_LENGTH);
+		memcpy(chunkHashQueuePool[poolAnchor][rear[poolAnchor]], hashValue, SHA1_HASH_LENGTH);
 		chunkLenQueuePool[poolAnchor][rear[poolAnchor]] = chunkLen;
 
 		++curQueueSize[poolAnchor];

@@ -42,6 +42,8 @@ extern "C" {
 const unsigned int BYTES_IN_INT = sizeof(int);
 const unsigned int BYTES_IN_UINT = sizeof(unsigned int);
 const unsigned int BYTES_IN_ULONG = sizeof(unsigned long long);
+//Store SHA_DIGEST_LENGTH in an unsigned int, so that we can know the length of this variable for sure
+const unsigned int SHA1_HASH_LENGTH = SHA_DIGEST_LENGTH;
 //Length of sliding window in objects/packets chunking step (in bytes)
 const int WINDOW_SIZE = 12;
 //while P = 2^k, fingerprint % P means fingerprint & P_MINUS (P - 1). We set P = 32 here
