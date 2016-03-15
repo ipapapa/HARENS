@@ -35,9 +35,7 @@ install:
 	sudo apt-get install gcc g++ gcc-4.9 g++-4.9 libxi6 libxi-dev libglu1-mesa libglu1-mesa-dev libxmu6 linux-headers-amd64 linux-source
 	sudo apt-get install libpcap-dev
 	sudo apt-get install openssl libssl-dev
-	if ! grep -Fq "/usr/local/cuda-7.5/lib64" $HOME/.profile; then
-		echo "\nexport LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$LD_LIBRARY_PATH" >> $HOME/.profile
-	fi
+	if ! grep -Fq "/usr/local/cuda-7.5/lib64" $(HOME)/.profile; then echo "\nexport LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$$LD_LIBRARY_PATH" >> $(HOME)/.profile; fi;
 
 .PHONY: all
 all: run
