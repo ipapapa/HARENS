@@ -89,9 +89,11 @@ HarensRE::HandleGetRequest(string request,
 	mutex resultMutex;
 	condition_variable resultCond;
 	result = new vector< tuple<int, unsigned char*, int, char*> >();
+	vector<int> bufferIndices;
 	resultLenInUint8 = 0;
 	unique_lock<mutex> requestQueueLock(requestQueueMutex);
 	requestQueue.push(make_tuple(ref(request), 
+								 ref(bufferIndices),
 								 ref(result), 
 								 ref(resultLenInUint8),
 								 ref(resultMutex),
@@ -182,18 +184,16 @@ HarensRE::ReadData()
 		}
 
 		// get the request that came first
-		auto& reqResCond = requestQueue.front();
+		auto& requestEntries = requestQueue.front();
 		requestQueue.pop();
 		requestQueueLock.unlock();
 		IO::Print("request queue pop, current size = %d\n", requestQueue.size());
-		string& request = get<0>(reqResCond);
-		auto& result = get<1>(reqResCond);
-		int& resultLenInUint8 = get<2>(reqResCond);
-		mutex& resultMutex = get<3>(reqResCond);
-		condition_variable& resultCond = get<4>(reqResCond);
-
-		// set a vector containing all the indices of pagable buffers used to store this data
-		vector<int> pagableBuffersUsed;
+		string& request = get<0>(requestEntries);
+		vector<int>& pagableBuffersUsed = get<1>(requestEntries);
+		auto& result = get<2>(requestEntries);
+		int& resultLenInUint8 = get<3>(requestEntries);
+		mutex& resultMutex = get<4>(requestEntries);
+		condition_variable& resultCond = get<5>(requestEntries);
 
 		// set up the overlap buffer
 		char overlap[WINDOW_SIZE - 1];
@@ -270,13 +270,12 @@ HarensRE::ReadData()
 
 		// done reading data for this request
 		unique_lock<mutex> packageQueueLock(packageQueueMutex);
-		// only pass result and resultCond by reference, because pagableBuffersUsed \
-		// would be destroyed by the end of processing this request
-		packageQueue.push(make_tuple(pagableBuffersUsed,
+		packageQueue.push(make_tuple(ref(pagableBuffersUsed),
 									 ref(result),
 									 ref(resultLenInUint8),
 								 	 ref(resultMutex),
 									 ref(resultCond)));
+		IO::Print("After reading, pagable buffer indices = %d, %d\n", pagableBuffersUsed[0], pagableBuffersUsed[1]);
 		packageQueueLock.unlock();
 		newPackageCond.notify_all();
 	}
@@ -308,23 +307,28 @@ HarensRE::ChunkingKernel()
 		}
 
 		// get the package that came first
-		auto& pkgResCond = packageQueue.front();
+		auto& packageEntries = packageQueue.front();
 		packageQueue.pop();
 		packageQueueLock.unlock();
 		IO::Print("chunking kernel\n");
-		vector<int> pagableBuffersUsed = get<0>(pkgResCond);
-		auto& result = get<1>(pkgResCond);
-		int& resultLenInUint8 = get<2>(pkgResCond);
-		mutex& resultMutex = get<3>(pkgResCond);
-		condition_variable& resultCond = get<4>(pkgResCond);
+		vector<int>& bufferIndices = get<0>(packageEntries);
+		auto& result = get<1>(packageEntries);
+		int& resultLenInUint8 = get<2>(packageEntries);
+		mutex& resultMutex = get<3>(packageEntries);
+		condition_variable& resultCond = get<4>(packageEntries);
 
-		// set a vector containing all the indices of result-host used to store the results
-		vector<int> resultHostUsed;
+		// we need to use the same vector to store resultHostUsed
+		vector<int> pagableBuffersUsed = bufferIndices;
+		vector<int>& resultHostUsed = bufferIndices;
+		resultHostUsed.clear();
+
+		IO::Print("Before chunking, pagable buffer indices = %d, %d\n", pagableBuffersUsed[0], pagableBuffersUsed[1]);
 
 		for(vector<int>::iterator pagableBufferIdx = pagableBuffersUsed.begin();
 			pagableBufferIdx != pagableBuffersUsed.end();
 			++pagableBufferIdx)
 		{
+			IO::Print("pagableBufferIdx = %d\n", *pagableBufferIdx);
 			// pagable buffer is ready since this thread has received the package
 
 			// get result host ready
@@ -361,9 +365,7 @@ HarensRE::ChunkingKernel()
 
 		// done (Rabin) hashing data for this package
 		unique_lock<mutex> rabinQueueLock(rabinQueueMutex);
-		// only pass result and resultCond by reference, because resultHostUsed \
-		// would be destroyed by the end of processing this package
-		rabinQueue.push(make_tuple(resultHostUsed,
+		rabinQueue.push(make_tuple(ref(resultHostUsed),
 								   ref(result),
 								   ref(resultLenInUint8),
 								   ref(resultMutex),
@@ -398,17 +400,19 @@ HarensRE::ChunkingResultProc()
 		}
 
 		// get the rabin hash result that came first
-		auto& rabinResCond = rabinQueue.front();
+		auto& rabinEntries = rabinQueue.front();
 		rabinQueue.pop();
 		rabinQueueLock.unlock();
-		vector<int> resultHostUsed = get<0>(rabinResCond);
-		auto& result = get<1>(rabinResCond);
-		int& resultLenInUint8 = get<2>(rabinResCond);
-		mutex& resultMutex = get<3>(rabinResCond);
-		condition_variable& resultCond = get<4>(rabinResCond);
+		vector<int>& bufferIndices = get<0>(rabinEntries);
+		auto& result = get<1>(rabinEntries);
+		int& resultLenInUint8 = get<2>(rabinEntries);
+		mutex& resultMutex = get<3>(rabinEntries);
+		condition_variable& resultCond = get<4>(rabinEntries);
 
-		// set a vector containing all the indices of chunking result buffers used
-		vector<int> chunkingResultBufferUsed;
+		// we need to use the same vector to store chunkingResultBufferUsed
+		vector<int> resultHostUsed = bufferIndices;
+		vector<int>& chunkingResultBufferUsed = bufferIndices;
+		chunkingResultBufferUsed.clear();
 
 		for(vector<int>::iterator resultHostIdx = resultHostUsed.begin();
 			resultHostIdx != resultHostUsed.end();
@@ -454,9 +458,7 @@ HarensRE::ChunkingResultProc()
 		
 		// done chunking the package
 		unique_lock<mutex> chunkQueueLock(chunkQueueMutex);
-		// only pass result and resultCond by reference, because chunkingResultBufferUsed \
-		// would be destroyed by the end of processing this package chunking
-		chunkQueue.push(make_tuple(chunkingResultBufferUsed,
+		chunkQueue.push(make_tuple(ref(chunkingResultBufferUsed),
 								   ref(result),
 								   ref(resultLenInUint8),
 								   ref(resultMutex),

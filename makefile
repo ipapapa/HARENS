@@ -15,6 +15,7 @@ lib:
 clean:
 	make -C ./src clean
 	make -C ./tests clean
+	rm -r lib.d
 
 .PHONY: test
 test:

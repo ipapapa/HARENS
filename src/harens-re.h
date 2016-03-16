@@ -28,8 +28,11 @@ private:
 	thread tChunkHashing;
 	thread *tChunkMatch;
 	// request queue: sync between HandleGetRequest and ReadData
-	// consists of request, response, mutex, condition variable
+	// consists of request, indices of buffers, response, mutex, condition variable
+	// indices of buffers are put here to sync the indices of buffers used for the other threads
+	// because only HandleGetRequest lets the vector survive until the end of this loop of process 
 	std::queue< std::tuple<std::string&, 
+						   std::vector<int>&,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
 						   int&,
 						   mutex&,
@@ -38,7 +41,7 @@ private:
 	condition_variable newRequestCond;
 	// package queue: sync between ReadData and ChunkingKernel
 	// consists of pagable buffer indices for package data, response, mutex, condition variable
-	std::queue< std::tuple<std::vector<int>,
+	std::queue< std::tuple<std::vector<int>&,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
 						   int&,
 						   mutex&,
@@ -47,7 +50,7 @@ private:
 	condition_variable newPackageCond;
 	// rabin result queue: sync between ChunkingKernel and ChunkingResultProc
 	// consists of result-host indices for rabin hash, response, mutex, condition variable
-	std::queue< std::tuple<std::vector<int>,
+	std::queue< std::tuple<std::vector<int>&,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
 						   int&,
 						   mutex&,
@@ -56,7 +59,7 @@ private:
 	condition_variable newRabinCond;
 	// chunk queue: sync between ChunkingResultProc and ChunkHashing
 	// consists of chunking result buffer indices used, response, mutex, condition variable
-	std::queue< std::tuple<std::vector<int>,
+	std::queue< std::tuple<std::vector<int>&,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >*&,
 						   int&,
 						   mutex&,

@@ -65,10 +65,10 @@ User Guide
     - open the file \path\to\Project\HARENS\src\makefile with your favorite editor
     - uncommand the lines after *##commands for ubuntu*
     - command the lines after *##commands for debian*
-    - type the commands as in Debian
+    - type the commands as in Debian users' instruction
   - If other system
     - Edit makefile (I'm sure you can handle this)
-    - type the commands as in Debian
+    - type the commands as in Debian users' instruction
   - You would find "run", the executable, in current path
   - Possible problems
     - The ```make install``` command does not always work, try it again if it fails
