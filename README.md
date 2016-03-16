@@ -59,20 +59,16 @@ User Guide
   - If using Debian, type the folling command
     - ```cd \path\to\Project\HARENS```
     - ```make clean``` (only when you want to re-install)
-    - ```make install```
+    - ```make install``` (you need to reboot to validate the path setting)
     - ```make all```
   - If using Ubuntu
     - open the file \path\to\Project\HARENS\src\makefile with your favorite editor
     - uncommand the lines after *##commands for ubuntu*
     - command the lines after *##commands for debian*
-    - ```cd \path\to\Project\HARENS```
-    - ```make clean``` (only when you want to re-install)
-    - ```make install```
-    - ```make all```
+    - type the commands as in Debian
   - If other system
     - Edit makefile (I'm sure you can handle this)
-    - ```make install```
-    - ```make all```
+    - type the commands as in Debian
   - You would find "run", the executable, in current path
   - Possible problems
     - The ```make install``` command does not always work, try it again if it fails

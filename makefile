@@ -3,8 +3,13 @@
 install:
 	make -C ./src install
 
+.PHONY: all
 all:
 	make -C ./src all
+
+.PHONY: lib
+lib: 
+	make -C ./src lib
 
 .PHONY: clean
 clean:

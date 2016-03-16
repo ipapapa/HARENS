@@ -96,6 +96,7 @@ HarensRE::HandleGetRequest(string request,
 								 ref(resultLenInUint8),
 								 ref(resultMutex),
 								 ref(resultCond)));
+	IO::Print("request queue push, current size = %d\n", requestQueue.size());
 	requestQueueLock.unlock();
 	newRequestCond.notify_all();
 	// wait for result notification
@@ -106,7 +107,7 @@ HarensRE::HandleGetRequest(string request,
 void
 HarensRE::Start()
 {
-	IO::Print("redundancy elimination module kernel started...\n");
+	IO::Print("Redundancy elimination module kernel started...\n");
 	// initiate and start threads
 	tReadData = thread(std::mem_fn(&HarensRE::ReadData), this);
 	tChunkingKernel = thread(std::mem_fn(&HarensRE::ChunkingKernel), this);
@@ -121,13 +122,13 @@ HarensRE::Start()
 void HarensRE::Stop()
 {
 	// send termination signal
-	IO::Print("seding terminaltion signial to kernel...\n");
+	IO::Print("Sending terminaltion signial to kernel...\n");
 	unique_lock<mutex> terminateSigLock(terminateSigMutex);
 	terminateSig = true;
 	terminateSigLock.unlock();
 
 	// wait for the kernel to terminate
-	IO::Print("redundancy elimination module kernel is going to terminate...\n");
+	IO::Print("Redundancy elimination module kernel is going to terminate...\n");
 	tReadData.join();
 	tChunkingKernel.join();
 	tChunkingResultProc.join();
@@ -183,6 +184,8 @@ HarensRE::ReadData()
 		// get the request that came first
 		auto& reqResCond = requestQueue.front();
 		requestQueue.pop();
+		requestQueueLock.unlock();
+		IO::Print("request queue pop, current size = %d\n", requestQueue.size());
 		string& request = get<0>(reqResCond);
 		auto& result = get<1>(reqResCond);
 		int& resultLenInUint8 = get<2>(reqResCond);
@@ -216,7 +219,7 @@ HarensRE::ReadData()
 		// copy the last window into overlap
 		memcpy(overlap, 
 			   &pagableBuffer[pagableBufferIdx]
-			   				  [pagableBufferLen[pagableBufferIdx] - WINDOW_SIZE + 1], 
+			   				 [pagableBufferLen[pagableBufferIdx] - WINDOW_SIZE + 1], 
 			   WINDOW_SIZE - 1);
 		readFileInitLock.unlock();
 		pagableBuffersUsed.push_back(pagableBufferIdx);
@@ -307,6 +310,8 @@ HarensRE::ChunkingKernel()
 		// get the package that came first
 		auto& pkgResCond = packageQueue.front();
 		packageQueue.pop();
+		packageQueueLock.unlock();
+		IO::Print("chunking kernel\n");
 		vector<int> pagableBuffersUsed = get<0>(pkgResCond);
 		auto& result = get<1>(pkgResCond);
 		int& resultLenInUint8 = get<2>(pkgResCond);
@@ -336,6 +341,7 @@ HarensRE::ChunkingKernel()
 				   fixedBufferLen[fixedBufferIdx]);
 			//pagable buffer is still not obsolete here!
 
+			IO::Print("start rabin hash async\n");
 			re.RabinHashAsync(kernelInputBuffer[fixedBufferIdx], 
 							  fixedBuffer[fixedBufferIdx], 
 							  fixedBufferLen[fixedBufferIdx],
@@ -394,6 +400,7 @@ HarensRE::ChunkingResultProc()
 		// get the rabin hash result that came first
 		auto& rabinResCond = rabinQueue.front();
 		rabinQueue.pop();
+		rabinQueueLock.unlock();
 		vector<int> resultHostUsed = get<0>(rabinResCond);
 		auto& result = get<1>(rabinResCond);
 		int& resultLenInUint8 = get<2>(rabinResCond);
@@ -486,6 +493,7 @@ HarensRE::ChunkHashing()
 		// get the chunking result that came first
 		auto& chunksResCond = chunkQueue.front();
 		chunkQueue.pop();
+		chunkQueueLock.unlock();
 		vector<int> chunkingResultBufferUsed = get<0>(chunksResCond);
 		auto& result = get<1>(chunksResCond);
 		int& resultLenInUint8 = get<2>(chunksResCond);
@@ -593,6 +601,7 @@ HarensRE::ChunkMatch()
 		// get the (SHA1) hash values of chunks that came first
 		auto& resCond = hashQueue.front();
 		hashQueue.pop();
+		hashQueueLock.unlock();
 		auto& result = get<0>(resCond);
 		int& resultLenInUint8 = get<1>(resCond);
 		condition_variable& resultCond = get<2>(resCond);
@@ -635,7 +644,6 @@ HarensRE::ChunkMatch()
 
 		endChunkMatching = clock();
 		timeChunkMatching += (endChunkMatching - startChunkMatching) * 1000 / CLOCKS_PER_SEC;
-		hashQueueLock.unlock();
 		resultCond.notify_one();
 	}
 }
