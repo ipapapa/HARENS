@@ -218,8 +218,8 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 												  int indicesNum, 
 												  char* package,
 												  std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
-												  int& resultLenInUint8,
-												  mutex& resultMutex) 
+												  int* resultLenInUint8,
+												  mutex* resultMutex) 
 {
 	unsigned int prevIdx = 0;
 	char* chunk;
@@ -241,15 +241,15 @@ void RedundancyEliminator_CUDA::ChunkHashingAsync(unsigned int* indices,
 		char* newChunk = new char[chunkLen];
 		memcpy(newChunk, &chunk, chunkLen);
 		//Push result into vector
-		resultMutex.lock();
+		resultMutex->lock();
 		result->push_back(make_tuple(SHA1_HASH_LENGTH,
 									 chunkHash,
 									 chunkLen,
 									 newChunk));
-		resultLenInUint8 += sizeof(int) * 2		// SHA1_HASH_LENGTH and chunkLen
+		*resultLenInUint8 += sizeof(int) * 2		// SHA1_HASH_LENGTH and chunkLen
 						  + SHA1_HASH_LENGTH	// chunkHash
 						  + chunkLen;			// newChunk
-		resultMutex.unlock();
+		resultMutex->unlock();
 		//Mind! never use sizeof(chunk) to check the chunk size
 		prevIdx = indices[i];
 	}

@@ -49,8 +49,8 @@ public:
 						   int indicesNum, 
 						   char* package,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
-						   int& resultLenInUint8,
-						   mutex& resultMutex);
+						   int* resultLenInUint8,
+						   mutex* resultMutex);
 	
 	/*
 	* Compute hash value for each chunk and find out the duplicate chunks.
