@@ -66,6 +66,7 @@ private:
 	// consists of response and condition variable
 	std::queue< std::tuple<std::vector< std::tuple<int, unsigned char*, int, char*> >*,
 						   int*,
+						   mutex*,
 						   condition_variable*> > hashQueue;
 	mutex hashQueueMutex;
 	condition_variable newHashCond;

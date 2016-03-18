@@ -88,7 +88,6 @@ HarensRE::HandleGetRequest(string request,
 	// put values into request list as reference
 	mutex* resultMutex = new mutex();
 	condition_variable* resultCond = new condition_variable();
-	vector<int> bufferIndices;
 	*resultLenInUint8 = 0;
 	unique_lock<mutex> requestQueueLock(requestQueueMutex);
 	unique_lock<mutex> resultQueueLock(resultQueueMutex);
@@ -401,6 +400,7 @@ HarensRE::ChunkingResultProc()
 			chunkQueue.push(-1);
 			chunkQueueLock.unlock();
 			newChunksCond.notify_all();
+			continue;
 		}
 		
 		// wait until the last stream with the same stream index is finished
@@ -450,7 +450,7 @@ HarensRE::ChunkHashing()
 {
 	// variables available in the whole scope
 	int pagableBufferIdx = 0;
-	std::vector< std::tuple<int, unsigned char*, int, char*> >* result = NULL;
+	vector< tuple<int, unsigned char*, int, char*> >* result = nullptr;
 	int* resultLenInUint8;
 	mutex* resultMutex;
 	condition_variable* resultCond;
@@ -483,12 +483,20 @@ HarensRE::ChunkHashing()
 		// if found a deliminator
 		if (chunkingResultIdx == -1)
 		{
-			result = NULL;
+			// done computing hash values for the chunks
+			unique_lock<mutex> hashQueueLock(hashQueueMutex);
+			hashQueue.push(make_tuple(result,
+									  resultLenInUint8,
+									  resultMutex,
+									  resultCond));
+			hashQueueLock.unlock();
+			newHashCond.notify_all();
+			result = nullptr;
 			continue;
 		}
 
 		// if dealing with new package
-		if (result == NULL)
+		if (result == nullptr)
 		{
 			// result queue is not empty because new chunking results coming
 			unique_lock<mutex> resultQueueLock(resultQueueMutex);
@@ -531,15 +539,6 @@ HarensRE::ChunkHashing()
 		pagableBufferIdx = (pagableBufferIdx + 1) % PAGABLE_BUFFER_NUM;
 		endChunkHashing = clock();
 		timeChunkHashing += (endChunkHashing - startChunkHashing) * 1000 / CLOCKS_PER_SEC;
-		
-		
-		// done computing hash values for the chunks
-		unique_lock<mutex> hashQueueLock(hashQueueMutex);
-		hashQueue.push(make_tuple(result,
-								  resultLenInUint8,
-								  resultCond));
-		hashQueueLock.unlock();
-		newHashCond.notify_all();
 	}
 }
 
@@ -592,15 +591,17 @@ HarensRE::ChunkMatch()
 		}
 
 		// get the (SHA1) hash values of chunks that came first
-		auto& resCond = hashQueue.front();
+		auto& resLenCond = hashQueue.front();
 		hashQueue.pop();
 		hashQueueLock.unlock();
-		auto result = get<0>(resCond);
-		int* resultLenInUint8 = get<1>(resCond);
-		condition_variable* resultCond = get<2>(resCond);
-			
-		startChunkMatching = clock();
+		vector< tuple<int, unsigned char*, int, char*> >* result = get<0>(resLenCond);
+		int* resultLenInUint8 = get<1>(resLenCond);
+		mutex* resultMutex = get<2>(resLenCond);
+		condition_variable* resultCond = get<3>(resLenCond);
 
+		bool flag = true;
+
+		resultMutex->lock();
 		for(auto resultIter = result->begin();
 			resultIter != result->end();
 			++resultIter)
@@ -621,22 +622,22 @@ HarensRE::ChunkMatch()
 			circHashPoolMutex[hashPoolIdx].lock();
 			found = circHashPool[hashPoolIdx].FindAndAdd(hashVal, toBeDel);
 			circHashPoolMutex[hashPoolIdx].unlock();
+			toBeDel = nullptr;
 			if (found)
 			{
 				duplicationSize[hashPoolIdx] += chunkLen;
 				*resultLenInUint8 -= chunkLen;
 				get<2>(*resultIter) = 0;
 				delete[] chunkVal;
-				get<3>(*resultIter) = NULL;
+				get<3>(*resultIter) = nullptr;
 				if (toBeDel != nullptr) 
 				{	
 					// remove chunk corresponding to toBeDel from storage
 				}
 			}
 		}
+		resultMutex->unlock();
 
-		endChunkMatching = clock();
-		timeChunkMatching += (endChunkMatching - startChunkMatching) * 1000 / CLOCKS_PER_SEC;
 		resultCond->notify_one();
 	}
 }
