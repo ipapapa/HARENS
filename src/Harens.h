@@ -19,7 +19,7 @@ private:
 	bool chunkingKernelEnd = false;
 	bool chunkingResultProcEnd = false;
 	bool chunkHashingEnd = false;
-	mutex readFileEndMutex, 
+	std::mutex readFileEndMutex, 
 		  chunkingKernelEndMutex, 
 		  chunkingResultProcEndMutex, 
 		  chunkHashingEndMutex;
@@ -28,40 +28,40 @@ private:
 	FixedSizedCharArray charArrayBuffer;
 	char overlap[WINDOW_SIZE - 1];
 	//pagable buffer
-	array<char*, PAGABLE_BUFFER_NUM> pagableBuffer;
-	array<unsigned int, PAGABLE_BUFFER_NUM> pagableBufferLen;
-	array<mutex, PAGABLE_BUFFER_NUM> pagableBufferMutex;
-	array<condition_variable, PAGABLE_BUFFER_NUM> pagableBufferCond;
-	array<bool, PAGABLE_BUFFER_NUM> pagableBufferObsolete;
+	std::array<char*, PAGABLE_BUFFER_NUM> pagableBuffer;
+	std::array<unsigned int, PAGABLE_BUFFER_NUM> pagableBufferLen;
+	std::array<std::mutex, PAGABLE_BUFFER_NUM> pagableBufferMutex;
+	std::array<std::condition_variable, PAGABLE_BUFFER_NUM> pagableBufferCond;
+	std::array<bool, PAGABLE_BUFFER_NUM> pagableBufferObsolete;
 	//fixed buffer
-	array<char*, FIXED_BUFFER_NUM> fixedBuffer;
-	array<unsigned int, FIXED_BUFFER_NUM> fixedBufferLen;
-	/*array<mutex, FIXED_BUFFER_NUM> fixed_buffer_mutex;
-	array<condition_variable, FIXED_BUFFER_NUM> fixed_buffer_cond;
-	array<bool, FIXED_BUFFER_NUM> fixed_buffer_obsolete;*/
+	std::array<char*, FIXED_BUFFER_NUM> fixedBuffer;
+	std::array<unsigned int, FIXED_BUFFER_NUM> fixedBufferLen;
+	/*std::array<std::mutex, FIXED_BUFFER_NUM> fixed_buffer_mutex;
+	std::array<std::condition_variable, FIXED_BUFFER_NUM> fixed_buffer_cond;
+	std::array<bool, FIXED_BUFFER_NUM> fixed_buffer_obsolete;*/
 	//RedundancyEliminator_CUDA
 	RedundancyEliminator_CUDA re;
 	//chunking kernel asynchronize
-	array<char*, FIXED_BUFFER_NUM> kernelInputBuffer;
-	array<unsigned int*, FIXED_BUFFER_NUM> kernelResultBuffer;
-	array<unsigned int*, FIXED_BUFFER_NUM> hostResultBuffer;
-	array<unsigned int, FIXED_BUFFER_NUM> hostResultLen;
-	array<mutex, FIXED_BUFFER_NUM> hostResultMutex;
-	array<condition_variable, FIXED_BUFFER_NUM> hostResultCond;
-	array<bool, FIXED_BUFFER_NUM> hostResultObsolete;
-	array<bool, FIXED_BUFFER_NUM> hostResultExecuting;
+	std::array<char*, FIXED_BUFFER_NUM> kernelInputBuffer;
+	std::array<unsigned int*, FIXED_BUFFER_NUM> kernelResultBuffer;
+	std::array<unsigned int*, FIXED_BUFFER_NUM> hostResultBuffer;
+	std::array<unsigned int, FIXED_BUFFER_NUM> hostResultLen;
+	std::array<std::mutex, FIXED_BUFFER_NUM> hostResultMutex;
+	std::array<std::condition_variable, FIXED_BUFFER_NUM> hostResultCond;
+	std::array<bool, FIXED_BUFFER_NUM> hostResultObsolete;
+	std::array<bool, FIXED_BUFFER_NUM> hostResultExecuting;
 	//chunking result processing
-	array<cudaStream_t, RESULT_BUFFER_NUM> stream;
-	array<unsigned int*, RESULT_BUFFER_NUM> chunkingResultBuffer;
-	array<unsigned int, RESULT_BUFFER_NUM> chunkingResultLen;
-	array<mutex, RESULT_BUFFER_NUM> chunkingResultMutex;
-	array<condition_variable, RESULT_BUFFER_NUM> chunkingResultCond;
-	array<bool, RESULT_BUFFER_NUM> chunkingResultObsolete;
+	std::array<cudaStream_t, RESULT_BUFFER_NUM> stream;
+	std::array<unsigned int*, RESULT_BUFFER_NUM> chunkingResultBuffer;
+	std::array<unsigned int, RESULT_BUFFER_NUM> chunkingResultLen;
+	std::array<std::mutex, RESULT_BUFFER_NUM> chunkingResultMutex;
+	std::array<std::condition_variable, RESULT_BUFFER_NUM> chunkingResultCond;
+	std::array<bool, RESULT_BUFFER_NUM> chunkingResultObsolete;
 	//chunk hashing
-	thread *segmentThreads;
+	std::thread *segmentThreads;
 	CircularQueuePool chunkHashQueuePool;
 	//chunk matching 
-	thread *chunkMatchingThreads;
+	std::thread *chunkMatchingThreads;
 	LRUStrHash<SHA1_HASH_LENGTH> *circHashPool;
 	unsigned long long *duplicationSize;
 	unsigned long long totalDuplicationSize = 0;

@@ -13,7 +13,7 @@ private:
 	bool isCollisionCheck;
 	unsigned int fileLength = 0;
 	RedundancyEliminator_CPP_CollisionTest re;
-	ifstream ifs;
+	std::ifstream ifs;
 	PcapReader fileReader;
 	unsigned int curFilePos = 0;
 
@@ -24,7 +24,7 @@ private:
 	FixedSizedCharArray charArrayBuffer;
 
 	unsigned int bufferLen = 0;
-	deque<unsigned int> chunkingResult;
+	std::deque<unsigned int> chunkingResult;
 	//Result
 	unsigned int totalDuplicationSize = 0;
 	unsigned int totalFalseReportSize = 0;

@@ -26,12 +26,12 @@ public:
 	/*
 	* Partition a stream into chunks
 	*/
-	deque<unsigned int> chunking(char* package, unsigned int packageSize);
+	std::deque<unsigned int> chunking(char* package, unsigned int packageSize);
 
 	/*
 	* Compute hash value for each chunk and find out the duplicate chunks
 	*/
-	unsigned int fingerPrinting(deque<unsigned int> indexQ, char* package);
+	unsigned int fingerPrinting(std::deque<unsigned int> indexQ, char* package);
 
 	/*
 	* Read in a stream, partition it into chunks, and find out the duplicate chunks

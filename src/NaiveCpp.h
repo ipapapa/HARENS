@@ -20,7 +20,7 @@ private:
 	FixedSizedCharArray charArrayBuffer;
 
 	unsigned int bufferLen = 0;
-	deque<unsigned int> chunkingResultBuffer;
+	std::deque<unsigned int> chunkingResultBuffer;
 	//Result
 	unsigned long long totalDuplicationSize = 0;
 	//Time

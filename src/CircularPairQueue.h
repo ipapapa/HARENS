@@ -1,6 +1,5 @@
 #pragma once
 #include "Definition.h"
-using namespace std;
 
 /*
 We have 2 threads accessing an object of this class simultaneously, one for push, the other for pop.
@@ -14,9 +13,9 @@ public:
 	T* secondQ;
 	int front, rear;	//rear point to the last used entry, there's an empty entry after rear
 	unsigned int size;
-	mutex contentMutex;
-	mutex fullMutex;
-	condition_variable fullCond;
+	std::mutex contentMutex;
+	std::mutex fullMutex;
+	std::condition_variable fullCond;
 
 	CircularPairQueue() {
 		size = TEST_MAX_KERNEL_INPUT_LEN;
@@ -46,7 +45,7 @@ public:
 
 	void Push(S firstHashValue, T secondHashValue) {
 		//Make sure that the queue is not full
-		unique_lock<mutex> fullLock(fullMutex);
+		unique_lock<std::mutex> fullLock(fullMutex);
 		if (IsFull()) {
 			fullCond.wait(fullLock);
 		}
@@ -73,7 +72,7 @@ public:
 
 	inline bool IsEmpty() {
 		bool isEmpty;
-		unique_lock<mutex> contentLock(contentMutex);
+		unique_lock<std::mutex> contentLock(contentMutex);
 		isEmpty = ((rear + 1) % size == front);
 		return isEmpty;
 	}
@@ -81,7 +80,7 @@ public:
 	/*We set the condition of full as ((rear + 2) % size == front)*/
 	inline bool IsFull() {
 		bool isFull;
-		unique_lock<mutex> contentLock(contentMutex);
+		unique_lock<std::mutex> contentLock(contentMutex);
 		isFull = ((rear + 2) % size == front);
 		return isFull;
 	}

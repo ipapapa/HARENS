@@ -1,6 +1,5 @@
 #pragma once
 #include "Definition.h"
-using namespace std;
 
 class RabinHash {
 private:

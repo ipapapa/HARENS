@@ -9,23 +9,23 @@ private:
 	unsigned long long totalFileLen = 0;
 	RedundancyEliminator_CPP re;
 	//syncronize
-	array<mutex, PAGABLE_BUFFER_NUM> bufferMutex;						//lock for buffer
-	array<condition_variable, PAGABLE_BUFFER_NUM> bufferCond;
-	array<mutex, RESULT_BUFFER_NUM> chunkingResultMutex;				//lock for chunkingResultBuffer
-	array<condition_variable, RESULT_BUFFER_NUM> chunkingResultCond;
-	array<bool, PAGABLE_BUFFER_NUM> bufferObsolete;					//states of buffer
-	array<bool, RESULT_BUFFER_NUM> chunkingResultObsolete;			//states of chunkingResultBuffer
+	std::array<std::mutex, PAGABLE_BUFFER_NUM> bufferMutex;						//lock for buffer
+	std::array<std::condition_variable, PAGABLE_BUFFER_NUM> bufferCond;
+	std::array<std::mutex, RESULT_BUFFER_NUM> chunkingResultMutex;				//lock for chunkingResultBuffer
+	std::array<std::condition_variable, RESULT_BUFFER_NUM> chunkingResultCond;
+	std::array<bool, PAGABLE_BUFFER_NUM> bufferObsolete;						//states of buffer
+	std::array<bool, RESULT_BUFFER_NUM> chunkingResultObsolete;					//states of chunkingResultBuffer
 	bool readFileEnd = false;
 	bool chunkingEnd = false;
-	mutex readFileEndMutex, 
-		  chunkingEndMutex;
+	std::mutex readFileEndMutex, 
+			   chunkingEndMutex;
 	//shared data
 	char overlap[WINDOW_SIZE - 1];
 	char** buffer;
 	FixedSizedCharArray charArrayBuffer;
 
-	array<unsigned int, PAGABLE_BUFFER_NUM> bufferLen;
-	array<deque<unsigned int>, RESULT_BUFFER_NUM> chunkingResultBuffer;
+	std::array<unsigned int, PAGABLE_BUFFER_NUM> bufferLen;
+	std::array<std::deque<unsigned int>, RESULT_BUFFER_NUM> chunkingResultBuffer;
 	//Result
 	unsigned long long totalDuplicationSize = 0;
 	//Time

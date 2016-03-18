@@ -1,5 +1,5 @@
 #include "RabinHash.h"
-
+using namespace std;
 
 /*
 * Initialize the tables to zero

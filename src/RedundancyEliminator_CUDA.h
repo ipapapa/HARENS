@@ -50,13 +50,13 @@ public:
 						   char* package,
 						   std::vector< std::tuple<int, unsigned char*, int, char*> >* result,
 						   int* resultLenInUint8,
-						   mutex* resultMutex);
+						   std::mutex* resultMutex);
 	
 	/*
 	* Compute hash value for each chunk and find out the duplicate chunks.
 	* Take a queue as input
 	*/
-	unsigned int fingerPrinting(deque<unsigned int> indexQ, 
+	unsigned int fingerPrinting(std::deque<unsigned int> indexQ, 
 								char* package);
 
 	/*

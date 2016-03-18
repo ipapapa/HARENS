@@ -1,5 +1,5 @@
 #include "RedundancyEliminator_CPP_CollisionTest.h"
-
+using namespace std;
 
 RedundancyEliminator_CPP_CollisionTest::RedundancyEliminator_CPP_CollisionTest()
 {

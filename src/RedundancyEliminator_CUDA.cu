@@ -1,4 +1,5 @@
 #include "RedundancyEliminator_CUDA.h"
+using namespace std;
 
 #define CharArraySize(array) strlen(array)
 

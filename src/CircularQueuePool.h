@@ -1,6 +1,5 @@
 #pragma once
 #include "Definition.h"
-using namespace std;
 
 /*
 * We have 2 threads accessing an object of this class simultaneously
@@ -18,8 +17,8 @@ public:
 	const unsigned int queueSize;	//Number of entries in a queue
 	//Access control - prevent reading/writing when empty/full
 	unsigned int *curQueueSize;
-	mutex *curQueueSizeMutex;
-	condition_variable *emptyCond, *fullCond;
+	std::mutex *curQueueSizeMutex;
+	std::condition_variable *emptyCond, *fullCond;
 
 	/*
 	* Initiaze the queue pool.
@@ -41,9 +40,9 @@ public:
 		rear = new int[poolSize];
 
 		curQueueSize = new unsigned int[poolSize];
-		curQueueSizeMutex = new mutex[poolSize];
-		emptyCond = new condition_variable[poolSize];
-		fullCond = new condition_variable[poolSize];
+		curQueueSizeMutex = new std::mutex[poolSize];
+		emptyCond = new std::condition_variable[poolSize];
+		fullCond = new std::condition_variable[poolSize];
 
 		for (int i = 0; i < poolSize; ++i) {
 			chunkHashQueuePool[i] = new unsigned char*[queueSize];
@@ -66,7 +65,7 @@ public:
 	void Push(unsigned char* hashValue, unsigned int chunkLen, int(*mod)(unsigned char*, int)) {
 		//Make sure that the queue is not full
 		int poolAnchor = mod(hashValue, poolSize);
-		unique_lock<mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
+		std::unique_lock<std::mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
 		while (curQueueSize[poolAnchor] >= queueSize) {
 			fullCond[poolAnchor].wait(sizeLock);
 		}
@@ -87,14 +86,14 @@ public:
 	* The queue is defined by its index in the pool.
 	* Pause and wait for notification if the corresponding queue is empty.
 	*/
-	tuple<unsigned char*, unsigned int> Pop(int poolAnchor) {
+	std::tuple<unsigned char*, unsigned int> Pop(int poolAnchor) {
 		//Make sure that the queue is not empty
-		unique_lock<mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
+		std::unique_lock<std::mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
 		while (curQueueSize[poolAnchor] <= 0) {
 			emptyCond[poolAnchor].wait(sizeLock);
 		}
 		//Do pop
-		tuple<unsigned char*, unsigned int> ret = make_tuple(
+		std::tuple<unsigned char*, unsigned int> ret = std::make_tuple(
 			chunkHashQueuePool[poolAnchor][front[poolAnchor]],
 			chunkLenQueuePool[poolAnchor][front[poolAnchor]]);
 		front[poolAnchor] = (front[poolAnchor] + 1) % queueSize;
@@ -110,7 +109,7 @@ public:
 	* Check if a queue defined by its index in the pool is empty.
 	*/
 	bool IsEmpty(int poolAnchor) {
-		unique_lock<mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
+		std::unique_lock<std::mutex> sizeLock(curQueueSizeMutex[poolAnchor]);
 		bool isEmpty = (curQueueSize[poolAnchor] <= 0);
 		sizeLock.unlock();
 		return isEmpty;

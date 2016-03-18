@@ -1,4 +1,5 @@
 #include "RedundancyEliminator_CPP.h"
+using namespace std;
 
 RedundancyEliminator_CPP::RedundancyEliminator_CPP() {
 	//moved the content to setup function to avoid the duplicated dynamic initializer

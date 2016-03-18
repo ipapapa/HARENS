@@ -152,10 +152,6 @@ void HarensRE::Stop()
 		, (float)totalDuplicationSize / totalFileLen * 100);
 }
 
-//TODO: start here
-//Use iterator to walk through requestQueue
-//remember to notifyone() when this request is done
-//figure out how to know a request is done, especially when input file is too large for one pagable memory
 void 
 HarensRE::ReadData() 
 {
@@ -627,7 +623,7 @@ HarensRE::ChunkMatch()
 			{
 				duplicationSize[hashPoolIdx] += chunkLen;
 				*resultLenInUint8 -= chunkLen;
-				get<2>(*resultIter) = 0;
+				get<2>(*resultIter) = -chunkLen;
 				delete[] chunkVal;
 				get<3>(*resultIter) = nullptr;
 				if (toBeDel != nullptr) 

@@ -3,6 +3,7 @@
 #include "CudaAcceleratedAlg.h"
 #include "Harens.h"
 #include "HashCollisionTest.h"
+using namespace std;
 
 enum Method { CPP_Imp, CPP_Pipeline, CUDA_Imp, CUDA_Pipeline, CUDA_COMPARE, ALL };
 Method method = CUDA_Pipeline;

@@ -17,19 +17,19 @@ private:
 	The hash maps that store all the duplications detected 
 	by using three kind of hash functions
 	*/
-	unordered_map<unsigned long long, 
-				  tuple<char*, int>> 
-				  rabinMap;
-	unordered_map<unsigned char*, 
-				  tuple<char*, int>, 
-				  CharArrayHashFunc<SHA1_HASH_LENGTH>, 
-				  CharArrayEqualTo<SHA1_HASH_LENGTH>> 
-				  sha1Map;
-	unordered_map<unsigned char*,
-				  tuple<char*, int>,
-				  CharArrayHashFunc<MD5_DIGEST_LENGTH>,
-				  CharArrayEqualTo<MD5_DIGEST_LENGTH>>
-				  md5Map;
+	std::unordered_map<unsigned long long, 
+					   std::tuple<char*, int>> 
+					   rabinMap;
+	std::unordered_map<unsigned char*, 
+					   std::tuple<char*, int>, 
+					   CharArrayHashFunc<SHA1_HASH_LENGTH>, 
+					   CharArrayEqualTo<SHA1_HASH_LENGTH>> 
+					   sha1Map;
+	std::unordered_map<unsigned char*,
+					   std::tuple<char*, int>,
+					   CharArrayHashFunc<MD5_DIGEST_LENGTH>,
+					   CharArrayEqualTo<MD5_DIGEST_LENGTH>>
+					   md5Map;
 
 	/*
 	The addNewChunk function implemented for the algorithm using 
@@ -55,16 +55,16 @@ public:
 	~RedundancyEliminator_CPP_CollisionTest();
 
 	inline unsigned long long ComputeRabinHash(char* chunk, unsigned int chunkSize);
-	unsigned int RabinFingerPrinting(deque<unsigned int> indexQ, char* package);
-	unsigned int Sha1FingerPrinting(deque<unsigned int> indexQ, char* package);
-	unsigned int Md5FingerPrinting(deque<unsigned int> indexQ, char* package);
-	tuple<unsigned int, unsigned int> 
-		RabinFingerPrintingWithCollisionCheck(deque<unsigned int> 
+	unsigned int RabinFingerPrinting(std::deque<unsigned int> indexQ, char* package);
+	unsigned int Sha1FingerPrinting(std::deque<unsigned int> indexQ, char* package);
+	unsigned int Md5FingerPrinting(std::deque<unsigned int> indexQ, char* package);
+	std::tuple<unsigned int, unsigned int> 
+		RabinFingerPrintingWithCollisionCheck(std::deque<unsigned int> 
 											  indexQ, char* package);
-	tuple<unsigned int, unsigned int>
-		Sha1FingerPrintingWithCollisionCheck(deque<unsigned int> indexQ,
+	std::tuple<unsigned int, unsigned int>
+		Sha1FingerPrintingWithCollisionCheck(std::deque<unsigned int> indexQ,
 											 char* package);
-	tuple<unsigned int, unsigned int>
-		Md5FingerPrintingWithCollisionCheck(deque<unsigned int> indexQ,
+	std::tuple<unsigned int, unsigned int>
+		Md5FingerPrintingWithCollisionCheck(std::deque<unsigned int> indexQ,
 											char* package);
 };
