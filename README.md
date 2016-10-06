@@ -19,8 +19,7 @@ We used Intel Core i7-5930K 3.5GHz 12 cores CPU, 32GB DDR4 RAM, and Nvidia Tesla
 <img src="Throughput.jpg" width="650"/>
 
 
-Algorithm Overview
--------------------
+## Algorithm Overview
 
 - Packet/Object chunking: a sliding window to scan through the whole input stream, and marks the beginning of a window as a fingerprint based on MODP Rabin Fingerprint
 - Compute a SHA-1 for chunk. We chose SHA-1 because it is light-weighted and has low has collisions.
@@ -37,8 +36,12 @@ Algorithm Overview
 
 Above, we provide a summary of the techniques we have used. There are more memory efficient techniques that somebody may find in our code base.
 
-Requirements
--------------
+## Research Publications
+
+A detailed description can also be found in our research paper:
+* K. Diao, I. Papapanagiotou, T. J. Hacker, ["HARENS: Hardware Accelerated Redundancy Elimination in Network Systems"](http://ipapapa.github.io/Files/cloudcom2016.pdf), IEEE CloudCom 2016.
+
+## Requirements
 
 - Windows 7/8 64-bit (Windows 10 possibly doesn't support CUDA architecture) or Linux 64-bit
 - NVidia GPU, which supports cuda compute capability 3.5 or later
@@ -47,10 +50,10 @@ Requirements
   - Visual Studio 2013 or later
   - C++ 11
 
-User Guide
--------------
+## User Guide
 
-###Installation
+
+### Installation
 - Before installation, make sure you have cuda-toolkit (>=6.5) installed
 - (For Windows users)
   - Open HARENS.sln with Visual Studio and compile
@@ -74,20 +77,20 @@ User Guide
     - The ```make install``` command does not always work, try it again if it fails
     - Use ```echo $LD_LIBRARY_PATH``` to check if ```/usr/local/cuda-7.5/lib64``` is in path. Run ```export LD_LIBRARY_PATH=/usr/local/cuda-7.5/lib64:$LD_LIBRARY_PATH``` if not.
 
-###Usage
+### Usage
 Refer to the guide by typing:
 - (For Windows users)
   - type ```HARENS.exe -h```
 - (For Linux users)
   - type ```run -h```
 
-Bug Reporting
--------------
+## Bug Reporting
+
 * For reporting bugs please use the [HARENS/issues](https://github.com/ipapapa/HARENS/issues) page.
 * We are looking forward to pull requests from everybody through [HARENS/pulls](https://github.com/ipapapa/HARENS/pulls).
 
-License
--------
+## License
+
 © Contributors, 2015. Licensed under an [Apache-2.0](https://github.com/ipapapa/HARENS/blob/master/License) license.
 This project was initially developed by [Kelu Diao](mailto:diaokelu@gmail.com) and [Dr. Ioannis Papapanagiotou](mailto:ipapapa@ncsu.edu).
 
